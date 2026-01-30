@@ -59,6 +59,15 @@
     }
     textarea{ min-height:90px; resize:vertical; }
 
+    /* ✅ Force dropdown to look like a dropdown on phones */
+    #productSelect{
+      display:block;
+      min-height:48px;
+      font-size:16px;
+      -webkit-appearance: menulist;
+      appearance: menulist;
+    }
+
     .btn{
       background:#ff0000;
       color:#fff;
@@ -140,9 +149,11 @@
     <div class="card">
       <div style="font-weight:900; color:#ffb347;">Products</div>
 
-      <!-- ✅ Dropdown fallback picker -->
-      <div class="row" style="margin-top:10px;">
-        <select id="productSelect"></select>
+      <!-- ✅ Always-visible dropdown -->
+      <div style="margin-top:10px; width:100%;">
+        <select id="productSelect">
+          <option value="">Loading products…</option>
+        </select>
       </div>
 
       <!-- ✅ Clickable cards -->
@@ -182,7 +193,6 @@
     onSnapshot
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  // SAME CONFIG YOU GAVE
   const firebaseConfig = {
     apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
     authDomain:"bracelets-and-color.firebaseapp.com",
@@ -295,16 +305,11 @@
         <div class="title">${title}</div>
         <div class="sub mono">id: ${p.id}</div>
       `;
-
-      // ✅ pointerup works better on mobile than click sometimes
       div.addEventListener("pointerup", ()=> pickProduct(p.id));
-
       productList.appendChild(div);
     });
 
-    // auto pick first if none selected
     if(!selectedId) selectedId = products[0].id;
-
     productSelect.value = selectedId;
     pickProduct(selectedId);
   }
@@ -319,7 +324,6 @@
     unsub = onSnapshot(colRef, snap=>{
       products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
 
-      // sort by label
       products.sort((a,b)=>{
         const A = String(a.type || a.name || a.id).toLowerCase();
         const B = String(b.type || b.name || b.id).toLowerCase();
@@ -332,6 +336,7 @@
       console.error(err);
       statusLine.innerHTML = `<span class="bad">Error loading products: ${err.message}</span>`;
       productList.innerHTML = `<div class="hint bad">Check your Firestore rules / permissions.</div>`;
+      productSelect.innerHTML = `<option value="">Error loading products</option>`;
     });
   }
 
@@ -382,7 +387,6 @@
   saveBtn.addEventListener("click", saveSizes);
   loadCurrentBtn.addEventListener("click", loadCurrentIntoInput);
 
-  // dropdown selects product too
   productSelect.addEventListener("change", () => {
     if(productSelect.value) pickProduct(productSelect.value);
   });
