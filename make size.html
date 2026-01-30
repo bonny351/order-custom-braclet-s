@@ -193,6 +193,7 @@
     onSnapshot
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+  // ✅ SAME CONFIG YOU GAVE
   const firebaseConfig = {
     apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
     authDomain:"bracelets-and-color.firebaseapp.com",
@@ -205,6 +206,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // ✅ MATCH YOUR ADMIN PANEL TAB
   const PRODUCTS_COLLECTION = "products_bracelets";
 
   const productList = document.getElementById("productList");
@@ -261,12 +263,10 @@
   function pickProduct(id){
     selectedId = id;
 
-    // highlight cards
     document.querySelectorAll(".item").forEach(el=>{
       el.classList.toggle("active", el.dataset.id === id);
     });
 
-    // sync dropdown
     if(productSelect.value !== id) productSelect.value = id;
 
     const p = products.find(x=>x.id===id);
@@ -293,11 +293,9 @@
     products.forEach(p=>{
       const title = p.type || p.name || p.id;
 
-      // dropdown option
       const opt = new Option(title, p.id);
       productSelect.add(opt);
 
-      // clickable card
       const div = document.createElement("div");
       div.className = "item";
       div.dataset.id = p.id;
