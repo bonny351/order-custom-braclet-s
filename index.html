@@ -1,396 +1,352 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tactics & Treats – Size Builder</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bracelet Preorder</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(to right, #7a0c0c, #000, #7a0c0c);
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
 
-  <style>
-    body{
-      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      font-weight:500;
-      background:#111;
-      color:#fff;
-      margin:0;
-      padding:18px;
-    }
-    header{
-      display:flex;
-      justify-content:center;
-      background:linear-gradient(90deg,#7a0c0c,#000);
-      padding:14px;
-      border-radius:10px;
-      box-shadow:0 0 12px rgba(255,0,0,0.4);
-      margin-bottom:12px;
-    }
-    h1{ margin:0; color:#ff0000; font-weight:800; }
+nav {
+  text-align: center;
+  background: #111;
+  padding: 10px 0;
+  border-bottom: 2px solid #ff0000;
+  box-shadow: 0 0 10px #ff0000;
+}
 
-    .wrap{
-      max-width:1100px;
-      margin:0 auto;
-      display:grid;
-      gap:12px;
-    }
+nav a {
+  color: white;
+  margin: 0 15px;
+  font-weight: bold;
+  text-decoration: none;
+}
 
-    .card{
-      background:#181818;
-      padding:14px;
-      border-radius:12px;
-      box-shadow:0 0 12px rgba(255,0,0,0.2);
-    }
+nav a:hover {
+  color: #ff0000;
+  text-shadow: 0 0 6px #ff0000;
+}
 
-    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+h1 {
+  text-align: center;
+  color: #ff0000;
+  margin-bottom: 25px;
+}
 
-    input, textarea, select{
-      background:#111;
-      color:#fff;
-      border:1px solid #ff0000;
-      border-radius:10px;
-      padding:10px 12px;
-      outline:none;
-      font-weight:600;
-      width:100%;
-      box-sizing:border-box;
-    }
-    textarea{ min-height:90px; resize:vertical; }
+form {
+  background: #111;
+  border-radius: 16px;
+  padding: 20px;
+  margin: auto;
+  max-width: 500px;
+  box-shadow: 0 0 15px #ff0000;
+}
 
-    /* ✅ Force dropdown to look like a dropdown on phones */
-    #productSelect{
-      display:block;
-      min-height:48px;
-      font-size:16px;
-      -webkit-appearance: menulist;
-      appearance: menulist;
-    }
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 500;
+}
 
-    .btn{
-      background:#ff0000;
-      color:#fff;
-      border:none;
-      border-radius:10px;
-      padding:10px 14px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .btn:hover{ background:darkred; }
-    .btn.secondary{
-      background:#222;
-      border:1px solid #ff0000;
-    }
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+}
 
-    .hint{ font-size:12px; opacity:.85; line-height:1.35; margin-top:6px; }
+button {
+  background: #ff0000;
+  color: white;
+  margin-top: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
-    }
-    @media (min-width: 900px){
-      .grid2{ grid-template-columns: 1fr 1fr; }
-    }
+button:hover {
+  background: darkred;
+}
 
-    .list{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap:10px;
-      margin-top:10px;
-    }
-    .item{
-      background:#111;
-      border:1px solid #ff0000;
-      border-radius:12px;
-      padding:10px;
-      cursor:pointer;
-      box-shadow:0 0 10px rgba(255,0,0,0.12);
-      user-select:none;
-      touch-action:manipulation;
-    }
-    .item:hover{ box-shadow:0 0 14px rgba(255,0,0,0.25); }
-    .item.active{
-      background:#ff0000;
-      border-color:#ff0000;
-      box-shadow:0 0 14px rgba(255,0,0,0.45);
-    }
-    .item .title{ font-weight:900; }
-    .item .sub{ font-size:12px; opacity:.9; margin-top:4px; }
+#priceDisplay {
+  margin-top: 8px;
+  font-weight: bold;
+  color: #ffb347;
+  text-align: center;
+}
 
-    .ok{ color:#7CFF7C; font-weight:800; }
-    .bad{ color:#ff7c7c; font-weight:800; }
-  </style>
+#imagePreviewContainer {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+#imagePreviewContainer img {
+  border-radius: 8px;
+  border: 2px solid #ff0000;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .4s;
+  background:#000;
+}
+
+#mainBraceletImg {
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+}
+
+.sideImg {
+  width: 80px;
+  height: 80px;
+}
+
+#orderMsg {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 15px;
+}
+</style>
 </head>
 
 <body>
-  <header><h1>Size Builder</h1></header>
 
-  <div class="wrap">
+<nav>
+  <a href="bracelets.html">Bracelets</a>
+  <a href="spiritwear.html">Spirit Wear</a>
+</nav>
 
-    <div class="card">
-      <div class="row" style="justify-content:space-between;">
-        <div>
-          <div class="hint">Collection:</div>
-          <div class="mono" style="font-weight:900;">products_bracelets</div>
-        </div>
-        <div class="row">
-          <button class="btn secondary" id="refreshBtn">Refresh</button>
-        </div>
-      </div>
-      <div class="hint">
-        Pick a product → type sizes like <span class="mono">5 6 7.5 8 9 10</span> → saves as
-        <span class="mono">5", 6", 7.5", 8", ...</span> into <span class="mono">sizeOptions</span>.
-      </div>
-      <div class="hint" id="statusLine"></div>
-    </div>
+<h1>Bracelet Preorder</h1>
 
-    <div class="card">
-      <div style="font-weight:900; color:#ffb347;">Products</div>
-
-      <!-- ✅ Always-visible dropdown -->
-      <div style="margin-top:10px; width:100%;">
-        <select id="productSelect">
-          <option value="">Loading products…</option>
-        </select>
-      </div>
-
-      <!-- ✅ Clickable cards -->
-      <div class="list" id="productList"></div>
-    </div>
-
-    <div class="card grid2">
-      <div>
-        <div style="font-weight:900; color:#ffb347;">Sizes (inches)</div>
-        <input id="sizesInput" placeholder='Example: 5 6 7.5 8 9 10 11 12' />
-        <div class="hint">
-          Separators can be spaces / commas / new lines. Duplicates removed. Sorted smallest → biggest.
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button class="btn secondary" id="loadCurrentBtn">Load current sizeOptions</button>
-          <button class="btn" id="saveBtn">Save sizeOptions</button>
-        </div>
-
-        <div class="hint" id="saveLine"></div>
-      </div>
-
-      <div>
-        <div style="font-weight:900; color:#ffb347;">Preview (what gets saved)</div>
-        <textarea id="previewBox" class="mono" readonly></textarea>
-        <div class="hint" id="previewLine"></div>
-      </div>
-    </div>
-
+<!-- IMAGE PREVIEW -->
+<div id="imagePreviewContainer">
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <img id="sideImg1" class="sideImg" alt="">
+    <img id="sideImg2" class="sideImg" alt="">
   </div>
 
+  <img id="mainBraceletImg" alt="">
+
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <img id="sideImg3" class="sideImg" alt="">
+    <img id="sideImg4" class="sideImg" alt="">
+  </div>
+</div>
+
+<form id="braceletForm">
+  <label>Name</label>
+  <input id="braceletName" required>
+
+  <label>Phone</label>
+  <input id="braceletPhone" required>
+
+  <label>Bracelet Type</label>
+  <select id="knotType" required></select>
+
+  <label>Size</label>
+  <select id="braceletSize"></select>
+
+  <label>Quantity</label>
+  <input id="braceletQty" type="number" min="1" value="1">
+
+  <p id="priceDisplay">Price: $0.00</p>
+
+  <label>Color 1</label>
+  <select id="color1"></select>
+
+  <label>Color 2</label>
+  <select id="color2"></select>
+
+  <button type="button" id="submitBtn">Submit Bracelet Order</button>
+</form>
+
+<p id="orderMsg"></p>
+
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import {
-    getFirestore,
-    collection, doc, setDoc, addDoc,
-    onSnapshot
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  // ✅ SAME CONFIG YOU GAVE
-  const firebaseConfig = {
-    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-    authDomain:"bracelets-and-color.firebaseapp.com",
-    projectId:"bracelets-and-color",
-    storageBucket:"bracelets-and-color.appspot.com",
-    messagingSenderId:"382292570673",
-    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
-  };
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  // ✅ MATCH YOUR ADMIN PANEL TAB
-  const PRODUCTS_COLLECTION = "products_bracelets";
+let currentProduct = null;
 
-  const productList = document.getElementById("productList");
-  const productSelect = document.getElementById("productSelect");
-  const sizesInput = document.getElementById("sizesInput");
-  const previewBox = document.getElementById("previewBox");
-  const previewLine = document.getElementById("previewLine");
-  const statusLine = document.getElementById("statusLine");
-  const saveLine = document.getElementById("saveLine");
-  const refreshBtn = document.getElementById("refreshBtn");
-  const saveBtn = document.getElementById("saveBtn");
-  const loadCurrentBtn = document.getElementById("loadCurrentBtn");
+/* IMAGE FADE */
+function fade(img, src){
+  img.style.opacity = 0;
+  img.src = src;
+  img.onerror = () => { img.style.opacity = 0.25; }; // if image missing
+  setTimeout(()=>img.style.opacity = 1, 100);
+}
 
-  let unsub = null;
-  let products = [];
-  let selectedId = null;
+function loadImages(type){
+  const key = String(type || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g,"-");
 
-  function uniq(arr){ return [...new Set(arr)]; }
+  fade(mainBraceletImg, `${key}-main.png`);
+  fade(sideImg1, `${key}-side1.png`);
+  fade(sideImg2, `${key}-side2.png`);
+  fade(sideImg3, `${key}-side3.png`);
+  fade(sideImg4, `${key}-side4.png`);
+}
 
-  function parseSizesToOptions(text){
-    const raw = String(text || "")
-      .replace(/["']/g, "")
-      .replace(/[^\d.\s,]+/g, " ")
-      .split(/[\s,]+/g)
-      .map(s => s.trim())
-      .filter(Boolean);
+/* LOAD BRACELETS LIST */
+async function loadBracelets(){
+  knotType.innerHTML = "<option value=''>Select Bracelet</option>";
+  const snap = await getDocs(collection(db,"products_bracelets"));
+  snap.forEach(d=>{
+    const p = d.data();
+    knotType.add(new Option(p.type ?? d.id, d.id));
+  });
+}
 
-    let nums = raw
-      .map(v => Number(v))
-      .filter(n => Number.isFinite(n) && n > 0);
+/* HELPERS FOR PRICE FIELD */
+function getPriceMap(p){
+  if(!p || p.price == null) return {};
+  if(typeof p.price === "object") return p.price;
+  if(typeof p.price === "string"){
+    try { return JSON.parse(p.price); } catch { return {}; }
+  }
+  return {};
+}
 
-    nums = uniq(nums.map(n => String(n))).map(s => Number(s));
-    nums.sort((a,b)=>a-b);
+/* PRICE CALC (FIXED) */
+function updatePrice(){
+  if(!currentProduct) return;
 
-    const formatted = nums.map(n => `${n}"`);
-    return formatted.join(", ");
+  const sizeRaw = (braceletSize.value || "").trim();
+  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
+
+  const priceMap = getPriceMap(currentProduct);
+
+  let unit = parseFloat(priceMap[sizeRaw]);
+
+  if(Number.isNaN(unit)){
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === sizeRaw);
+    unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
   }
 
-  function setPreview(){
-    const formatted = parseSizesToOptions(sizesInput.value);
-    previewBox.value = formatted;
+  if(Number.isNaN(unit)) unit = 0;
 
-    if(!sizesInput.value.trim()){
-      previewLine.innerHTML = `<span class="bad">Type some sizes to see preview.</span>`;
-      return;
-    }
-    if(!formatted){
-      previewLine.innerHTML = `<span class="bad">Couldn’t read sizes. Try: 5 6 7.5 8</span>`;
-      return;
-    }
-    previewLine.innerHTML = `<span class="ok">Preview looks good.</span>`;
+  priceDisplay.textContent = `Price: $${(unit * qty).toFixed(2)}`;
+}
+
+/* LOAD BRACELET DATA */
+async function loadBraceletData(id){
+  if(!id) {
+    currentProduct = null;
+    priceDisplay.textContent = "Price: $0.00";
+    braceletSize.innerHTML = "";
+    color1.innerHTML = "";
+    color2.innerHTML = "";
+    return;
   }
 
-  function pickProduct(id){
-    selectedId = id;
+  const snap = await getDoc(doc(db,"products_bracelets", id));
+  if(!snap.exists()) return;
 
-    document.querySelectorAll(".item").forEach(el=>{
-      el.classList.toggle("active", el.dataset.id === id);
-    });
+  const p = snap.data();
+  currentProduct = { id, ...p };
 
-    if(productSelect.value !== id) productSelect.value = id;
+  // sizes
+  braceletSize.innerHTML = "";
+  const sizes = Array.isArray(p.sizeOptions) ? p.sizeOptions : [];
+  sizes.forEach(s => braceletSize.add(new Option(s, s)));
 
-    const p = products.find(x=>x.id===id);
-    if(p){
-      saveLine.innerHTML =
-        `Selected: <span class="mono">${p.id}</span><br>` +
-        `Current sizeOptions: <span class="mono">${(p.sizeOptions ?? "(empty)")}</span>`;
-    } else {
-      saveLine.innerHTML = "";
-    }
-  }
+  // colors
+  color1.innerHTML = "";
+  color2.innerHTML = "";
+  const colors = String(p.colorOptions || "")
+    .split(",")
+    .map(c => c.trim())
+    .filter(Boolean);
 
-  function renderProducts(){
-    productList.innerHTML = "";
-    productSelect.innerHTML = "";
-
-    if(!products.length){
-      productList.innerHTML = `<div class="hint bad">No products found in ${PRODUCTS_COLLECTION}.</div>`;
-      const opt = new Option("No products found", "");
-      productSelect.add(opt);
-      return;
-    }
-
-    products.forEach(p=>{
-      const title = p.type || p.name || p.id;
-
-      const opt = new Option(title, p.id);
-      productSelect.add(opt);
-
-      const div = document.createElement("div");
-      div.className = "item";
-      div.dataset.id = p.id;
-      div.innerHTML = `
-        <div class="title">${title}</div>
-        <div class="sub mono">id: ${p.id}</div>
-      `;
-      div.addEventListener("pointerup", ()=> pickProduct(p.id));
-      productList.appendChild(div);
-    });
-
-    if(!selectedId) selectedId = products[0].id;
-    productSelect.value = selectedId;
-    pickProduct(selectedId);
-  }
-
-  function subscribeProducts(){
-    if(unsub) unsub();
-
-    statusLine.innerHTML = `Loading products...`;
-
-    const colRef = collection(db, PRODUCTS_COLLECTION);
-
-    unsub = onSnapshot(colRef, snap=>{
-      products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-
-      products.sort((a,b)=>{
-        const A = String(a.type || a.name || a.id).toLowerCase();
-        const B = String(b.type || b.name || b.id).toLowerCase();
-        return A.localeCompare(B);
-      });
-
-      statusLine.innerHTML = `<span class="ok">Loaded ${products.length} products.</span>`;
-      renderProducts();
-    }, err=>{
-      console.error(err);
-      statusLine.innerHTML = `<span class="bad">Error loading products: ${err.message}</span>`;
-      productList.innerHTML = `<div class="hint bad">Check your Firestore rules / permissions.</div>`;
-      productSelect.innerHTML = `<option value="">Error loading products</option>`;
-    });
-  }
-
-  async function loadCurrentIntoInput(){
-    if(!selectedId){
-      saveLine.innerHTML = `<span class="bad">Pick a product first.</span>`;
-      return;
-    }
-    const p = products.find(x=>x.id===selectedId);
-    const current = (p?.sizeOptions ?? "").toString();
-    sizesInput.value = current.replace(/"/g,"").replace(/,\s*/g," ");
-    setPreview();
-    saveLine.innerHTML = `<span class="ok">Loaded current sizeOptions into the input.</span>`;
-  }
-
-  async function saveSizes(){
-    if(!selectedId){
-      saveLine.innerHTML = `<span class="bad">Pick a product first.</span>`;
-      return;
-    }
-
-    const formatted = parseSizesToOptions(sizesInput.value);
-    if(!formatted){
-      saveLine.innerHTML = `<span class="bad">No valid sizes found. Example: 5 6 7.5 8</span>`;
-      return;
-    }
-
-    const p = products.find(x=>x.id===selectedId);
-    const before = p?.sizeOptions ?? null;
-
-    await setDoc(doc(db, PRODUCTS_COLLECTION, selectedId), { sizeOptions: formatted }, { merge:true });
-
-    await addDoc(collection(db, "auditLog"), {
-      type: "sizeOptions_update",
-      collection: PRODUCTS_COLLECTION,
-      id: selectedId,
-      field: "sizeOptions",
-      from: before,
-      to: formatted,
-      at: new Date()
-    });
-
-    saveLine.innerHTML = `<span class="ok">Saved ✅</span>`;
-  }
-
-  sizesInput.addEventListener("input", setPreview);
-  refreshBtn.addEventListener("click", subscribeProducts);
-  saveBtn.addEventListener("click", saveSizes);
-  loadCurrentBtn.addEventListener("click", loadCurrentIntoInput);
-
-  productSelect.addEventListener("change", () => {
-    if(productSelect.value) pickProduct(productSelect.value);
+  colors.forEach(c=>{
+    color1.add(new Option(c,c));
+    color2.add(new Option(c,c));
   });
 
-  setPreview();
-  subscribeProducts();
+  loadImages(p.type);
+  updatePrice();
+}
+
+/* SUBMIT */
+submitBtn.onclick = async () => {
+  if(!currentProduct) return alert("Select a bracelet");
+  if(!braceletName.value.trim() || !braceletPhone.value.trim())
+    return alert("Enter name + phone");
+
+  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
+  const size = (braceletSize.value || "").trim();
+  const priceMap = getPriceMap(currentProduct);
+
+  let unit = parseFloat(priceMap[size]);
+  if(Number.isNaN(unit)){
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === size);
+    unit = matchKey ? parseFloat(priceMap[matchKey]) : 0;
+  }
+  if(Number.isNaN(unit)) unit = 0;
+
+  const total = unit * qty;
+
+  await addDoc(collection(db,"braceletOrders"),{
+    name: braceletName.value.trim(),
+    phone: braceletPhone.value.trim(),
+    type: currentProduct.type ?? "",
+    size,
+    color1: color1.value ?? "",
+    color2: color2.value ?? "",
+    qty,
+    price: unit,
+    total,
+    status: "new",
+    createdAt: new Date()
+  });
+
+  orderMsg.textContent = `Order submitted! Total: $${total.toFixed(2)}`;
+  braceletForm.reset();
+  priceDisplay.textContent = "Price: $0.00";
+  currentProduct = null;
+  knotType.value = "";
+};
+
+/* INIT */
+loadBracelets();
+
+// events (mobile friendly)
+knotType.addEventListener("change", () => loadBraceletData(knotType.value));
+braceletSize.addEventListener("change", updatePrice);
+braceletQty.addEventListener("input", updatePrice);
+braceletQty.addEventListener("change", updatePrice);
 </script>
+
 </body>
 </html>
