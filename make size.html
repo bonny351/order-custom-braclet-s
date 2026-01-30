@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tactics & Treats – Size Builder</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body{
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#111;
+      color:#fff;
+      margin:0;
+      padding:18px;
+    }
+    header{
+      background:linear-gradient(90deg,#7a0c0c,#000);
+      padding:14px;
+      border-radius:12px;
+      box-shadow:0 0 12px rgba(255,0,0,0.35);
+      margin-bottom:14px;
+      text-align:center;
+    }
+    h1{ margin:0; color:#ff0000; font-weight:800; letter-spacing:.2px; }
+    .wrap{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    .card{
+      background:#181818;
+      border-radius:12px;
+      box-shadow:0 0 12px rgba(255,0,0,0.2);
+      padding:14px;
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    label{ font-weight:700; color:#ffb347; }
+    select, input, textarea{
+      background:#111;
+      color:#fff;
+      border:1px solid #ff0000;
+      border-radius:10px;
+      padding:10px 12px;
+      outline:none;
+      font-weight:600;
+      width:100%;
+      box-sizing:border-box;
+    }
+    textarea{ min-height:90px; resize:vertical; }
+    .btn{
+      background:#ff0000;
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:900;
+      cursor:pointer;
+      color:#fff;
+    }
+    .btn:hover{ background:darkred; }
+    .btn.secondary{
+      background:#222;
+      border:1px solid #ff0000;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    @media (min-width: 900px){
+      .grid2{ grid-template-columns: 1fr 1fr; }
+    }
+    .hint{
+      font-size:12px;
+      opacity:.85;
+      line-height:1.35;
+      margin-top:6px;
+    }
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border:1px solid #ff0000;
+      border-radius:999px;
+      background:#111;
+      font-size:12px;
+      font-weight:800;
+      margin-left:8px;
+    }
+    .ok{ color:#7CFF7C; }
+    .bad{ color:#ff7c7c; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Size Builder</h1>
+  </header>
+
+  <div class="wrap">
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <label>Collection</label>
+          <span class="pill mono" id="collectionPill">products_bracelets</span>
+        </div>
+        <div class="row">
+          <button class="btn secondary" id="reloadBtn">Reload Products</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        Pick a product, type sizes (in inches) like <span class="mono">5 6 7.5 8 9 10</span>, then click Save.
+        It will auto-format into <span class="mono">5", 6", 7.5", ...</span> and update <span class="mono">sizeOptions</span>.
+      </div>
+    </div>
+
+    <div class="card grid2">
+      <div>
+        <label for="productSelect">Product</label>
+        <select id="productSelect"></select>
+
+        <div class="hint" id="productInfo"></div>
+      </div>
+
+      <div>
+        <label for="sizesInput">Sizes (inches)</label>
+        <input id="sizesInput" placeholder='Example: 5 6 7.5 8 9 10 11 12' />
+
+        <div class="hint">
+          Allowed separators: spaces, commas, or new lines.<br/>
+          It will remove duplicates, sort smallest → biggest, and add <span class="mono">"</span>.
+        </div>
+      </div>
+    </div>
+
+    <div class="card grid2">
+      <div>
+        <label>Preview (what gets saved)</label>
+        <textarea id="previewBox" class="mono" readonly></textarea>
+        <div class="hint" id="previewStatus"></div>
+      </div>
+
+      <div>
+        <label>Actions</label>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="saveBtn">Save sizeOptions</button>
+          <button class="btn secondary" id="loadCurrentBtn">Load current sizeOptions</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px;">
+          Saves into: <span class="mono">products_bracelets/{id}.sizeOptions</span><br/>
+          If you want it to also update a price map later, tell me and I’ll add it.
+        </div>
+
+        <div class="hint" id="saveStatus"></div>
+      </div>
+    </div>
+
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection, doc, getDoc, getDocs, setDoc, addDoc
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  // ✅ Your same Firebase config
+  const firebaseConfig = {
+    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain:"bracelets-and-color.firebaseapp.com",
+    projectId:"bracelets-and-color",
+    storageBucket:"bracelets-and-color.appspot.com",
+    messagingSenderId:"382292570673",
+    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ✅ Change this if you want a different collection
+  const PRODUCTS_COLLECTION = "products_bracelets";
+
+  const productSelect = document.getElementById("productSelect");
+  const sizesInput = document.getElementById("sizesInput");
+  const previewBox = document.getElementById("previewBox");
+  const previewStatus = document.getElementById("previewStatus");
+  const saveBtn = document.getElementById("saveBtn");
+  const reloadBtn = document.getElementById("reloadBtn");
+  const loadCurrentBtn = document.getElementById("loadCurrentBtn");
+  const productInfo = document.getElementById("productInfo");
+  const saveStatus = document.getElementById("saveStatus");
+  document.getElementById("collectionPill").textContent = PRODUCTS_COLLECTION;
+
+  let products = []; // {id, ...data}
+
+  function uniq(arr){
+    return [...new Set(arr)];
+  }
+
+  function parseSizesToOptions(text){
+    // Accept: spaces, commas, new lines
+    const raw = String(text || "")
+      .replace(/["']/g, "")           // remove quotes
+      .replace(/[^\d.\s,]+/g, " ")    // strip weird chars (keep digits dot spaces commas)
+      .split(/[\s,]+/g)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    // Convert to numbers if possible
+    let nums = raw
+      .map(v => Number(v))
+      .filter(n => Number.isFinite(n) && n > 0);
+
+    // Remove duplicates by numeric value
+    nums = uniq(nums.map(n => String(n))).map(s => Number(s));
+
+    // Sort small -> big
+    nums.sort((a,b)=>a-b);
+
+    // Build: 5", 6", 7.5"
+    const formatted = nums.map(n => `${n}"`);
+    return formatted.join(", ");
+  }
+
+  function setPreview(){
+    const formatted = parseSizesToOptions(sizesInput.value);
+    previewBox.value = formatted;
+
+    if(!sizesInput.value.trim()){
+      previewStatus.innerHTML = `<span class="bad">Type sizes to see preview.</span>`;
+      return;
+    }
+    if(!formatted){
+      previewStatus.innerHTML = `<span class="bad">Couldn’t read any sizes. Use numbers like: 5 6 7.5 8</span>`;
+      return;
+    }
+    previewStatus.innerHTML = `<span class="ok">Looks good.</span>`;
+  }
+
+  function renderProducts(){
+    productSelect.innerHTML = "";
+    if(!products.length){
+      const opt = new Option("No products found", "");
+      productSelect.add(opt);
+      return;
+    }
+
+    products.forEach(p=>{
+      const label = p.type || p.name || p.id;
+      const opt = new Option(label, p.id);
+      productSelect.add(opt);
+    });
+
+    showProductInfo();
+  }
+
+  function showProductInfo(){
+    const id = productSelect.value;
+    const p = products.find(x=>x.id === id);
+    if(!p){
+      productInfo.textContent = "";
+      return;
+    }
+    const current = (p.sizeOptions ?? "").toString();
+    productInfo.innerHTML =
+      `Selected: <span class="mono">${p.id}</span><br/>` +
+      `Current sizeOptions: <span class="mono">${current || "(empty)"}</span>`;
+  }
+
+  async function loadProducts(){
+    saveStatus.textContent = "";
+    productInfo.textContent = "Loading products...";
+    const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
+    products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+    // Sort by type/name for nicer dropdown
+    products.sort((a,b)=>{
+      const A = (a.type || a.name || a.id).toString().toLowerCase();
+      const B = (b.type || b.name || b.id).toString().toLowerCase();
+      return A.localeCompare(B);
+    });
+
+    renderProducts();
+    productInfo.textContent = "";
+    showProductInfo();
+  }
+
+  async function loadCurrent(){
+    const id = productSelect.value;
+    if(!id) return;
+    saveStatus.textContent = "";
+
+    const ref = doc(db, PRODUCTS_COLLECTION, id);
+    const snap = await getDoc(ref);
+    if(!snap.exists()){
+      saveStatus.innerHTML = `<span class="bad">That product doc doesn’t exist.</span>`;
+      return;
+    }
+    const data = snap.data();
+    const current = (data.sizeOptions ?? "").toString();
+    sizesInput.value = current.replace(/"/g,"").replace(/,\s*/g," ");
+    setPreview();
+    saveStatus.innerHTML = `<span class="ok">Loaded current sizes into the input.</span>`;
+  }
+
+  async function saveSizes(){
+    const id = productSelect.value;
+    if(!id){
+      saveStatus.innerHTML = `<span class="bad">Pick a product first.</span>`;
+      return;
+    }
+
+    const formatted = parseSizesToOptions(sizesInput.value);
+    if(!formatted){
+      saveStatus.innerHTML = `<span class="bad">No valid sizes found. Example: 5 6 7.5 8</span>`;
+      return;
+    }
+
+    const ref = doc(db, PRODUCTS_COLLECTION, id);
+    const snap = await getDoc(ref);
+    const before = snap.exists() ? (snap.data().sizeOptions ?? null) : null;
+
+    // Merge update: only sizeOptions changes
+    await setDoc(ref, { sizeOptions: formatted }, { merge: true });
+
+    // Optional audit log (same idea as your admin panel)
+    await addDoc(collection(db, "auditLog"), {
+      type: "sizeOptions_update",
+      collection: PRODUCTS_COLLECTION,
+      id,
+      field: "sizeOptions",
+      from: before,
+      to: formatted,
+      at: new Date()
+    });
+
+    saveStatus.innerHTML = `<span class="ok">Saved sizeOptions ✅</span>`;
+
+    // Update local cache so the “Current sizeOptions” line updates
+    const p = products.find(x=>x.id===id);
+    if(p) p.sizeOptions = formatted;
+    showProductInfo();
+  }
+
+  // Events
+  sizesInput.addEventListener("input", setPreview);
+  productSelect.addEventListener("change", showProductInfo);
+  saveBtn.addEventListener("click", saveSizes);
+  reloadBtn.addEventListener("click", loadProducts);
+  loadCurrentBtn.addEventListener("click", loadCurrent);
+
+  // Start
+  setPreview();
+  loadProducts();
+</script>
+
+</body>
+</html>
