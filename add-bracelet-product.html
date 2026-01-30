@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Bracelet Product – Admin</title>
+
+<style>
+  body {
+    font-family: "Poppins", sans-serif;
+    background: #111;
+    color: white;
+    padding: 20px;
+  }
+  h1 { color: #ff0000; text-align:center; }
+  form {
+    background:#181818;
+    padding:20px;
+    border-radius:12px;
+    max-width:420px;
+    margin:auto;
+    box-shadow:0 0 12px rgba(255,0,0,0.4);
+  }
+  input, button {
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    margin-top:6px;
+    font-size:16px;
+  }
+  button {
+    background:#ff0000;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  button:hover {
+    background:darkred;
+  }
+  .small-btn {
+    background:#444;
+    padding:8px;
+    width:auto;
+    margin-top:10px;
+  }
+  .tag {
+    background:#ff0000;
+    padding:5px 10px;
+    border-radius:6px;
+    margin:3px;
+    display:inline-block;
+  }
+</style>
+</head>
+<body>
+
+<h1>Add Bracelet Product</h1>
+
+<form id="productForm">
+  <label>Bracelet Name (ID used in Firebase)</label>
+  <input id="productId" type="text" placeholder="ex: cobra or king-cobra" required>
+
+  <label>Display Name (Shown to customers)</label>
+  <input id="productName" type="text" placeholder="ex: Cobra" required>
+
+  <label>Colors (optional, comma separated)</label>
+  <input id="colorOptions" type="text" placeholder="Blue,Green,Black">
+
+  <hr style="margin:15px 0; border:1px solid #333;">
+
+  <h3>Add Sizes & Prices</h3>
+
+  <input id="sizeInput" type="text" placeholder='Size (ex: 7" )'>
+  <input id="priceInput" type="number" step="0.01" placeholder="Price">
+
+  <button type="button" class="small-btn" id="addSizeBtn">+ Add Size</button>
+
+  <div id="sizeList"></div>
+
+  <button type="button" id="saveBtn" style="margin-top:18px;">✅ Save Product to Firebase</button>
+</form>
+
+<p id="statusMsg" style="text-align:center; margin-top:15px;"></p>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain: "bracelets-and-color.firebaseapp.com",
+    projectId: "bracelets-and-color",
+    storageBucket: "bracelets-and-color.appspot.com",
+    messagingSenderId: "382292570673",
+    appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // store price map & size array
+  let priceMap = {};      
+  let sizeArray = [];
+
+  const sizeInput = document.getElementById("sizeInput");
+  const priceInput = document.getElementById("priceInput");
+  const sizeList = document.getElementById("sizeList");
+
+  document.getElementById("addSizeBtn").addEventListener("click", () => {
+    const size = sizeInput.value.trim();
+    const price = parseFloat(priceInput.value.trim());
+
+    if (!size || isNaN(price)) return alert("Enter size and price!");
+
+    priceMap[size] = price;
+    sizeArray.push(size);
+
+    sizeList.innerHTML += `<span class="tag">${size} — $${price}</span>`;
+
+    sizeInput.value = "";
+    priceInput.value = "";
+  });
+
+  document.getElementById("saveBtn").addEventListener("click", async () => {
+    const id = document.getElementById("productId").value.trim();
+    const productName = document.getElementById("productName").value.trim();
+    const colorOptions = document.getElementById("colorOptions").value.trim();
+
+    if (!id || !productName) return alert("Fill bracelet ID and display name!");
+
+    await setDoc(doc(db, "products_bracelets", id), {
+      type: productName,
+      price: priceMap,
+      sizeOptions: sizeArray,
+      colorOptions: colorOptions,
+      stockStatus: "In Stock"
+    });
+
+    document.getElementById("statusMsg").textContent = "✅ Product Added!";
+  });
+</script>
+
+</body>
+</html>

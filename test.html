@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactics & Treats – Paracord Preorder</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const pricing = {
+  "5": { "Cobra": 4.00, "King Cobra": 5.25, "Fishtail": 3.75, "Solomon/Trilobite": 4.25 },
+  "6": { "Cobra": 4.75, "King Cobra": 6.25, "Fishtail": 4.50, "Solomon/Trilobite": 5.00 },
+  "7": { "Cobra": 5.50, "King Cobra": 7.25, "Fishtail": 5.25, "Solomon/Trilobite": 6.00 },
+  "8": { "Cobra": 6.50, "King Cobra": 8.50, "Fishtail": 6.00, "Solomon/Trilobite": 6.75 },
+  "9": { "Cobra": 7.25, "King Cobra": 9.50, "Fishtail": 6.75, "Solomon/Trilobite": 7.75 },
+  "10": { "Cobra": 8.00, "King Cobra": 10.50, "Fishtail": 7.50, "Solomon/Trilobite": 8.50 },
+  "11": { "Cobra": 8.75, "King Cobra": 11.50, "Fishtail": 8.25, "Solomon/Trilobite": 9.25 },
+  "12": { "Cobra": 9.50, "King Cobra": 12.50, "Fishtail": 9.00, "Solomon/Trilobite": 10.25 },
+  "13": { "Cobra": 10.50, "King Cobra": 13.75, "Fishtail": 9.75, "Solomon/Trilobite": 11.00 },
+  "14": { "Cobra": 11.25, "King Cobra": 14.75, "Fishtail": 10.50, "Solomon/Trilobite": 12.00 },
+  "15": { "Cobra": 12.00, "King Cobra": 15.75, "Fishtail": 11.25, "Solomon/Trilobite": 12.75 },
+  "16": { "Cobra": 12.75, "King Cobra": 16.75, "Fishtail": 12.00, "Solomon/Trilobite": 13.50 },
+  "17": { "Cobra": 13.50, "King Cobra": 17.75, "Fishtail": 12.75, "Solomon/Trilobite": 14.50 },
+  "18": { "Cobra": 14.50, "King Cobra": 19.00, "Fishtail": 13.50, "Solomon/Trilobite": 15.25 },
+  "19": { "Cobra": 15.25, "King Cobra": 20.00, "Fishtail": 14.25, "Solomon/Trilobite": 16.25 },
+  "20": { "Cobra": 16.00, "King Cobra": 21.00, "Fishtail": 15.00, "Solomon/Trilobite": 17.00 },
+  "21": { "Cobra": 16.75, "King Cobra": 22.00, "Fishtail": 15.75, "Solomon/Trilobite": 17.75 },
+  "22": { "Cobra": 17.50, "King Cobra": 23.00, "Fishtail": 16.50, "Solomon/Trilobite": 18.75 },
+  "23": { "Cobra": 18.50, "King Cobra": 24.25, "Fishtail": 17.25, "Solomon/Trilobite": 19.50 },
+  "24": { "Cobra": 19.25, "King Cobra": 25.25, "Fishtail": 18.00, "Solomon/Trilobite": 20.50 },
+  "25": { "Cobra": 20.00, "King Cobra": 26.25, "Fishtail": 18.75, "Solomon/Trilobite": 21.25 },
+  "26": { "Cobra": 20.75, "King Cobra": 27.25, "Fishtail": 19.50, "Solomon/Trilobite": 22.00 },
+  "27": { "Cobra": 21.50, "King Cobra": 28.25, "Fishtail": 20.25, "Solomon/Trilobite": 23.00 },
+  "28": { "Cobra": 22.50, "King Cobra": 29.50, "Fishtail": 21.00, "Solomon/Trilobite": 23.75 },
+  "29": { "Cobra": 23.25, "King Cobra": 30.50, "Fishtail": 21.75, "Solomon/Trilobite": 24.75 },
+  "30": { "Cobra": 24.00, "King Cobra": 31.50, "Fishtail": 22.50, "Solomon/Trilobite": 25.50 }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const typeSelect = document.getElementById("itemType");
+  const sizeSelect = document.getElementById("itemSize");
+  const extrasCountInput = document.getElementById("extrasCount");
+  const priceDisplay = document.getElementById("price");
+  const statusMsg = document.getElementById("status");
+
+  // Populate sizes dynamically
+  for (let i = 5; i <= 30; i++) {
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = i + '"';
+    sizeSelect.appendChild(option);
+  }
+
+  function updatePrice() {
+    const type = typeSelect.value;
+    const size = sizeSelect.value;
+    const extrasCount = parseInt(extrasCountInput.value) || 0;
+    if (type && size && pricing[size] && pricing[size][type] != null) {
+      const basePrice = pricing[size][type];
+      const totalPrice = basePrice + extrasCount;
+      priceDisplay.textContent = `Price: $${totalPrice.toFixed(2)}`;
+    } else {
+      priceDisplay.textContent = "Price: $0.00";
+    }
+  }
+
+  typeSelect.addEventListener("change", updatePrice);
+  sizeSelect.addEventListener("change", updatePrice);
+  extrasCountInput.addEventListener("input", updatePrice);
+
+  window.submitOrder = async () => {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const color1 = document.getElementById("color1").value.trim();
+    const color2 = document.getElementById("color2").value.trim();
+    const size = sizeSelect.value;
+    const type = typeSelect.value;
+    const notes = document.getElementById("notes").value.trim();
+    const extrasCount = parseInt(extrasCountInput.value) || 0;
+    const extrasDesc = document.getElementById("extrasDesc").value.trim();
+
+    if (!email || !color1 || !type || !size) {
+      statusMsg.textContent = "Please fill out all required fields!";
+      statusMsg.className = "text-red-600 mt-2";
+      return;
+    }
+    if (extrasCount > 0 && !extrasDesc) {
+      statusMsg.textContent = "Please describe your extras!";
+      statusMsg.className = "text-red-600 mt-2";
+      return;
+    }
+
+    try {
+      const snapshot = await getDocs(collection(db, "braceletOrders"));
+      const nextNumber = snapshot.size + 1;
+      const orderId = `TNT-${nextNumber.toString().padStart(4, "0")}`;
+      const orderPrice = pricing[size][type] + extrasCount;
+
+      await addDoc(collection(db, "braceletOrders"), {
+        orderId,
+        name,
+        email,
+        color1,
+        color2,
+        size,
+        type,
+        notes,
+        extrasCount,
+        extrasDesc,
+        price: orderPrice,
+        status: "Pending",
+        adminNotes: "",
+        createdAt: serverTimestamp()
+      });
+
+      statusMsg.textContent = `✅ Order submitted! Order ID: ${orderId}, Total Price: $${orderPrice.toFixed(2)}`;
+      statusMsg.className = "text-green-600 mt-2";
+      document.getElementById("orderForm").reset();
+      priceDisplay.textContent = "Price: $0.00";
+    } catch (err) {
+      console.error(err);
+      statusMsg.textContent = "❌ Error saving order. Try again.";
+      statusMsg.className = "text-red-600 mt-2";
+    }
+  };
+});
+</script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10">
+<header class="w-full text-center mb-8">
+  <img src="your-logo.png" alt="Tactics & Treats Logo" class="mx-auto w-40 h-auto mb-4">
+  <h1 class="text-3xl font-bold text-red-700">Tactics & Treats</h1>
+  <p class="text-gray-700">Custom Paracord Bracelets & Dog Collars 🍪</p>
+</header>
+
+<main class="bg-white shadow-md rounded-2xl p-8 w-full max-w-md">
+  <h2 class="text-2xl font-semibold mb-4 text-center">Preorder Your Bracelet or Dog Collar</h2>
+  <form id="orderForm" class="space-y-4">
+    <input id="name" type="text" placeholder="Your Name" class="w-full border p-2 rounded">
+    <input id="email" type="email" placeholder="Your Email" class="w-full border p-2 rounded" required>
+    <input id="color1" type="text" placeholder="Main Color (e.g. Red)" class="w-full border p-2 rounded" required>
+    <input id="color2" type="text" placeholder="Accent Color (optional)" class="w-full border p-2 rounded">
+
+    <select id="itemType" class="w-full border p-2 rounded">
+      <option value="">Choose Type</option>
+      <option value="Cobra">Cobra</option>
+      <option value="King Cobra">King Cobra</option>
+      <option value="Fishtail">Fishtail</option>
+      <option value="Solomon/Trilobite">Solomon/Trilobite</option>
+    </select>
+
+    <select id="itemSize" class="w-full border p-2 rounded">
+      <option value="">Choose Size (inches)</option>
+    </select>
+    <p class="text-gray-600 text-sm mt-1">
+      📝 Measure your wrist or dog's neck and add 1 inch for the best fit.
+    </p>
+
+    <input id="extrasCount" type="number" min="0" placeholder="Number of Extras (optional)" class="w-full border p-2 rounded">
+    <textarea id="extrasDesc" rows="2" placeholder="Describe extras if any" class="w-full border p-2 rounded"></textarea>
+    <textarea id="notes" rows="3" placeholder="Any extra notes or requests..." class="w-full border p-2 rounded"></textarea>
+
+    <p id="price" class="text-center font-bold mt-2">Price: $0.00</p>
+    <button type="button" onclick="submitOrder()" class="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition">Submit Preorder</button>
+  </form>
+  <p id="status" class="text-center mt-3"></p>
+</main>
+
+<footer class="mt-8 text-gray-600 text-sm">© 2025 Tactics & Treats. Handmade with ❤️.</footer>
+</body>
+</html>

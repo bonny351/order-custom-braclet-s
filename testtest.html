@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Firebase Setup Helper</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// --- Firebase Config ---
+const firebaseConfig = {
+  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain: "bracelets-and-color.firebaseapp.com",
+  projectId: "bracelets-and-color",
+  storageBucket: "bracelets-and-color.firebasestorage.app",
+  messagingSenderId: "382292570673",
+  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10",
+  measurementId: "G-BJPQN6S7YB"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- Default Data ---
+const defaultColors = ["Red", "Black", "Navy Blue", "Green", "Camo"];
+const defaultOrders = [
+  { name: "Sample User 1", email: "sample1@example.com", type: "Cobra", color1:"Red", color2:"Black", size:"7\"", extrasCount:0, extrasDesc:"", price:5.00, status:"Pending", adminNotes:"Sample order", createdAt:serverTimestamp() },
+  { name: "Sample User 2", email: "sample2@example.com", type: "Fishtail", color1:"Green", color2:"Camo", size:"8\"", extrasCount:1, extrasDesc:"Glow Buckle", price:6.50, status:"Pending", adminNotes:"Sample order", createdAt:serverTimestamp() },
+  { name: "Sample User 3", email: "sample3@example.com", type: "King Cobra", color1:"Navy Blue", color2:"Red", size:"6\"", extrasCount:2, extrasDesc:"Glow Buckle, Name Tag", price:7.25, status:"Pending", adminNotes:"Sample order", createdAt:serverTimestamp() }
+];
+
+// --- UI Elements ---
+let progressBar, statusLog;
+
+// --- Helper Functions ---
+function logStatus(msg) {
+  const p = document.createElement("p");
+  p.innerText = msg;
+  statusLog.appendChild(p);
+  statusLog.scrollTop = statusLog.scrollHeight;
+}
+
+function updateProgress(percent) {
+  progressBar.style.width = percent + "%";
+  progressBar.innerText = percent + "%";
+}
+
+// --- Setup Colors ---
+async function setupColors() {
+  logStatus("Starting color setup...");
+  const colRef = collection(db, "braceletColors");
+  const snapshot = await getDocs(colRef);
+  if (snapshot.empty) {
+    for (let i = 0; i < defaultColors.length; i++) {
+      const color = defaultColors[i];
+      await addDoc(colRef, { name: color, addedAt: serverTimestamp() });
+      logStatus(`✅ Color created: ${color}`);
+      updateProgress(Math.round(((i+1)/defaultColors.length)*30));
+    }
+    logStatus("✅ Colors setup complete!");
+  } else {
+    logStatus("⚠ braceletColors already exists.");
+    updateProgress(30);
+  }
+}
+
+// --- Setup Sample Orders ---
+async function setupOrders() {
+  logStatus("Starting sample orders setup...");
+  const orderRef = collection(db, "braceletOrders");
+  const snapshot = await getDocs(orderRef);
+  if (snapshot.empty) {
+    for (let i = 0; i < defaultOrders.length; i++) {
+      const order = defaultOrders[i];
+      await addDoc(orderRef, order);
+      logStatus(`✅ Sample order added: ${order.name}`);
+      updateProgress(30 + Math.round(((i+1)/defaultOrders.length)*40));
+    }
+    logStatus("✅ Sample orders setup complete!");
+  } else {
+    logStatus("⚠ braceletOrders already exists.");
+    updateProgress(70);
+  }
+}
+
+// --- Setup Firestore Admin Record ---
+async function setupAdminRecord() {
+  logStatus("Setting up Firestore admin record for carr.isaiah@lposd.org...");
+  const usersRef = collection(db, "users");
+  const snapshot = await getDocs(usersRef);
+  const adminEmail = "carr.isaiah@lposd.org";
+  let exists = false;
+  snapshot.forEach(docSnap => {
+    if (docSnap.data().email === adminEmail) exists = true;
+  });
+
+  if (!exists) {
+    await addDoc(usersRef, {
+      email: adminEmail,
+      displayName: "Isaiah Carr",
+      admin: true,
+      createdAt: serverTimestamp()
+    });
+    logStatus("✅ Firestore admin record created.");
+  } else {
+    logStatus("⚠ Admin record already exists.");
+  }
+  logStatus("⚠ You still need to manually create the Auth user in Firebase Console with password '93pw8l5f'");
+  updateProgress(100);
+}
+
+// --- Run Full Setup ---
+async function runFullSetup() {
+  statusLog.innerHTML = "";
+  updateProgress(0);
+  await setupColors();
+  await setupOrders();
+  await setupAdminRecord();
+  logStatus("🎉 Setup complete!");
+}
+
+// --- Event Listener ---
+window.onload = () => {
+  progressBar = document.getElementById("progressBar");
+  statusLog = document.getElementById("statusLog");
+  document.getElementById("runSetupBtn").onclick = runFullSetup;
+};
+</script>
+
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900 flex flex-col items-center justify-center min-h-screen p-4">
+  <h1 class="text-2xl font-bold mb-6 text-center">Firebase Setup Helper</h1>
+
+  <div class="w-full max-w-lg">
+    <button id="runSetupBtn" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4">🚀 Run Full Setup</button>
+
+    <div class="w-full bg-gray-300 h-6 rounded mb-2 overflow-hidden">
+      <div id="progressBar" class="h-full bg-green-500 text-white text-center font-bold transition-all duration-300" style="width:0%">0%</div>
+    </div>
+
+    <div id="statusLog" class="bg-white p-4 rounded h-64 overflow-y-auto text-gray-800 shadow-inner"></div>
+  </div>
+</body>
+</html>

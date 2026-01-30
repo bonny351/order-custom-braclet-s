@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tactics & Treats – Home</title>
+<style>
+  body {
+    font-family: "Poppins", sans-serif;
+    background: radial-gradient(circle at top, #1a1a1a 0%, #000 70%);
+    color: #fff;
+    margin: 0;
+    padding: 60px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: url("your-logo.png") repeat;
+    background-size: 200px;
+    opacity: 0.07;
+    z-index: -2;
+  }
+  h1 {
+    font-size: 2.8rem;
+    color: #ff2b2b;
+    text-shadow: 0 0 10px rgba(255,0,0,0.7);
+    margin-bottom: 50px;
+  }
+  .button-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  a {
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+    background: #c40000;
+    border: 2px solid #fff;
+    border-radius: 12px;
+    padding: 16px 32px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+  a:hover {
+    transform: translateY(-3px);
+    background: #ff0000;
+    box-shadow: 0 0 15px rgba(255,0,0,0.6);
+  }
+</style>
+</head>
+
+<body>
+  <h1>🐾 Sandpoint High – Tactics & Treats</h1>
+  <div class="button-container">
+    <a href="cookies.html">🍪 Cookie Orders</a>
+    <a href="bracelets.html">🧿 Bracelet Orders</a>
+    <a href="spiritwear.html">👕 Spirit Wear</a>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain:"bracelets-and-color.firebaseapp.com",
+    projectId:"bracelets-and-color",
+    storageBucket:"bracelets-and-color.appspot.com",
+    messagingSenderId:"382292570673",
+    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function checkSiteStatus() {
+    try {
+      const docRef = doc(db, "siteSettings", "maintenance");
+      const docSnap = await getDoc(docRef);
+      if(docSnap.exists() && docSnap.data().enabled){
+        // Redirect to under-construction page
+        window.location.href = "under-construction.html";
+      }
+    } catch(err){
+      console.error("Error checking site status:", err);
+    }
+  }
+
+  checkSiteStatus();
+</script>
+</body>
+</html>

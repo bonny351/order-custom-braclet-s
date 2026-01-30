@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tactics & Treats – Admin Panel (Test)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  body{
+    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    font-weight:500;
+    background:#111;
+    color:#fff;
+    margin:0;
+    padding:20px;
+  }
+
+  h1,h2{
+    text-align:center;
+    color:#ff0000;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+
+  header{
+    display:flex;
+    justify-content:center;
+    background:linear-gradient(90deg,#7a0c0c,#000);
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 0 12px rgba(255,0,0,0.4);
+    margin-bottom:15px;
+  }
+
+  .tabs{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+  }
+
+  .tab{
+    padding:10px 20px;
+    cursor:pointer;
+    border-radius:6px;
+    background:#222;
+    font-weight:700;
+    user-select:none;
+  }
+  .tab.active{
+    background:#ff0000;
+    box-shadow:0 0 8px #ff0000;
+  }
+
+  .dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;
+    margin-bottom:15px;
+  }
+  .stat{
+    background:#181818;
+    padding:12px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(255,0,0,.25);
+    text-align:center;
+  }
+  .stat h3{ margin:0; color:#ffb347; font-weight:700; }
+  .stat p{ font-size:20px; margin:5px 0 0; font-weight:700; }
+
+  section{
+    background:#181818;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 0 12px rgba(255,0,0,0.2);
+  }
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+  .toolbar input{
+    flex:1;
+    min-width:220px;
+    background:#111;
+    color:#fff;
+    border:1px solid #ff0000;
+    border-radius:10px;
+    padding:10px 12px;
+    outline:none;
+    font-weight:500;
+  }
+  .toolbar button{
+    background:#ff0000;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .toolbar button:hover{ background:darkred; }
+
+  /* ✅ MOBILE FIX: allow swipe scroll instead of squished columns */
+  .tableWrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    margin-top:12px;
+    border-radius:10px;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:auto;
+    min-width:1100px; /* ✅ forces scroll on phone */
+  }
+
+  th,td{
+    border:1px solid #ff0000;
+    padding:10px 8px;
+    text-align:center;
+    white-space:nowrap; /* ✅ stops vertical letters */
+  }
+
+  th{
+    background:#111;
+    position:sticky;
+    top:0;
+    z-index:2;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+
+  tr:nth-child(even){ background:#222; }
+
+  .statusSelect{
+    background:#222;
+    color:white;
+    border:1px solid #ff0000;
+    border-radius:8px;
+    padding:7px;
+    font-weight:700;
+  }
+
+  /* STATUS COLORS */
+  .newRow{ background:rgba(255,255,0,0.25)!important; }
+  .doneRow{ background:rgba(0,255,0,0.25)!important; }
+  .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
+  .pendingRow{ background:rgba(0,170,255,0.22)!important; }
+
+  .note{
+    text-align:center;
+    font-size:12px;
+    opacity:.85;
+    margin-top:10px;
+  }
+</style>
+</head>
+
+<body>
+<header><h1>Tactics & Treats Admin Panel</h1></header>
+
+<div class="tabs">
+  <div class="tab active" data-col="braceletOrders">Bracelet Orders</div>
+  <div class="tab" data-col="cookieOrders">Cookie Orders</div>
+  <div class="tab" data-col="spiritOrders">Spirit Wear</div>
+  <div class="tab" data-col="products_bracelets">Bracelet Products</div>
+  <div class="tab" data-col="products_cookies">Cookie Products</div>
+  <div class="tab" data-col="auditLog">Audit Log</div>
+</div>
+
+<div class="dashboard" id="dashboard">
+  <div class="stat"><h3>Today</h3><p id="todayCount">0</p></div>
+  <div class="stat"><h3>This Week</h3><p id="weekCount">0</p></div>
+  <div class="stat"><h3>Revenue</h3><p id="revenue">$0</p></div>
+</div>
+
+<section>
+  <h2 id="tableTitle">Bracelet Orders</h2>
+
+  <div class="toolbar">
+    <input id="searchBox" placeholder="Search (name, phone, product, etc.)" />
+    <button id="refreshBtn">Refresh</button>
+  </div>
+
+  <!-- ✅ Wrap table so it scrolls on mobile -->
+  <div class="tableWrap">
+    <table id="table"></table>
+  </div>
+
+  <div class="note">Swipe left/right on the table. Click a cell to edit → click off to save.</div>
+</section>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection, doc, setDoc, addDoc,
+    onSnapshot, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain:"bracelets-and-color.firebaseapp.com",
+    projectId:"bracelets-and-color",
+    storageBucket:"bracelets-and-color.appspot.com",
+    messagingSenderId:"382292570673",
+    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const table = document.getElementById("table");
+  const tableTitle = document.getElementById("tableTitle");
+  const todayCountEl = document.getElementById("todayCount");
+  const weekCountEl = document.getElementById("weekCount");
+  const revenueEl = document.getElementById("revenue");
+  const dashboardEl = document.getElementById("dashboard");
+  const searchBox = document.getElementById("searchBox");
+  const refreshBtn = document.getElementById("refreshBtn");
+
+  let currentCollection = "braceletOrders";
+  let unsub = null;
+  let lastRows = [];
+
+  const COLLECTION_CONFIG = {
+    braceletOrders: {
+      title: "Bracelet Orders",
+      showDashboard: true,
+      statusValues: ["new","pending","done","unpaid"],
+      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id"]
+    },
+    cookieOrders: {
+      title: "Cookie Orders",
+      showDashboard: true,
+      statusValues: ["new","pending","done","unpaid","Pending","Completed"],
+      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id"]
+    },
+    spiritOrders: {
+      title: "Spirit Wear",
+      showDashboard: true,
+      statusValues: ["new","pending","done","unpaid"],
+      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id"]
+    },
+    products_bracelets: {
+      title: "Bracelet Products",
+      showDashboard: false,
+      columns: ["type","sizeOptions","colorOptions","price","id"]
+    },
+    products_cookies: {
+      title: "Cookie Products",
+      showDashboard: false,
+      columns: ["name","price","stock","id"]
+    },
+    auditLog: {
+      title: "Audit Log",
+      showDashboard: false,
+      columns: ["at","type","collection","id","field","from","to"]
+    }
+  };
+
+  function safeDate(v){
+    if(!v) return null;
+    if(typeof v?.toDate === "function") return v.toDate();
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function formatDate(v){
+    const d = safeDate(v);
+    return d ? d.toLocaleString() : "";
+  }
+  function normalizeStatus(s){
+    if(!s) return "";
+    const lower = String(s).toLowerCase();
+    if(lower === "pending") return "pending";
+    if(lower === "new") return "new";
+    if(lower === "done" || lower === "completed") return "done";
+    if(lower === "unpaid") return "unpaid";
+    return String(s);
+  }
+  function colorRow(row,status){
+    row.classList.remove("newRow","doneRow","unpaidRow","pendingRow");
+    const s = normalizeStatus(status);
+    if(s==="new") row.classList.add("newRow");
+    if(s==="done") row.classList.add("doneRow");
+    if(s==="unpaid") row.classList.add("unpaidRow");
+    if(s==="pending") row.classList.add("pendingRow");
+  }
+  function stringifyCell(val){
+    if(val === null || val === undefined) return "";
+    if(Array.isArray(val)) return val.join(", ");
+    if(typeof val === "object") return JSON.stringify(val);
+    return String(val);
+  }
+  function applySearch(rows){
+    const q = searchBox.value.trim().toLowerCase();
+    if(!q) return rows;
+    return rows.filter(r=>{
+      const blob = Object.values(r).map(v=>stringifyCell(v).toLowerCase()).join(" | ");
+      return blob.includes(q);
+    });
+  }
+  function updateDashboard(rows){
+    let today=0, week=0, revenue=0;
+    const now = new Date();
+
+    rows.forEach(r=>{
+      const d = safeDate(r.createdAt);
+      if(d){
+        const diffDays = (now - d) / 86400000;
+        if(diffDays < 1) today++;
+        if(diffDays < 7) week++;
+      }
+      const total = parseFloat(r.total);
+      if(!isNaN(total)) revenue += total;
+      else {
+        const price = parseFloat(r.price);
+        const qty = parseFloat(r.qty);
+        if(!isNaN(price) && !isNaN(qty)) revenue += price * qty;
+      }
+    });
+
+    todayCountEl.textContent = today;
+    weekCountEl.textContent = week;
+    revenueEl.textContent = "$" + revenue.toFixed(2);
+  }
+  function getColumns(){
+    const cfg = COLLECTION_CONFIG[currentCollection];
+    return cfg?.columns?.length ? cfg.columns : ["id"];
+  }
+  function setTitleAndDashboard(){
+    const cfg = COLLECTION_CONFIG[currentCollection] || {};
+    tableTitle.textContent = cfg.title || currentCollection;
+    dashboardEl.style.display = cfg.showDashboard ? "grid" : "none";
+  }
+
+  function buildTable(rows){
+    table.innerHTML = "";
+    if(!rows.length){
+      table.innerHTML = "<tr><td style='padding:14px;'>No Data</td></tr>";
+      return;
+    }
+
+    const cols = getColumns();
+
+    const header = table.insertRow();
+    cols.forEach(c=>{
+      const th = document.createElement("th");
+      th.textContent = c;
+      header.appendChild(th);
+    });
+
+    rows.forEach(r=>{
+      const row = table.insertRow();
+
+      cols.forEach(col=>{
+        const cell = row.insertCell();
+
+        if(col === "status"){
+          const cfg = COLLECTION_CONFIG[currentCollection] || {};
+          const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
+          const sel = document.createElement("select");
+          sel.className = "statusSelect";
+
+          const current = r.status ?? "";
+          const normalized = normalizeStatus(current);
+          const options = [...new Set([normalized, ...allowed.map(normalizeStatus)])].filter(Boolean);
+
+          options.forEach(v=>{
+            const o = new Option(v, v);
+            if(normalizeStatus(current) === v) o.selected = true;
+            sel.add(o);
+          });
+
+          sel.onchange = async () => {
+            const old = r.status ?? null;
+            r.status = sel.value;
+
+            await setDoc(doc(db, currentCollection, r.id), r);
+
+            await addDoc(collection(db, "auditLog"), {
+              type: "status_change",
+              collection: currentCollection,
+              id: r.id,
+              from: old,
+              to: r.status,
+              at: new Date()
+            });
+
+            colorRow(row, r.status);
+          };
+
+          cell.appendChild(sel);
+        }
+        else if(col === "createdAt" || col === "at"){
+          cell.textContent = formatDate(r[col]);
+        }
+        else{
+          cell.textContent = stringifyCell(r[col] ?? "");
+
+          if(col !== "id"){
+            cell.contentEditable = true;
+            cell.onblur = async () => {
+              r[col] = cell.textContent.trim();
+              await setDoc(doc(db, currentCollection, r.id), r);
+            };
+          }
+        }
+      });
+
+      colorRow(row, r.status);
+    });
+  }
+
+  function subscribe(){
+    if(unsub) unsub();
+
+    setTitleAndDashboard();
+    table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
+
+    const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog";
+    const colRef = collection(db, currentCollection);
+
+    let qRef = colRef;
+    if(wantsOrder){
+      const field = (currentCollection === "auditLog") ? "at" : "createdAt";
+      qRef = query(colRef, orderBy(field, "desc"));
+    }
+
+    unsub = onSnapshot(qRef, snap=>{
+      lastRows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      const filtered = applySearch(lastRows);
+
+      if(currentCollection.includes("Orders")){
+        updateDashboard(filtered);
+      }
+
+      buildTable(filtered);
+    }, err=>{
+      console.error(err);
+      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data (check console).</td></tr>";
+    });
+  }
+
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", e=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      e.currentTarget.classList.add("active");
+      currentCollection = e.currentTarget.dataset.col;
+      subscribe();
+    });
+  });
+
+  searchBox.addEventListener("input", ()=>{
+    const filtered = applySearch(lastRows);
+    if(currentCollection.includes("Orders")) updateDashboard(filtered);
+    buildTable(filtered);
+  });
+
+  refreshBtn.addEventListener("click", subscribe);
+
+  subscribe();
+</script>
+
+</body>
+</html>

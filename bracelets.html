@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bracelet Preorder</title>
+
+<style>
+body {
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(to right, #7a0c0c, #000, #7a0c0c);
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+
+nav {
+  text-align: center;
+  background: #111;
+  padding: 10px 0;
+  border-bottom: 2px solid #ff0000;
+  box-shadow: 0 0 10px #ff0000;
+}
+
+nav a {
+  color: white;
+  margin: 0 15px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+nav a:hover {
+  color: #ff0000;
+  text-shadow: 0 0 6px #ff0000;
+}
+
+h1 {
+  text-align: center;
+  color: #ff0000;
+  margin-bottom: 25px;
+}
+
+form {
+  background: #111;
+  border-radius: 16px;
+  padding: 20px;
+  margin: auto;
+  max-width: 500px;
+  box-shadow: 0 0 15px #ff0000;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+}
+
+button {
+  background: #ff0000;
+  color: white;
+  margin-top: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: darkred;
+}
+
+#priceDisplay {
+  margin-top: 8px;
+  font-weight: bold;
+  color: #ffb347;
+  text-align: center;
+}
+
+#imagePreviewContainer {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+#imagePreviewContainer img {
+  border-radius: 8px;
+  border: 2px solid #ff0000;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .4s;
+  background:#000;
+}
+
+#mainBraceletImg {
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+}
+
+.sideImg {
+  width: 80px;
+  height: 80px;
+}
+
+#orderMsg {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <a href="cookies.html">Cookies</a>
+  <a href="bracelets.html">Bracelets</a>
+  <a href="spiritwear.html">Spirit Wear</a>
+</nav>
+
+<h1>Bracelet Preorder</h1>
+
+<!-- IMAGE PREVIEW -->
+<div id="imagePreviewContainer">
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <img id="sideImg1" class="sideImg" alt="">
+    <img id="sideImg2" class="sideImg" alt="">
+  </div>
+
+  <img id="mainBraceletImg" alt="">
+
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <img id="sideImg3" class="sideImg" alt="">
+    <img id="sideImg4" class="sideImg" alt="">
+  </div>
+</div>
+
+<form id="braceletForm">
+  <label>Name</label>
+  <input id="braceletName" required>
+
+  <label>Phone</label>
+  <input id="braceletPhone" required>
+
+  <label>Bracelet Type</label>
+  <select id="knotType" required></select>
+
+  <label>Size</label>
+  <select id="braceletSize"></select>
+
+  <label>Quantity</label>
+  <input id="braceletQty" type="number" min="1" value="1">
+
+  <p id="priceDisplay">Price: $0.00</p>
+
+  <label>Color 1</label>
+  <select id="color1"></select>
+
+  <label>Color 2</label>
+  <select id="color2"></select>
+
+  <button type="button" id="submitBtn">Submit Bracelet Order</button>
+</form>
+
+<p id="orderMsg"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let currentProduct = null;
+
+/* IMAGE FADE */
+function fade(img, src){
+  img.style.opacity = 0;
+  img.src = src;
+  img.onerror = () => { img.style.opacity = 0.25; }; // if image missing
+  setTimeout(()=>img.style.opacity = 1, 100);
+}
+
+function loadImages(type){
+  const key = String(type || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g,"-");
+
+  fade(mainBraceletImg, `${key}-main.png`);
+  fade(sideImg1, `${key}-side1.png`);
+  fade(sideImg2, `${key}-side2.png`);
+  fade(sideImg3, `${key}-side3.png`);
+  fade(sideImg4, `${key}-side4.png`);
+}
+
+/* LOAD BRACELETS LIST */
+async function loadBracelets(){
+  knotType.innerHTML = "<option value=''>Select Bracelet</option>";
+  const snap = await getDocs(collection(db,"products_bracelets"));
+  snap.forEach(d=>{
+    const p = d.data();
+    knotType.add(new Option(p.type ?? d.id, d.id));
+  });
+}
+
+/* HELPERS FOR PRICE FIELD */
+function getPriceMap(p){
+  if(!p || p.price == null) return {};
+  if(typeof p.price === "object") return p.price;
+  if(typeof p.price === "string"){
+    try { return JSON.parse(p.price); } catch { return {}; }
+  }
+  return {};
+}
+
+/* PRICE CALC (FIXED) */
+function updatePrice(){
+  if(!currentProduct) return;
+
+  const sizeRaw = (braceletSize.value || "").trim();
+  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
+
+  const priceMap = getPriceMap(currentProduct);
+
+  let unit = parseFloat(priceMap[sizeRaw]);
+
+  if(Number.isNaN(unit)){
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === sizeRaw);
+    unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
+  }
+
+  if(Number.isNaN(unit)) unit = 0;
+
+  priceDisplay.textContent = `Price: $${(unit * qty).toFixed(2)}`;
+}
+
+/* LOAD BRACELET DATA */
+async function loadBraceletData(id){
+  if(!id) {
+    currentProduct = null;
+    priceDisplay.textContent = "Price: $0.00";
+    braceletSize.innerHTML = "";
+    color1.innerHTML = "";
+    color2.innerHTML = "";
+    return;
+  }
+
+  const snap = await getDoc(doc(db,"products_bracelets", id));
+  if(!snap.exists()) return;
+
+  const p = snap.data();
+  currentProduct = { id, ...p };
+
+  // sizes
+  braceletSize.innerHTML = "";
+  const sizes = Array.isArray(p.sizeOptions) ? p.sizeOptions : [];
+  sizes.forEach(s => braceletSize.add(new Option(s, s)));
+
+  // colors
+  color1.innerHTML = "";
+  color2.innerHTML = "";
+  const colors = String(p.colorOptions || "")
+    .split(",")
+    .map(c => c.trim())
+    .filter(Boolean);
+
+  colors.forEach(c=>{
+    color1.add(new Option(c,c));
+    color2.add(new Option(c,c));
+  });
+
+  loadImages(p.type);
+  updatePrice();
+}
+
+/* SUBMIT */
+submitBtn.onclick = async () => {
+  if(!currentProduct) return alert("Select a bracelet");
+  if(!braceletName.value.trim() || !braceletPhone.value.trim())
+    return alert("Enter name + phone");
+
+  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
+  const size = (braceletSize.value || "").trim();
+  const priceMap = getPriceMap(currentProduct);
+
+  let unit = parseFloat(priceMap[size]);
+  if(Number.isNaN(unit)){
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === size);
+    unit = matchKey ? parseFloat(priceMap[matchKey]) : 0;
+  }
+  if(Number.isNaN(unit)) unit = 0;
+
+  const total = unit * qty;
+
+  await addDoc(collection(db,"braceletOrders"),{
+    name: braceletName.value.trim(),
+    phone: braceletPhone.value.trim(),
+    type: currentProduct.type ?? "",
+    size,
+    color1: color1.value ?? "",
+    color2: color2.value ?? "",
+    qty,
+    price: unit,
+    total,
+    status: "new",
+    createdAt: new Date()
+  });
+
+  orderMsg.textContent = `Order submitted! Total: $${total.toFixed(2)}`;
+  braceletForm.reset();
+  priceDisplay.textContent = "Price: $0.00";
+  currentProduct = null;
+  knotType.value = "";
+};
+
+/* INIT */
+loadBracelets();
+
+// events (mobile friendly)
+knotType.addEventListener("change", () => loadBraceletData(knotType.value));
+braceletSize.addEventListener("change", updatePrice);
+braceletQty.addEventListener("input", updatePrice);
+braceletQty.addEventListener("change", updatePrice);
+</script>
+
+</body>
+</html>

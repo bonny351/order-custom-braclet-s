@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spirit Wear – Tactics & Treats Preorder</title>
+<style>
+body {
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(to right, #7a0c0c, #000, #7a0c0c);
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+nav {
+  text-align: center;
+  background: #111;
+  padding: 10px 0;
+  border-bottom: 2px solid #ff0000;
+  box-shadow: 0 0 10px #ff0000;
+}
+nav a {
+  color: white;
+  margin: 0 15px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: 0.2s;
+}
+nav a:hover { color: #ff0000; text-shadow: 0 0 6px #ff0000; }
+h1 { text-align: center; color: #ff0000; margin-bottom: 30px; }
+form {
+  background: #111;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 500px;
+  box-shadow: 0 0 15px #ff0000;
+}
+label { display: block; margin-top: 10px; font-weight: 500; color: white; }
+input, select, button {
+  width: 100%; padding: 10px; border-radius: 8px; border: none; margin-top: 5px; font-size: 14px;
+}
+select:disabled { background: #555; color: #aaa; cursor: not-allowed; }
+button { margin-top: 20px; padding: 12px; background: #ff0000; color: #fff; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+button:hover { background: darkred; }
+#priceDisplay { margin-top: 5px; font-weight: bold; color: #ffb347; }
+#totalDisplay { margin-top: 3px; font-weight: bold; color: #00ff99; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="cookies.html">Cookies</a>
+  <a href="bracelets.html">Bracelets</a>
+  <a href="spiritwear.html">Spirit Wear</a>
+</nav>
+
+<h1>Spirit Wear Preorder</h1>
+
+<form id="spiritForm">
+  <label>Name</label>
+  <input id="spiritName" type="text" required>
+
+  <label>Email</label>
+  <input id="spiritEmail" type="email" required>
+
+  <label>Item</label>
+  <select id="spiritItem" required>
+    <option value="">Loading...</option>
+  </select>
+
+  <label>Size</label>
+  <select id="spiritSize" required>
+    <option value="">Select Size</option>
+    <option value="S">Small</option>
+    <option value="M">Medium</option>
+    <option value="L">Large</option>
+    <option value="XL">X-Large</option>
+    <option value="2XL">2X-Large</option>
+  </select>
+
+  <label>Quantity</label>
+  <input id="spiritQty" type="number" min="1" value="1" required>
+
+  <p id="priceDisplay">Price: $0.00</p>
+  <p id="totalDisplay">Total: $0.00</p>
+
+  <button type="button" id="submitBtn">Submit Order</button>
+</form>
+
+<div style="text-align:center; margin-top:20px;">
+  <button id="donateBtn" style="background:#ffb347;">💖 Donate</button>
+</div>
+
+<div id="donateBox" style="display:none; text-align:center; background:#111; border-radius:12px; box-shadow:0 0 12px #ff0000; padding:20px; max-width:400px; margin:20px auto;">
+  <h3 style="color:#ffb347;">Make a Donation</h3>
+  <input id="donateName" type="text" placeholder="Your Name" style="width:90%; padding:10px; border-radius:8px; margin-bottom:10px;">
+  <input id="donateEmail" type="email" placeholder="Your Email (optional)" style="width:90%; padding:10px; border-radius:8px; margin-bottom:10px;">
+  <input id="donateAmount" type="number" min="1" placeholder="Donation Amount ($)" style="width:90%; padding:10px; border-radius:8px; margin-bottom:10px;">
+  <button id="confirmDonateBtn" style="background:#ff0000; color:white; padding:10px 20px; border-radius:8px; margin-right:10px;">Submit Donation</button>
+  <button id="cancelDonateBtn" style="background:gray; color:white; padding:10px 20px; border-radius:8px;">Cancel</button>
+</div>
+
+<p id="orderMsg" style="text-align:center; color:#ffb347; font-weight:bold;"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, runTransaction, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain: "bracelets-and-color.firebaseapp.com",
+  projectId: "bracelets-and-color",
+  storageBucket: "bracelets-and-color.appspot.com",
+  messagingSenderId: "382292570673",
+  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const productsCol = collection(db, "products_spirit");
+const ordersCol = collection(db, "spiritOrders");
+
+const select = document.getElementById("spiritItem");
+const qtyInput = document.getElementById("spiritQty");
+const priceDisplay = document.getElementById("priceDisplay");
+const totalDisplay = document.getElementById("totalDisplay");
+const msg = document.getElementById("orderMsg");
+
+let products = {};
+let currentPrice = 0;
+
+// Load products with SAFE stock + SAFE price logic
+async function loadProducts() {
+  try {
+    const snapshot = await getDocs(productsCol);
+    select.innerHTML = `<option value="">Select Item</option>`;
+    products = {};
+
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+
+      // SAFETY FIX: Convert to real numbers
+      const price = Number(data.price) || 0;
+      const stock = Number(data.stock);
+
+      products[docSnap.id] = { ...data, price, stock };
+
+      const option = document.createElement("option");
+      option.value = docSnap.id;
+
+      let status = "";
+
+      if (isNaN(stock) || stock <= 0) {
+        option.disabled = true;
+        status = " (Out of Stock)";
+      } else if (stock <= 5) {
+        status = " (Low Stock)";
+      } else {
+        status = ` (${stock} in stock)`;
+      }
+
+      option.textContent = `${data.name || "Unnamed"} - $${price.toFixed(2)}${status}`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+    select.innerHTML = `<option value="">⚠️ Error loading items</option>`;
+  }
+}
+await loadProducts();
+
+// Update Price + Total
+select.addEventListener("change", () => {
+  const product = products[select.value];
+  currentPrice = product ? Number(product.price) || 0 : 0;
+  updateTotals();
+});
+
+qtyInput.addEventListener("input", updateTotals);
+
+function updateTotals() {
+  const qty = parseInt(qtyInput.value) || 1;
+  const total = qty * currentPrice;
+  priceDisplay.textContent = `Price: $${currentPrice.toFixed(2)}`;
+  totalDisplay.textContent = `Total: $${total.toFixed(2)}`;
+}
+
+// Submit order
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  const name = document.getElementById("spiritName").value.trim();
+  const email = document.getElementById("spiritEmail").value.trim();
+  const size = document.getElementById("spiritSize").value;
+  const qty = parseInt(qtyInput.value) || 1;
+  const id = select.value;
+
+  if (!name || !email || !size || !id) {
+    return alert("⚠️ Please fill out all required fields.");
+  }
+
+  const selected = products[id];
+  if (!selected) return alert("❌ Item not found.");
+
+  // SAFETY: Ensure stock is valid
+  if (selected.stock === undefined || isNaN(selected.stock)) {
+    return alert("❌ This item has no valid stock value in Firestore.");
+  }
+  if (Number(selected.stock) < qty) {
+    return alert("❌ Not enough stock.");
+  }
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = doc(db, "products_spirit", id);
+      const snap = await tx.get(ref);
+
+      if (!snap.exists()) throw new Error("Product not found");
+
+      const data = snap.data();
+      const stock = Number(data.stock);
+
+      if (isNaN(stock) || stock < qty)
+        throw new Error("Not enough stock");
+
+      tx.update(ref, { stock: stock - qty });
+
+      const total = qty * (Number(data.price) || 0);
+
+      await addDoc(ordersCol, {
+        name, email, size, quantity: qty,
+        product: data.name,
+        sku: data.sku || "",
+        total,
+        status: "Pending",
+        timestamp: serverTimestamp()
+      });
+    });
+
+    msg.textContent = "✅ Order submitted successfully!";
+    document.getElementById("spiritForm").reset();
+    updateTotals();
+    await loadProducts();
+  } catch (err) {
+    console.error(err);
+    alert("❌ " + err.message);
+  }
+});
+
+// DONATE Feature
+const donateBtn = document.getElementById("donateBtn");
+const donateBox = document.getElementById("donateBox");
+const confirmDonateBtn = document.getElementById("confirmDonateBtn");
+const cancelDonateBtn = document.getElementById("cancelDonateBtn");
+
+donateBtn.addEventListener("click", () => {
+  donateBox.style.display = "block";
+  msg.textContent = "";
+});
+
+cancelDonateBtn.addEventListener("click", () => {
+  donateBox.style.display = "none";
+});
+
+confirmDonateBtn.addEventListener("click", async () => {
+  const name = document.getElementById("donateName").value.trim();
+  const email = document.getElementById("donateEmail").value.trim();
+  const amount = parseFloat(document.getElementById("donateAmount").value);
+
+  if (!name || !amount || amount <= 0) {
+    alert("⚠️ Please enter your name and donation amount.");
+    return;
+  }
+
+  try {
+    await addDoc(ordersCol, {
+      name,
+      email: email || null,
+      type: "Donate",
+      total: amount,
+      status: "Pending",
+      timestamp: serverTimestamp()
+    });
+
+    msg.textContent = `💖 Thank you, ${name}! Your $${amount.toFixed(2)} donation was received.`;
+    donateBox.style.display = "none";
+    document.getElementById("donateName").value = "";
+    document.getElementById("donateEmail").value = "";
+    document.getElementById("donateAmount").value = "";
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to submit donation.");
+  }
+});
+</script>
+
+</body>
+</html>

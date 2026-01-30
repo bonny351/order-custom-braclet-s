@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactics & Treats – Admin Orders</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    const tableBody = document.getElementById("ordersBody");
+
+    try {
+      const q = query(collection(db, "braceletOrders"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td class="border px-2 py-1">${data.name || ""}</td>
+          <td class="border px-2 py-1">${data.email || ""}</td>
+          <td class="border px-2 py-1">${data.color1 || ""}</td>
+          <td class="border px-2 py-1">${data.color2 || ""}</td>
+          <td class="border px-2 py-1">${data.type || ""}</td>
+          <td class="border px-2 py-1">${data.size || ""}</td>
+          <td class="border px-2 py-1">${data.extrasCount || 0}</td>
+          <td class="border px-2 py-1">${data.extrasDesc || ""}</td>
+          <td class="border px-2 py-1">${data.notes || ""}</td>
+          <td class="border px-2 py-1">$${data.price?.toFixed(2) || "0.00"}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    } catch (err) {
+      console.error(err);
+      document.getElementById("status").textContent = "Error loading orders.";
+    }
+  });
+</script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-10">
+
+<header class="w-full text-center mb-8">
+  <img src="your-logo.png" alt="Tactics & Treats Logo" class="mx-auto w-40 h-auto mb-4">
+  <h1 class="text-3xl font-bold text-red-700">Tactics & Treats Admin</h1>
+  <p class="text-gray-700">View all bracelet & dog collar orders</p>
+</header>
+
+<main class="bg-white shadow-md rounded-2xl p-6 w-full max-w-6xl overflow-x-auto">
+  <table class="min-w-full border-collapse border border-gray-300">
+    <thead>
+      <tr class="bg-gray-200 text-left">
+        <th class="border px-2 py-1">Name</th>
+        <th class="border px-2 py-1">Email</th>
+        <th class="border px-2 py-1">Color 1</th>
+        <th class="border px-2 py-1">Color 2</th>
+        <th class="border px-2 py-1">Type</th>
+        <th class="border px-2 py-1">Size</th>
+        <th class="border px-2 py-1">Extras</th>
+        <th class="border px-2 py-1">Extras Desc</th>
+        <th class="border px-2 py-1">Notes</th>
+        <th class="border px-2 py-1">Total Price</th>
+      </tr>
+    </thead>
+    <tbody id="ordersBody">
+      <!-- Orders will be inserted here -->
+    </tbody>
+  </table>
+  <p id="status" class="text-red-600 mt-4"></p>
+</main>
+
+<footer class="mt-8 text-gray-600 text-sm">
+  © 2025 Tactics & Treats. Handmade with ❤️.
+</footer>
+
+</body>
+</html>

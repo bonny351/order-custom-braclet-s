@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirmed</title>
+
+<style>
+body {
+  background: #f2f2f2;
+  font-family: system-ui, sans-serif;
+}
+.card {
+  background: white;
+  max-width: 420px;
+  margin: 80px auto;
+  padding: 20px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>Order Confirmed ✅</h2>
+  <p>Your bracelet is being made.</p>
+  <p><b>Order ID:</b></p>
+  <code id="oid"></code>
+</div>
+
+<script>
+oid.innerText = new URLSearchParams(location.search).get("id");
+</script>
+</body>
+</html>

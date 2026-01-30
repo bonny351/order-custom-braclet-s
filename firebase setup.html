@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin & Firebase Setup – Tactics & Treats</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  // ===== FIREBASE CONFIG =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain: "bracelets-and-color.firebaseapp.com",
+    projectId: "bracelets-and-color",
+    storageBucket: "bracelets-and-color.appspot.com",
+    messagingSenderId: "382292570673",
+    appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const productCollections = ['products_cookies', 'products_bracelets', 'products_spirit'];
+  const orderCollections = ['cookieOrders', 'braceletOrders', 'spiritOrders'];
+
+  // ===== DOM REFERENCES =====
+  const productSelect = document.getElementById('productCollection');
+  const productTable = document.getElementById('productsTable');
+  const orderTable = document.getElementById('ordersTable');
+
+  let currentProductCollection = productCollections[0];
+
+  // ===== Load Collections into Dropdown =====
+  productCollections.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    productSelect.appendChild(opt);
+  });
+
+  productSelect.addEventListener('change', () => {
+    currentProductCollection = productSelect.value;
+    loadProducts();
+  });
+
+  // ===== Load Products =====
+  async function loadProducts() {
+    productTable.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+    const col = collection(db, currentProductCollection);
+    const snapshot = await getDocs(col);
+
+    productTable.innerHTML = snapshot.size ? '' : '<tr><td colspan="8">No products found</td></tr>';
+
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input value="${d.name || ''}" id="name-${docSnap.id}"></td>
+        <td><input value="${d.sku || ''}" id="sku-${docSnap.id}"></td>
+        <td><input type="number" value="${d.price || 0}" id="price-${docSnap.id}"></td>
+        <td><input type="number" value="${d.stock || 0}" id="stock-${docSnap.id}"></td>
+        <td><input value="${d.supplier || ''}" id="supplier-${docSnap.id}"></td>
+        <td><input value="${d.paymentLink || ''}" id="payment-${docSnap.id}"></td>
+        <td><select id="method-${docSnap.id}"><option value="paypal" ${d.method==='paypal'?'selected':''}>PayPal</option><option value="cash" ${d.method==='cash'?'selected':''}>Cash</option></select></td>
+        <td class="flex gap-2"><button onclick="saveProduct('${docSnap.id}')">💾</button><button onclick="deleteProduct('${docSnap.id}')">🗑️</button></td>
+      `;
+      productTable.appendChild(tr);
+    });
+  }
+
+  // ===== Load Orders =====
+  async function loadOrders() {
+    orderTable.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+    let allOrders = [];
+    for (const colName of orderCollections) {
+      const colSnap = await getDocs(collection(db, colName));
+      colSnap.forEach(docSnap => {
+        allOrders.push({id: docSnap.id, collection: colName, data: docSnap.data()});
+      });
+    }
+
+    orderTable.innerHTML = allOrders.length ? '' : '<tr><td colspan="10">No orders found</td></tr>';
+
+    allOrders.forEach((order, i) => {
+      const d = order.data;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td><input value="${d.name || ''}" id="oname-${order.id}"></td>
+        <td><input value="${d.email || ''}" id="oemail-${order.id}"></td>
+        <td><input value="${d.product || ''}" id="oproduct-${order.id}"></td>
+        <td><input value="${d.size || ''}" id="osize-${order.id}"></td>
+        <td><input type="number" value="${d.qty || 1}" id="oqty-${order.id}"></td>
+        <td><input type="number" value="${d.total || 0}" id="ototal-${order.id}"></td>
+        <td><input value="${d.address || ''}" id="oaddress-${order.id}"></td>
+        <td><select id="opayment-${order.id}"><option value="paypal" ${d.method==='paypal'?'selected':''}>PayPal</option><option value="cash" ${d.method==='cash'?'selected':''}>Cash</option></select></td>
+        <td class="flex gap-2"><button onclick="saveOrder('${order.id}','${order.collection}')">💾</button><button onclick="deleteOrder('${order.id}','${order.collection}')">🗑️</button></td>
+      `;
+      orderTable.appendChild(tr);
+    });
+  }
+
+  // ===== Product Operations =====
+  window.saveProduct = async (id) => {
+    const ref = doc(db, currentProductCollection, id);
+    await updateDoc(ref, {
+      name: document.getElementById(`name-${id}`).value.trim(),
+      sku: document.getElementById(`sku-${id}`).value.trim(),
+      price: parseFloat(document.getElementById(`price-${id}`).value) || 0,
+      stock: parseInt(document.getElementById(`stock-${id}`).value) || 0,
+      supplier: document.getElementById(`supplier-${id}`).value.trim(),
+      paymentLink: document.getElementById(`payment-${id}`).value.trim(),
+      method: document.getElementById(`method-${id}`).value
+    });
+    loadProducts();
+  };
+
+  window.deleteProduct = async (id) => {
+    await deleteDoc(doc(db, currentProductCollection, id));
+    loadProducts();
+  };
+
+  // ===== Order Operations =====
+  window.saveOrder = async (id, col) => {
+    const ref = doc(db, col, id);
+    await updateDoc(ref, {
+      name: document.getElementById(`oname-${id}`).value.trim(),
+      email: document.getElementById(`oemail-${id}`).value.trim(),
+      product: document.getElementById(`oproduct-${id}`).value.trim(),
+      size: document.getElementById(`osize-${id}`).value.trim(),
+      qty: parseInt(document.getElementById(`oqty-${id}`).value) || 1,
+      total: parseFloat(document.getElementById(`ototal-${id}`).value) || 0,
+      address: document.getElementById(`oaddress-${id}`).value.trim(),
+      method: document.getElementById(`opayment-${id}`).value
+    });
+    loadOrders();
+  };
+
+  window.deleteOrder = async (id, col) => {
+    await deleteDoc(doc(db, col, id));
+    loadOrders();
+  };
+
+  // ===== Add New Product =====
+  document.getElementById('addProductBtn').addEventListener('click', async () => {
+    const colRef = collection(db, currentProductCollection);
+    await addDoc(colRef, {
+      name: 'New Product', sku: '', price: 0, stock: 0, supplier: '', paymentLink: '', method: 'paypal'
+    });
+    loadProducts();
+  });
+
+  // ===== INITIAL LOAD =====
+  loadProducts();
+  loadOrders();
+</script>
+<style>
+body {font-family: Arial, sans-serif; padding: 20px; background: #111; color: white;}
+table {width: 100%; border-collapse: collapse; margin-bottom: 20px;}
+th, td {border: 1px solid #444; padding: 6px; text-align: left;}
+button {cursor: pointer; padding: 4px 8px; margin-right: 2px;}
+</style>
+</head>
+<body>
+<h1>Admin & Firebase Setup</h1>
+<label>Select Product Collection: <select id="productCollection"></select></label>
+<button id="addProductBtn">Add New Product</button>
+<h2>Products</h2>
+<table>
+<thead><tr><th>Name</th><th>SKU</th><th>Price</th><th>Stock</th><th>Supplier</th><th>Payment Link</th><th>Method</th><th>Actions</th></tr></thead>
+<tbody id="productsTable"></tbody>
+</table>
+<h2>Orders</h2>
+<table>
+<thead><tr><th>#</th><th>Name</th><th>Email</th><th>Product</th><th>Size</th><th>Qty</th><th>Total</th><th>Address</th><th>Method</th><th>Actions</th></tr></thead>
+<tbody id="ordersTable"></tbody>
+</table>
+</body>
+</html>
