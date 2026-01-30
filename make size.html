@@ -12,41 +12,41 @@
   <style>
     body{
       font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      font-weight:500;
       background:#111;
       color:#fff;
       margin:0;
       padding:18px;
     }
     header{
+      display:flex;
+      justify-content:center;
       background:linear-gradient(90deg,#7a0c0c,#000);
       padding:14px;
-      border-radius:12px;
-      box-shadow:0 0 12px rgba(255,0,0,0.35);
-      margin-bottom:14px;
-      text-align:center;
+      border-radius:10px;
+      box-shadow:0 0 12px rgba(255,0,0,0.4);
+      margin-bottom:12px;
     }
-    h1{ margin:0; color:#ff0000; font-weight:800; letter-spacing:.2px; }
+    h1{ margin:0; color:#ff0000; font-weight:800; }
+
     .wrap{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
       max-width:1100px;
       margin:0 auto;
+      display:grid;
+      gap:12px;
     }
+
     .card{
       background:#181818;
+      padding:14px;
       border-radius:12px;
       box-shadow:0 0 12px rgba(255,0,0,0.2);
-      padding:14px;
     }
-    .row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    label{ font-weight:700; color:#ffb347; }
-    select, input, textarea{
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    input, textarea{
       background:#111;
       color:#fff;
       border:1px solid #ff0000;
@@ -58,113 +58,109 @@
       box-sizing:border-box;
     }
     textarea{ min-height:90px; resize:vertical; }
+
     .btn{
       background:#ff0000;
+      color:#fff;
       border:none;
       border-radius:10px;
       padding:10px 14px;
       font-weight:900;
       cursor:pointer;
-      color:#fff;
     }
     .btn:hover{ background:darkred; }
     .btn.secondary{
       background:#222;
       border:1px solid #ff0000;
     }
+
+    .hint{ font-size:12px; opacity:.85; line-height:1.35; margin-top:6px; }
+
     .grid2{
       display:grid;
       grid-template-columns: 1fr;
-      gap:10px;
+      gap:12px;
     }
     @media (min-width: 900px){
       .grid2{ grid-template-columns: 1fr 1fr; }
     }
-    .hint{
-      font-size:12px;
-      opacity:.85;
-      line-height:1.35;
-      margin-top:6px;
+
+    .list{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap:10px;
+      margin-top:10px;
     }
-    .pill{
-      display:inline-block;
-      padding:6px 10px;
-      border:1px solid #ff0000;
-      border-radius:999px;
+    .item{
       background:#111;
-      font-size:12px;
-      font-weight:800;
-      margin-left:8px;
+      border:1px solid #ff0000;
+      border-radius:12px;
+      padding:10px;
+      cursor:pointer;
+      box-shadow:0 0 10px rgba(255,0,0,0.12);
+      user-select:none;
     }
-    .ok{ color:#7CFF7C; }
-    .bad{ color:#ff7c7c; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .item:hover{ box-shadow:0 0 14px rgba(255,0,0,0.25); }
+    .item.active{
+      background:#ff0000;
+      border-color:#ff0000;
+      box-shadow:0 0 14px rgba(255,0,0,0.45);
+    }
+    .item .title{ font-weight:900; }
+    .item .sub{ font-size:12px; opacity:.9; margin-top:4px; }
+
+    .ok{ color:#7CFF7C; font-weight:800; }
+    .bad{ color:#ff7c7c; font-weight:800; }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>Size Builder</h1>
-  </header>
+  <header><h1>Size Builder</h1></header>
 
   <div class="wrap">
 
     <div class="card">
       <div class="row" style="justify-content:space-between;">
         <div>
-          <label>Collection</label>
-          <span class="pill mono" id="collectionPill">products_bracelets</span>
+          <div class="hint">Collection:</div>
+          <div class="mono" style="font-weight:900;">products_bracelets</div>
         </div>
         <div class="row">
-          <button class="btn secondary" id="reloadBtn">Reload Products</button>
+          <button class="btn secondary" id="refreshBtn">Refresh</button>
         </div>
       </div>
-
       <div class="hint">
-        Pick a product, type sizes (in inches) like <span class="mono">5 6 7.5 8 9 10</span>, then click Save.
-        It will auto-format into <span class="mono">5", 6", 7.5", ...</span> and update <span class="mono">sizeOptions</span>.
+        Click a product → type sizes like <span class="mono">5 6 7.5 8 9 10</span> → it saves as
+        <span class="mono">5", 6", 7.5", 8", ...</span> into <span class="mono">sizeOptions</span>.
       </div>
+      <div class="hint" id="statusLine"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:900; color:#ffb347;">Products</div>
+      <div class="list" id="productList"></div>
     </div>
 
     <div class="card grid2">
       <div>
-        <label for="productSelect">Product</label>
-        <select id="productSelect"></select>
-
-        <div class="hint" id="productInfo"></div>
-      </div>
-
-      <div>
-        <label for="sizesInput">Sizes (inches)</label>
+        <div style="font-weight:900; color:#ffb347;">Sizes (inches)</div>
         <input id="sizesInput" placeholder='Example: 5 6 7.5 8 9 10 11 12' />
-
         <div class="hint">
-          Allowed separators: spaces, commas, or new lines.<br/>
-          It will remove duplicates, sort smallest → biggest, and add <span class="mono">"</span>.
+          Separators can be spaces / commas / new lines. Duplicates removed. Sorted smallest → biggest.
         </div>
-      </div>
-    </div>
 
-    <div class="card grid2">
-      <div>
-        <label>Preview (what gets saved)</label>
-        <textarea id="previewBox" class="mono" readonly></textarea>
-        <div class="hint" id="previewStatus"></div>
-      </div>
-
-      <div>
-        <label>Actions</label>
         <div class="row" style="margin-top:10px;">
-          <button class="btn" id="saveBtn">Save sizeOptions</button>
           <button class="btn secondary" id="loadCurrentBtn">Load current sizeOptions</button>
+          <button class="btn" id="saveBtn">Save sizeOptions</button>
         </div>
 
-        <div class="hint" style="margin-top:10px;">
-          Saves into: <span class="mono">products_bracelets/{id}.sizeOptions</span><br/>
-          If you want it to also update a price map later, tell me and I’ll add it.
-        </div>
+        <div class="hint" id="saveLine"></div>
+      </div>
 
-        <div class="hint" id="saveStatus"></div>
+      <div>
+        <div style="font-weight:900; color:#ffb347;">Preview (what gets saved)</div>
+        <textarea id="previewBox" class="mono" readonly></textarea>
+        <div class="hint" id="previewLine"></div>
       </div>
     </div>
 
@@ -174,10 +170,11 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import {
     getFirestore,
-    collection, doc, getDoc, getDocs, setDoc, addDoc
+    collection, doc, setDoc, addDoc,
+    onSnapshot
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  // ✅ Your same Firebase config
+  // SAME CONFIG YOU GAVE
   const firebaseConfig = {
     apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
     authDomain:"bracelets-and-color.firebaseapp.com",
@@ -190,47 +187,39 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // ✅ Change this if you want a different collection
   const PRODUCTS_COLLECTION = "products_bracelets";
 
-  const productSelect = document.getElementById("productSelect");
+  const productList = document.getElementById("productList");
   const sizesInput = document.getElementById("sizesInput");
   const previewBox = document.getElementById("previewBox");
-  const previewStatus = document.getElementById("previewStatus");
+  const previewLine = document.getElementById("previewLine");
+  const statusLine = document.getElementById("statusLine");
+  const saveLine = document.getElementById("saveLine");
+  const refreshBtn = document.getElementById("refreshBtn");
   const saveBtn = document.getElementById("saveBtn");
-  const reloadBtn = document.getElementById("reloadBtn");
   const loadCurrentBtn = document.getElementById("loadCurrentBtn");
-  const productInfo = document.getElementById("productInfo");
-  const saveStatus = document.getElementById("saveStatus");
-  document.getElementById("collectionPill").textContent = PRODUCTS_COLLECTION;
 
-  let products = []; // {id, ...data}
+  let unsub = null;
+  let products = [];
+  let selectedId = null;
 
-  function uniq(arr){
-    return [...new Set(arr)];
-  }
+  function uniq(arr){ return [...new Set(arr)]; }
 
   function parseSizesToOptions(text){
-    // Accept: spaces, commas, new lines
     const raw = String(text || "")
-      .replace(/["']/g, "")           // remove quotes
-      .replace(/[^\d.\s,]+/g, " ")    // strip weird chars (keep digits dot spaces commas)
+      .replace(/["']/g, "")
+      .replace(/[^\d.\s,]+/g, " ")
       .split(/[\s,]+/g)
       .map(s => s.trim())
       .filter(Boolean);
 
-    // Convert to numbers if possible
     let nums = raw
       .map(v => Number(v))
       .filter(n => Number.isFinite(n) && n > 0);
 
-    // Remove duplicates by numeric value
     nums = uniq(nums.map(n => String(n))).map(s => Number(s));
-
-    // Sort small -> big
     nums.sort((a,b)=>a-b);
 
-    // Build: 5", 6", 7.5"
     const formatted = nums.map(n => `${n}"`);
     return formatted.join(", ");
   }
@@ -240,132 +229,136 @@
     previewBox.value = formatted;
 
     if(!sizesInput.value.trim()){
-      previewStatus.innerHTML = `<span class="bad">Type sizes to see preview.</span>`;
+      previewLine.innerHTML = `<span class="bad">Type some sizes to see preview.</span>`;
       return;
     }
     if(!formatted){
-      previewStatus.innerHTML = `<span class="bad">Couldn’t read any sizes. Use numbers like: 5 6 7.5 8</span>`;
+      previewLine.innerHTML = `<span class="bad">Couldn’t read sizes. Try: 5 6 7.5 8</span>`;
       return;
     }
-    previewStatus.innerHTML = `<span class="ok">Looks good.</span>`;
+    previewLine.innerHTML = `<span class="ok">Preview looks good.</span>`;
+  }
+
+  function pickProduct(id){
+    selectedId = id;
+    document.querySelectorAll(".item").forEach(el=>{
+      el.classList.toggle("active", el.dataset.id === id);
+    });
+
+    const p = products.find(x=>x.id===id);
+    if(p){
+      saveLine.innerHTML =
+        `Selected: <span class="mono">${p.id}</span><br>` +
+        `Current sizeOptions: <span class="mono">${(p.sizeOptions ?? "(empty)")}</span>`;
+    } else {
+      saveLine.innerHTML = "";
+    }
   }
 
   function renderProducts(){
-    productSelect.innerHTML = "";
+    productList.innerHTML = "";
+
     if(!products.length){
-      const opt = new Option("No products found", "");
-      productSelect.add(opt);
+      productList.innerHTML = `<div class="hint bad">No products found in ${PRODUCTS_COLLECTION}.</div>`;
       return;
     }
 
     products.forEach(p=>{
-      const label = p.type || p.name || p.id;
-      const opt = new Option(label, p.id);
-      productSelect.add(opt);
+      const div = document.createElement("div");
+      div.className = "item";
+      div.dataset.id = p.id;
+
+      const title = p.type || p.name || p.id;
+      div.innerHTML = `
+        <div class="title">${title}</div>
+        <div class="sub mono">id: ${p.id}</div>
+      `;
+
+      div.addEventListener("click", ()=> pickProduct(p.id));
+      productList.appendChild(div);
     });
 
-    showProductInfo();
+    // auto pick first if none selected
+    if(!selectedId) pickProduct(products[0].id);
+    else pickProduct(selectedId);
   }
 
-  function showProductInfo(){
-    const id = productSelect.value;
-    const p = products.find(x=>x.id === id);
-    if(!p){
-      productInfo.textContent = "";
-      return;
-    }
-    const current = (p.sizeOptions ?? "").toString();
-    productInfo.innerHTML =
-      `Selected: <span class="mono">${p.id}</span><br/>` +
-      `Current sizeOptions: <span class="mono">${current || "(empty)"}</span>`;
-  }
+  function subscribeProducts(){
+    if(unsub) unsub();
 
-  async function loadProducts(){
-    saveStatus.textContent = "";
-    productInfo.textContent = "Loading products...";
-    const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
-    products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    statusLine.innerHTML = `Loading products...`;
 
-    // Sort by type/name for nicer dropdown
-    products.sort((a,b)=>{
-      const A = (a.type || a.name || a.id).toString().toLowerCase();
-      const B = (b.type || b.name || b.id).toString().toLowerCase();
-      return A.localeCompare(B);
+    const colRef = collection(db, PRODUCTS_COLLECTION);
+
+    unsub = onSnapshot(colRef, snap=>{
+      products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      products.sort((a,b)=>{
+        const A = String(a.type || a.name || a.id).toLowerCase();
+        const B = String(b.type || b.name || b.id).toLowerCase();
+        return A.localeCompare(B);
+      });
+
+      statusLine.innerHTML = `<span class="ok">Loaded ${products.length} products.</span>`;
+      renderProducts();
+    }, err=>{
+      console.error(err);
+      statusLine.innerHTML = `<span class="bad">Error loading products: ${err.message}</span>`;
+      productList.innerHTML = `<div class="hint bad">Check your Firestore rules / permissions.</div>`;
     });
-
-    renderProducts();
-    productInfo.textContent = "";
-    showProductInfo();
   }
 
-  async function loadCurrent(){
-    const id = productSelect.value;
-    if(!id) return;
-    saveStatus.textContent = "";
-
-    const ref = doc(db, PRODUCTS_COLLECTION, id);
-    const snap = await getDoc(ref);
-    if(!snap.exists()){
-      saveStatus.innerHTML = `<span class="bad">That product doc doesn’t exist.</span>`;
+  async function loadCurrentIntoInput(){
+    if(!selectedId){
+      saveLine.innerHTML = `<span class="bad">Click a product first.</span>`;
       return;
     }
-    const data = snap.data();
-    const current = (data.sizeOptions ?? "").toString();
-    sizesInput.value = current.replace(/"/g,"").replace(/,\s*/g," ");
+    const p = products.find(x=>x.id===selectedId);
+    const current = (p?.sizeOptions ?? "").toString();
+    sizesInput.value = current
+      .replace(/"/g,"")
+      .replace(/,\s*/g," ");
     setPreview();
-    saveStatus.innerHTML = `<span class="ok">Loaded current sizes into the input.</span>`;
+    saveLine.innerHTML = `<span class="ok">Loaded current sizeOptions into the input.</span>`;
   }
 
   async function saveSizes(){
-    const id = productSelect.value;
-    if(!id){
-      saveStatus.innerHTML = `<span class="bad">Pick a product first.</span>`;
+    if(!selectedId){
+      saveLine.innerHTML = `<span class="bad">Click a product first.</span>`;
       return;
     }
 
     const formatted = parseSizesToOptions(sizesInput.value);
     if(!formatted){
-      saveStatus.innerHTML = `<span class="bad">No valid sizes found. Example: 5 6 7.5 8</span>`;
+      saveLine.innerHTML = `<span class="bad">No valid sizes found. Example: 5 6 7.5 8</span>`;
       return;
     }
 
-    const ref = doc(db, PRODUCTS_COLLECTION, id);
-    const snap = await getDoc(ref);
-    const before = snap.exists() ? (snap.data().sizeOptions ?? null) : null;
+    const p = products.find(x=>x.id===selectedId);
+    const before = p?.sizeOptions ?? null;
 
-    // Merge update: only sizeOptions changes
-    await setDoc(ref, { sizeOptions: formatted }, { merge: true });
+    await setDoc(doc(db, PRODUCTS_COLLECTION, selectedId), { sizeOptions: formatted }, { merge:true });
 
-    // Optional audit log (same idea as your admin panel)
+    // auditLog matches your admin panel style
     await addDoc(collection(db, "auditLog"), {
       type: "sizeOptions_update",
       collection: PRODUCTS_COLLECTION,
-      id,
+      id: selectedId,
       field: "sizeOptions",
       from: before,
       to: formatted,
       at: new Date()
     });
 
-    saveStatus.innerHTML = `<span class="ok">Saved sizeOptions ✅</span>`;
-
-    // Update local cache so the “Current sizeOptions” line updates
-    const p = products.find(x=>x.id===id);
-    if(p) p.sizeOptions = formatted;
-    showProductInfo();
+    saveLine.innerHTML = `<span class="ok">Saved ✅</span>`;
   }
 
-  // Events
   sizesInput.addEventListener("input", setPreview);
-  productSelect.addEventListener("change", showProductInfo);
+  refreshBtn.addEventListener("click", subscribeProducts);
   saveBtn.addEventListener("click", saveSizes);
-  reloadBtn.addEventListener("click", loadProducts);
-  loadCurrentBtn.addEventListener("click", loadCurrent);
+  loadCurrentBtn.addEventListener("click", loadCurrentIntoInput);
 
-  // Start
   setPreview();
-  loadProducts();
+  subscribeProducts();
 </script>
-
 </body>
 </html>
