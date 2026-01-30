@@ -46,7 +46,7 @@
     .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
-    input, textarea{
+    input, textarea, select{
       background:#111;
       color:#fff;
       border:1px solid #ff0000;
@@ -99,6 +99,7 @@
       cursor:pointer;
       box-shadow:0 0 10px rgba(255,0,0,0.12);
       user-select:none;
+      touch-action:manipulation;
     }
     .item:hover{ box-shadow:0 0 14px rgba(255,0,0,0.25); }
     .item.active{
@@ -130,7 +131,7 @@
         </div>
       </div>
       <div class="hint">
-        Click a product → type sizes like <span class="mono">5 6 7.5 8 9 10</span> → it saves as
+        Pick a product → type sizes like <span class="mono">5 6 7.5 8 9 10</span> → saves as
         <span class="mono">5", 6", 7.5", 8", ...</span> into <span class="mono">sizeOptions</span>.
       </div>
       <div class="hint" id="statusLine"></div>
@@ -138,6 +139,13 @@
 
     <div class="card">
       <div style="font-weight:900; color:#ffb347;">Products</div>
+
+      <!-- ✅ Dropdown fallback picker -->
+      <div class="row" style="margin-top:10px;">
+        <select id="productSelect"></select>
+      </div>
+
+      <!-- ✅ Clickable cards -->
       <div class="list" id="productList"></div>
     </div>
 
@@ -190,6 +198,7 @@
   const PRODUCTS_COLLECTION = "products_bracelets";
 
   const productList = document.getElementById("productList");
+  const productSelect = document.getElementById("productSelect");
   const sizesInput = document.getElementById("sizesInput");
   const previewBox = document.getElementById("previewBox");
   const previewLine = document.getElementById("previewLine");
@@ -241,9 +250,14 @@
 
   function pickProduct(id){
     selectedId = id;
+
+    // highlight cards
     document.querySelectorAll(".item").forEach(el=>{
       el.classList.toggle("active", el.dataset.id === id);
     });
+
+    // sync dropdown
+    if(productSelect.value !== id) productSelect.value = id;
 
     const p = products.find(x=>x.id===id);
     if(p){
@@ -257,30 +271,42 @@
 
   function renderProducts(){
     productList.innerHTML = "";
+    productSelect.innerHTML = "";
 
     if(!products.length){
       productList.innerHTML = `<div class="hint bad">No products found in ${PRODUCTS_COLLECTION}.</div>`;
+      const opt = new Option("No products found", "");
+      productSelect.add(opt);
       return;
     }
 
     products.forEach(p=>{
+      const title = p.type || p.name || p.id;
+
+      // dropdown option
+      const opt = new Option(title, p.id);
+      productSelect.add(opt);
+
+      // clickable card
       const div = document.createElement("div");
       div.className = "item";
       div.dataset.id = p.id;
-
-      const title = p.type || p.name || p.id;
       div.innerHTML = `
         <div class="title">${title}</div>
         <div class="sub mono">id: ${p.id}</div>
       `;
 
-      div.addEventListener("click", ()=> pickProduct(p.id));
+      // ✅ pointerup works better on mobile than click sometimes
+      div.addEventListener("pointerup", ()=> pickProduct(p.id));
+
       productList.appendChild(div);
     });
 
     // auto pick first if none selected
-    if(!selectedId) pickProduct(products[0].id);
-    else pickProduct(selectedId);
+    if(!selectedId) selectedId = products[0].id;
+
+    productSelect.value = selectedId;
+    pickProduct(selectedId);
   }
 
   function subscribeProducts(){
@@ -292,6 +318,8 @@
 
     unsub = onSnapshot(colRef, snap=>{
       products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+      // sort by label
       products.sort((a,b)=>{
         const A = String(a.type || a.name || a.id).toLowerCase();
         const B = String(b.type || b.name || b.id).toLowerCase();
@@ -309,21 +337,19 @@
 
   async function loadCurrentIntoInput(){
     if(!selectedId){
-      saveLine.innerHTML = `<span class="bad">Click a product first.</span>`;
+      saveLine.innerHTML = `<span class="bad">Pick a product first.</span>`;
       return;
     }
     const p = products.find(x=>x.id===selectedId);
     const current = (p?.sizeOptions ?? "").toString();
-    sizesInput.value = current
-      .replace(/"/g,"")
-      .replace(/,\s*/g," ");
+    sizesInput.value = current.replace(/"/g,"").replace(/,\s*/g," ");
     setPreview();
     saveLine.innerHTML = `<span class="ok">Loaded current sizeOptions into the input.</span>`;
   }
 
   async function saveSizes(){
     if(!selectedId){
-      saveLine.innerHTML = `<span class="bad">Click a product first.</span>`;
+      saveLine.innerHTML = `<span class="bad">Pick a product first.</span>`;
       return;
     }
 
@@ -338,7 +364,6 @@
 
     await setDoc(doc(db, PRODUCTS_COLLECTION, selectedId), { sizeOptions: formatted }, { merge:true });
 
-    // auditLog matches your admin panel style
     await addDoc(collection(db, "auditLog"), {
       type: "sizeOptions_update",
       collection: PRODUCTS_COLLECTION,
@@ -356,6 +381,11 @@
   refreshBtn.addEventListener("click", subscribeProducts);
   saveBtn.addEventListener("click", saveSizes);
   loadCurrentBtn.addEventListener("click", loadCurrentIntoInput);
+
+  // dropdown selects product too
+  productSelect.addEventListener("change", () => {
+    if(productSelect.value) pickProduct(productSelect.value);
+  });
 
   setPreview();
   subscribeProducts();
