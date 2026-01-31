@@ -201,7 +201,7 @@ let currentProduct = null;
 function fade(img, src){
   img.style.opacity = 0;
   img.src = src;
-  img.onerror = () => { img.style.opacity = 0.25; }; // if image missing
+  img.onerror = () => { img.style.opacity = 0.25; };
   setTimeout(()=>img.style.opacity = 1, 100);
 }
 
@@ -238,25 +238,50 @@ function getPriceMap(p){
   return {};
 }
 
-/* PRICE CALC (FIXED) */
+/* PRICE CALC (MORE FORGIVING) */
 function updatePrice(){
   if(!currentProduct) return;
 
   const sizeRaw = (braceletSize.value || "").trim();
+  const sizeAlt = sizeRaw.replace(/"/g,"").trim(); // "5\"" -> 5
   const qty = Math.max(1, parseInt(braceletQty.value) || 1);
 
   const priceMap = getPriceMap(currentProduct);
 
   let unit = parseFloat(priceMap[sizeRaw]);
+  if(Number.isNaN(unit)) unit = parseFloat(priceMap[sizeAlt]);
 
   if(Number.isNaN(unit)){
-    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === sizeRaw);
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === sizeRaw || String(k).trim() === sizeAlt);
     unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
   }
 
   if(Number.isNaN(unit)) unit = 0;
 
   priceDisplay.textContent = `Price: $${(unit * qty).toFixed(2)}`;
+}
+
+/* ✅ SIZE LOADER THAT SUPPORTS ARRAY OR STRING OR BACKUPS */
+function getSizesFromProduct(p){
+  if(!p) return [];
+
+  // 1) main field
+  if(Array.isArray(p.sizeOptions)) return p.sizeOptions;
+
+  if(typeof p.sizeOptions === "string"){
+    const arr = p.sizeOptions.split(",").map(s=>s.trim()).filter(Boolean);
+    if(arr.length) return arr;
+  }
+
+  // 2) backups (from the size builder)
+  if(Array.isArray(p.sizeOptions_array)) return p.sizeOptions_array;
+
+  if(typeof p.sizeOptions_text === "string"){
+    const arr = p.sizeOptions_text.split(",").map(s=>s.trim()).filter(Boolean);
+    if(arr.length) return arr;
+  }
+
+  return [];
 }
 
 /* LOAD BRACELET DATA */
@@ -276,9 +301,9 @@ async function loadBraceletData(id){
   const p = snap.data();
   currentProduct = { id, ...p };
 
-  // sizes
+  // ✅ sizes (fixed)
   braceletSize.innerHTML = "";
-  const sizes = Array.isArray(p.sizeOptions) ? p.sizeOptions : [];
+  const sizes = getSizesFromProduct(p);
   sizes.forEach(s => braceletSize.add(new Option(s, s)));
 
   // colors
@@ -306,11 +331,15 @@ submitBtn.onclick = async () => {
 
   const qty = Math.max(1, parseInt(braceletQty.value) || 1);
   const size = (braceletSize.value || "").trim();
+  const sizeAlt = size.replace(/"/g,"").trim();
+
   const priceMap = getPriceMap(currentProduct);
 
   let unit = parseFloat(priceMap[size]);
+  if(Number.isNaN(unit)) unit = parseFloat(priceMap[sizeAlt]);
+
   if(Number.isNaN(unit)){
-    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === size);
+    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === size || String(k).trim() === sizeAlt);
     unit = matchKey ? parseFloat(priceMap[matchKey]) : 0;
   }
   if(Number.isNaN(unit)) unit = 0;
@@ -341,7 +370,7 @@ submitBtn.onclick = async () => {
 /* INIT */
 loadBracelets();
 
-// events (mobile friendly)
+// events
 knotType.addEventListener("change", () => loadBraceletData(knotType.value));
 braceletSize.addEventListener("change", updatePrice);
 braceletQty.addEventListener("input", updatePrice);
