@@ -28,7 +28,6 @@ nav a {
   font-weight: bold;
   text-decoration: none;
 }
-
 nav a:hover {
   color: #ff0000;
   text-shadow: 0 0 6px #ff0000;
@@ -37,7 +36,7 @@ nav a:hover {
 h1 {
   text-align: center;
   color: #ff0000;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 form {
@@ -45,7 +44,7 @@ form {
   border-radius: 16px;
   padding: 20px;
   margin: auto;
-  max-width: 500px;
+  max-width: 760px;
   box-shadow: 0 0 15px #ff0000;
 }
 
@@ -67,27 +66,31 @@ input, select, button {
 button {
   background: #ff0000;
   color: white;
-  margin-top: 20px;
+  margin-top: 14px;
   font-weight: bold;
   cursor: pointer;
 }
+button:hover { background: darkred; }
 
-button:hover {
-  background: darkred;
+button.secondary{
+  background:#222;
+  border:1px solid #ff0000;
 }
+button.secondary:hover{ background:#1a1a1a; }
 
 #priceDisplay {
-  margin-top: 8px;
+  margin-top: 12px;
   font-weight: bold;
   color: #ffb347;
   text-align: center;
+  font-size: 16px;
 }
 
 #imagePreviewContainer {
   display: flex;
   justify-content: center;
   gap: 18px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 #imagePreviewContainer img {
@@ -115,6 +118,55 @@ button:hover {
   font-weight: bold;
   margin-top: 15px;
 }
+
+/* cart rows */
+.cartWrap{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.cartRow{
+  border-top: 2px solid rgba(255,0,0,0.5);
+  padding-top:12px;
+}
+
+.cartHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+.cartHeader h3{
+  margin:0;
+  color:#ff0000;
+  font-size:16px;
+}
+
+.grid4{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+@media(min-width: 760px){
+  .grid4{ grid-template-columns: 1.1fr .7fr 1fr 1fr; }
+}
+
+.rowPrice{
+  margin-top:8px;
+  text-align:right;
+  color:#ffb347;
+  font-weight:700;
+}
+
+.smallNote{
+  font-size:12px;
+  opacity:.85;
+  margin-top:6px;
+  text-align:center;
+}
 </style>
 </head>
 
@@ -127,7 +179,7 @@ button:hover {
 
 <h1>Bracelet Preorder</h1>
 
-<!-- IMAGE PREVIEW -->
+<!-- IMAGE PREVIEW (shows last selected bracelet type) -->
 <div id="imagePreviewContainer">
   <div style="display:flex; flex-direction:column; gap:10px;">
     <img id="sideImg1" class="sideImg" alt="">
@@ -149,24 +201,18 @@ button:hover {
   <label>Phone</label>
   <input id="braceletPhone" required>
 
-  <label>Bracelet Type</label>
-  <select id="knotType" required></select>
+  <div class="smallNote">
+    Add up to 4 bracelets. Each one can be a different type + size + colors.
+    Submit creates separate orders (admin easier).
+  </div>
 
-  <label>Size</label>
-  <select id="braceletSize"></select>
+  <div class="cartWrap" id="cartWrap"></div>
 
-  <label>Quantity</label>
-  <input id="braceletQty" type="number" min="1" value="1">
+  <button type="button" class="secondary" id="addBraceletBtn">+ Add Bracelet</button>
 
-  <p id="priceDisplay">Price: $0.00</p>
+  <p id="priceDisplay">Total: $0.00</p>
 
-  <label>Color 1</label>
-  <select id="color1"></select>
-
-  <label>Color 2</label>
-  <select id="color2"></select>
-
-  <button type="button" id="submitBtn">Submit Bracelet Order</button>
+  <button type="button" id="submitBtn">Submit Order</button>
 </form>
 
 <p id="orderMsg"></p>
@@ -195,7 +241,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let currentProduct = null;
+const cartWrap = document.getElementById("cartWrap");
+const addBraceletBtn = document.getElementById("addBraceletBtn");
+
+let products = [];            // [{id, ...data}]
+let productsById = {};        // id -> product
+let rowCount = 0;
+const MAX_ROWS = 4;
 
 /* IMAGE FADE */
 function fade(img, src){
@@ -204,13 +256,8 @@ function fade(img, src){
   img.onerror = () => { img.style.opacity = 0.25; };
   setTimeout(()=>img.style.opacity = 1, 100);
 }
-
 function loadImages(type){
-  const key = String(type || "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g,"-");
-
+  const key = String(type || "").toLowerCase().trim().replace(/\s+/g,"-");
   fade(mainBraceletImg, `${key}-main.png`);
   fade(sideImg1, `${key}-side1.png`);
   fade(sideImg2, `${key}-side2.png`);
@@ -218,54 +265,21 @@ function loadImages(type){
   fade(sideImg4, `${key}-side4.png`);
 }
 
-/* LOAD BRACELETS LIST */
-async function loadBracelets(){
-  knotType.innerHTML = "<option value=''>Select Bracelet</option>";
-  const snap = await getDocs(collection(db,"products_bracelets"));
-  snap.forEach(d=>{
-    const p = d.data();
-    knotType.add(new Option(p.type ?? d.id, d.id));
-  });
-}
-
-/* HELPERS FOR PRICE FIELD */
+/* HELPERS */
 function getPriceMap(p){
   if(!p || p.price == null) return {};
   if(typeof p.price === "object") return p.price;
+
   if(typeof p.price === "string"){
     try { return JSON.parse(p.price); } catch { return {}; }
   }
   return {};
 }
 
-/* PRICE CALC (MORE FORGIVING) */
-function updatePrice(){
-  if(!currentProduct) return;
-
-  const sizeRaw = (braceletSize.value || "").trim();
-  const sizeAlt = sizeRaw.replace(/"/g,"").trim(); // "5\"" -> 5
-  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
-
-  const priceMap = getPriceMap(currentProduct);
-
-  let unit = parseFloat(priceMap[sizeRaw]);
-  if(Number.isNaN(unit)) unit = parseFloat(priceMap[sizeAlt]);
-
-  if(Number.isNaN(unit)){
-    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === sizeRaw || String(k).trim() === sizeAlt);
-    unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
-  }
-
-  if(Number.isNaN(unit)) unit = 0;
-
-  priceDisplay.textContent = `Price: $${(unit * qty).toFixed(2)}`;
-}
-
-/* ✅ SIZE LOADER THAT SUPPORTS ARRAY OR STRING OR BACKUPS */
 function getSizesFromProduct(p){
   if(!p) return [];
 
-  // 1) main field
+  // main field
   if(Array.isArray(p.sizeOptions)) return p.sizeOptions;
 
   if(typeof p.sizeOptions === "string"){
@@ -273,7 +287,7 @@ function getSizesFromProduct(p){
     if(arr.length) return arr;
   }
 
-  // 2) backups (from the size builder)
+  // backups
   if(Array.isArray(p.sizeOptions_array)) return p.sizeOptions_array;
 
   if(typeof p.sizeOptions_text === "string"){
@@ -284,97 +298,272 @@ function getSizesFromProduct(p){
   return [];
 }
 
-/* LOAD BRACELET DATA */
-async function loadBraceletData(id){
-  if(!id) {
-    currentProduct = null;
-    priceDisplay.textContent = "Price: $0.00";
-    braceletSize.innerHTML = "";
-    color1.innerHTML = "";
-    color2.innerHTML = "";
-    return;
-  }
+function unitPriceForSize(product, size){
+  const priceMap = getPriceMap(product);
+  const sizeRaw = String(size||"").trim();
+  const sizeAlt = sizeRaw.replace(/"/g,"").trim();
 
-  const snap = await getDoc(doc(db,"products_bracelets", id));
-  if(!snap.exists()) return;
-
-  const p = snap.data();
-  currentProduct = { id, ...p };
-
-  // ✅ sizes (fixed)
-  braceletSize.innerHTML = "";
-  const sizes = getSizesFromProduct(p);
-  sizes.forEach(s => braceletSize.add(new Option(s, s)));
-
-  // colors
-  color1.innerHTML = "";
-  color2.innerHTML = "";
-  const colors = String(p.colorOptions || "")
-    .split(",")
-    .map(c => c.trim())
-    .filter(Boolean);
-
-  colors.forEach(c=>{
-    color1.add(new Option(c,c));
-    color2.add(new Option(c,c));
-  });
-
-  loadImages(p.type);
-  updatePrice();
-}
-
-/* SUBMIT */
-submitBtn.onclick = async () => {
-  if(!currentProduct) return alert("Select a bracelet");
-  if(!braceletName.value.trim() || !braceletPhone.value.trim())
-    return alert("Enter name + phone");
-
-  const qty = Math.max(1, parseInt(braceletQty.value) || 1);
-  const size = (braceletSize.value || "").trim();
-  const sizeAlt = size.replace(/"/g,"").trim();
-
-  const priceMap = getPriceMap(currentProduct);
-
-  let unit = parseFloat(priceMap[size]);
+  let unit = parseFloat(priceMap[sizeRaw]);
   if(Number.isNaN(unit)) unit = parseFloat(priceMap[sizeAlt]);
 
   if(Number.isNaN(unit)){
-    const matchKey = Object.keys(priceMap).find(k => String(k).trim() === size || String(k).trim() === sizeAlt);
-    unit = matchKey ? parseFloat(priceMap[matchKey]) : 0;
+    const matchKey = Object.keys(priceMap).find(k => {
+      const kk = String(k).trim();
+      return kk === sizeRaw || kk === sizeAlt;
+    });
+    unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
   }
   if(Number.isNaN(unit)) unit = 0;
+  return unit;
+}
 
-  const total = unit * qty;
+function splitColors(colorOptions){
+  return String(colorOptions || "")
+    .split(",")
+    .map(c => c.trim())
+    .filter(Boolean);
+}
 
-  await addDoc(collection(db,"braceletOrders"),{
-    name: braceletName.value.trim(),
-    phone: braceletPhone.value.trim(),
-    type: currentProduct.type ?? "",
-    size,
-    color1: color1.value ?? "",
-    color2: color2.value ?? "",
-    qty,
-    price: unit,
-    total,
-    status: "new",
-    createdAt: new Date()
+/* TOTAL UPDATE */
+function updateTotals(){
+  let total = 0;
+
+  cartWrap.querySelectorAll(".cartRow").forEach(row=>{
+    const typeSel = row.querySelector(".typeSel");
+    const sizeSel = row.querySelector(".sizeSel");
+    const priceEl = row.querySelector(".rowPrice");
+
+    const productId = typeSel.value;
+    const p = productsById[productId];
+
+    let unit = 0;
+    if(p && sizeSel.value) unit = unitPriceForSize(p, sizeSel.value);
+
+    total += unit;
+    priceEl.textContent = `Bracelet price: $${unit.toFixed(2)}`;
   });
 
-  orderMsg.textContent = `Order submitted! Total: $${total.toFixed(2)}`;
+  priceDisplay.textContent = `Total: $${total.toFixed(2)}`;
+}
+
+/* FILL A ROW BASED ON PRODUCT */
+function fillRowOptions(row, productId){
+  const p = productsById[productId];
+
+  const sizeSel = row.querySelector(".sizeSel");
+  const c1Sel = row.querySelector(".c1Sel");
+  const c2Sel = row.querySelector(".c2Sel");
+
+  // sizes
+  sizeSel.innerHTML = "";
+  sizeSel.add(new Option("Select size", ""));
+  if(p){
+    const sizes = getSizesFromProduct(p);
+    sizes.forEach(s => sizeSel.add(new Option(s, s)));
+    if(sizes.length) sizeSel.value = sizes[0]; // auto pick first
+  }
+
+  // colors
+  const colors = p ? splitColors(p.colorOptions) : [];
+  c1Sel.innerHTML = "";
+  c2Sel.innerHTML = "";
+  c1Sel.add(new Option("Select color 1", ""));
+  c2Sel.add(new Option("Select color 2", ""));
+  colors.forEach(c=>{
+    c1Sel.add(new Option(c,c));
+    c2Sel.add(new Option(c,c));
+  });
+
+  if(colors.length){
+    c1Sel.value = colors[0];
+    c2Sel.value = colors[Math.min(1, colors.length-1)];
+  }
+
+  // preview updates to last selected type
+  if(p) loadImages(p.type);
+
+  updateTotals();
+}
+
+/* ADD ROW */
+function addRow(){
+  if(rowCount >= MAX_ROWS) return;
+
+  rowCount++;
+  const idx = rowCount;
+
+  const row = document.createElement("div");
+  row.className = "cartRow";
+  row.dataset.index = idx;
+
+  row.innerHTML = `
+    <div class="cartHeader">
+      <h3>Bracelet ${idx}</h3>
+      <button type="button" class="secondary removeBtn" style="width:auto; padding:8px 10px;">Remove</button>
+    </div>
+
+    <div class="grid4">
+      <div>
+        <label>Type</label>
+        <select class="typeSel"></select>
+      </div>
+
+      <div>
+        <label>Size</label>
+        <select class="sizeSel"></select>
+      </div>
+
+      <div>
+        <label>Color 1</label>
+        <select class="c1Sel"></select>
+      </div>
+
+      <div>
+        <label>Color 2</label>
+        <select class="c2Sel"></select>
+      </div>
+    </div>
+
+    <div class="rowPrice">Bracelet price: $0.00</div>
+  `;
+
+  cartWrap.appendChild(row);
+
+  // fill type list
+  const typeSel = row.querySelector(".typeSel");
+  typeSel.innerHTML = "";
+  typeSel.add(new Option("Select bracelet", ""));
+  products.forEach(p=>{
+    typeSel.add(new Option(p.type ?? p.id, p.id));
+  });
+
+  // events
+  typeSel.addEventListener("change", ()=>{
+    fillRowOptions(row, typeSel.value);
+  });
+  row.querySelector(".sizeSel").addEventListener("change", updateTotals);
+
+  row.querySelector(".removeBtn").addEventListener("click", ()=>{
+    row.remove();
+
+    // re-number titles
+    const rows = [...cartWrap.querySelectorAll(".cartRow")];
+    rowCount = rows.length;
+    rows.forEach((r,i)=>{
+      r.dataset.index = i+1;
+      r.querySelector("h3").textContent = `Bracelet ${i+1}`;
+    });
+
+    updateTotals();
+  });
+
+  updateTotals();
+}
+
+/* LOAD PRODUCTS */
+async function loadProducts(){
+  const snap = await getDocs(collection(db,"products_bracelets"));
+
+  products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  products.sort((a,b)=>{
+    const A = String(a.type ?? a.id).toLowerCase();
+    const B = String(b.type ?? b.id).toLowerCase();
+    return A.localeCompare(B);
+  });
+
+  productsById = {};
+  products.forEach(p=> productsById[p.id] = p);
+}
+
+/* SUBMIT: separate orders */
+submitBtn.onclick = async () => {
+  const name = braceletName.value.trim();
+  const phone = braceletPhone.value.trim();
+  if(!name || !phone) return alert("Enter name + phone");
+
+  const rows = [...cartWrap.querySelectorAll(".cartRow")];
+  if(!rows.length) return alert("Add at least 1 bracelet");
+
+  // build items (validation)
+  let items = [];
+  try{
+    items = rows.map((row,i)=>{
+      const typeId = row.querySelector(".typeSel").value;
+      const size = (row.querySelector(".sizeSel").value || "").trim();
+      const color1 = (row.querySelector(".c1Sel").value || "").trim();
+      const color2 = (row.querySelector(".c2Sel").value || "").trim();
+
+      const p = productsById[typeId];
+
+      if(!typeId) throw new Error(`Pick a bracelet type for Bracelet ${i+1}`);
+      if(!size) throw new Error(`Pick a size for Bracelet ${i+1}`);
+      if(!color1 || !color2) throw new Error(`Pick both colors for Bracelet ${i+1}`);
+
+      const unit = unitPriceForSize(p, size);
+
+      return {
+        productId: typeId,
+        type: p?.type ?? "",
+        size,
+        color1,
+        color2,
+        unit
+      };
+    });
+  }catch(err){
+    return alert(err.message || String(err));
+  }
+
+  const createdAt = new Date();
+  const groupId = `${createdAt.getTime()}-${Math.random().toString(16).slice(2)}`;
+
+  let totalAll = 0;
+
+  for(let i=0; i<items.length; i++){
+    const it = items[i];
+    totalAll += it.unit;
+
+    await addDoc(collection(db,"braceletOrders"),{
+      name,
+      phone,
+      type: it.type,
+      size: it.size,
+      color1: it.color1,
+      color2: it.color2,
+
+      qty: 1,
+      price: it.unit,
+      total: it.unit,
+
+      status: "new",
+      createdAt,
+
+      // grouping helpers (optional)
+      groupId,
+      groupIndex: i+1,
+      groupCount: items.length,
+
+      productId: it.productId
+    });
+  }
+
+  orderMsg.textContent = `Submitted ${items.length} orders! Total: $${totalAll.toFixed(2)}`;
+
   braceletForm.reset();
-  priceDisplay.textContent = "Price: $0.00";
-  currentProduct = null;
-  knotType.value = "";
+  cartWrap.innerHTML = "";
+  rowCount = 0;
+  addRow();       // start again with 1 row
+  updateTotals();
 };
 
 /* INIT */
-loadBracelets();
+await loadProducts();
+addRow();
 
-// events
-knotType.addEventListener("change", () => loadBraceletData(knotType.value));
-braceletSize.addEventListener("change", updatePrice);
-braceletQty.addEventListener("input", updatePrice);
-braceletQty.addEventListener("change", updatePrice);
+addBraceletBtn.addEventListener("click", ()=>{
+  if(rowCount >= MAX_ROWS) return alert("Max 4 bracelets");
+  addRow();
+});
 </script>
 
 </body>
