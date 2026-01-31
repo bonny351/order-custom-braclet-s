@@ -160,6 +160,21 @@
   .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
   .pendingRow{ background:rgba(0,170,255,0.22)!important; }
 
+  /* ✅ DELETE BUTTON */
+  .deleteBtn{
+    background:#ff2222;
+    color:white;
+    border:none;
+    border-radius:8px;
+    padding:6px 10px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .deleteBtn:hover{
+    background:#aa0000;
+    box-shadow:0 0 8px rgba(255,0,0,.6);
+  }
+
   .note{
     text-align:center;
     font-size:12px;
@@ -207,7 +222,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import {
     getFirestore,
-    collection, doc, setDoc, addDoc,
+    collection, doc, setDoc, addDoc, deleteDoc,
     onSnapshot, query, orderBy
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
@@ -241,19 +256,19 @@
       title: "Bracelet Orders",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid"],
-      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id"]
+      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id","delete"]
     },
     cookieOrders: {
       title: "Cookie Orders",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid","Pending","Completed"],
-      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id"]
+      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id","delete"]
     },
     spiritOrders: {
       title: "Spirit Wear",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid"],
-      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id"]
+      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id","delete"]
     },
     products_bracelets: {
       title: "Bracelet Products",
@@ -369,7 +384,29 @@
       cols.forEach(col=>{
         const cell = row.insertCell();
 
-        if(col === "status"){
+        /* ✅ DELETE BUTTON COLUMN */
+        if(col === "delete"){
+          const btn = document.createElement("button");
+          btn.textContent = "🗑 Delete";
+          btn.className = "deleteBtn";
+
+          btn.onclick = async () => {
+            if(!confirm("Delete this order forever?")) return;
+
+            await deleteDoc(doc(db, currentCollection, r.id));
+
+            await addDoc(collection(db, "auditLog"), {
+              type: "delete",
+              collection: currentCollection,
+              id: r.id,
+              at: new Date()
+            });
+          };
+
+          cell.appendChild(btn);
+        }
+
+        else if(col === "status"){
           const cfg = COLLECTION_CONFIG[currentCollection] || {};
           const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
           const sel = document.createElement("select");
