@@ -328,6 +328,20 @@
       return blob.includes(q);
     });
   }
+
+  /* ✅ Revenue helper: total OR price*qty */
+  function getRowAmount(r){
+    const total = parseFloat(r.total);
+    if(!isNaN(total)) return total;
+
+    const price = parseFloat(r.price);
+    const qty = parseFloat(r.qty);
+    if(!isNaN(price) && !isNaN(qty)) return price * qty;
+
+    return 0;
+  }
+
+  /* ✅ Dashboard with status-based revenue */
   function updateDashboard(rows){
     let today=0, week=0, revenue=0;
     const now = new Date();
@@ -339,19 +353,23 @@
         if(diffDays < 1) today++;
         if(diffDays < 7) week++;
       }
-      const total = parseFloat(r.total);
-      if(!isNaN(total)) revenue += total;
-      else {
-        const price = parseFloat(r.price);
-        const qty = parseFloat(r.qty);
-        if(!isNaN(price) && !isNaN(qty)) revenue += price * qty;
+
+      const status = normalizeStatus(r.status);
+      const amount = getRowAmount(r);
+
+      if(status === "done"){
+        revenue += amount;      // paid adds
+      } else if(status === "unpaid"){
+        revenue -= amount;      // unpaid subtracts
       }
+      // new/pending = no effect
     });
 
     todayCountEl.textContent = today;
     weekCountEl.textContent = week;
     revenueEl.textContent = "$" + revenue.toFixed(2);
   }
+
   function getColumns(){
     const cfg = COLLECTION_CONFIG[currentCollection];
     return cfg?.columns?.length ? cfg.columns : ["id"];
@@ -386,24 +404,29 @@
 
         /* ✅ DELETE BUTTON COLUMN */
         if(col === "delete"){
-          const btn = document.createElement("button");
-          btn.textContent = "🗑 Delete";
-          btn.className = "deleteBtn";
+          // Only show delete for Orders collections (not products/audit)
+          if(currentCollection.includes("Orders")){
+            const btn = document.createElement("button");
+            btn.textContent = "🗑 Delete";
+            btn.className = "deleteBtn";
 
-          btn.onclick = async () => {
-            if(!confirm("Delete this order forever?")) return;
+            btn.onclick = async () => {
+              if(!confirm("Delete this order forever?")) return;
 
-            await deleteDoc(doc(db, currentCollection, r.id));
+              await deleteDoc(doc(db, currentCollection, r.id));
 
-            await addDoc(collection(db, "auditLog"), {
-              type: "delete",
-              collection: currentCollection,
-              id: r.id,
-              at: new Date()
-            });
-          };
+              await addDoc(collection(db, "auditLog"), {
+                type: "delete",
+                collection: currentCollection,
+                id: r.id,
+                at: new Date()
+              });
+            };
 
-          cell.appendChild(btn);
+            cell.appendChild(btn);
+          } else {
+            cell.textContent = "";
+          }
         }
 
         else if(col === "status"){
