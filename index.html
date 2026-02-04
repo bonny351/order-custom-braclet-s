@@ -1,234 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bracelet Preorder</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tactics & Treats – Chat Order</title>
 <style>
-body {
-  font-family: "Poppins", sans-serif;
-  background: linear-gradient(to right, #7a0c0c, #000, #7a0c0c);
-  color: white;
-  margin: 0;
-  padding: 20px;
-}
-
-nav {
-  text-align: center;
-  background: #111;
-  padding: 10px 0;
-  border-bottom: 2px solid #ff0000;
-  box-shadow: 0 0 10px #ff0000;
-}
-
-nav a {
-  color: white;
-  margin: 0 15px;
-  font-weight: bold;
-  text-decoration: none;
-}
-nav a:hover {
-  color: #ff0000;
-  text-shadow: 0 0 6px #ff0000;
-}
-
-h1 {
-  text-align: center;
-  color: #ff0000;
-  margin-bottom: 20px;
-}
-
-form {
-  background: #111;
-  border-radius: 16px;
-  padding: 20px;
-  margin: auto;
-  max-width: 760px;
-  box-shadow: 0 0 15px #ff0000;
-}
-
-label {
-  display: block;
-  margin-top: 12px;
-  font-weight: 500;
-}
-
-input, select, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border-radius: 8px;
-  border: none;
-  font-size: 14px;
-}
-
-button {
-  background: #ff0000;
-  color: white;
-  margin-top: 14px;
-  font-weight: bold;
-  cursor: pointer;
-}
-button:hover { background: darkred; }
-
-button.secondary{
-  background:#222;
-  border:1px solid #ff0000;
-}
-button.secondary:hover{ background:#1a1a1a; }
-
-#priceDisplay {
-  margin-top: 12px;
-  font-weight: bold;
-  color: #ffb347;
-  text-align: center;
-  font-size: 16px;
-}
-
-#imagePreviewContainer {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-#imagePreviewContainer img {
-  border-radius: 8px;
-  border: 2px solid #ff0000;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity .4s;
-  background:#000;
-}
-
-#mainBraceletImg {
-  width: 200px;
-  height: 200px;
-  border-radius: 16px;
-}
-
-.sideImg {
-  width: 80px;
-  height: 80px;
-}
-
-#orderMsg {
-  text-align: center;
-  font-weight: bold;
-  margin-top: 15px;
-}
-
-/* cart rows */
-.cartWrap{
-  margin-top:14px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-
-.cartRow{
-  border-top: 2px solid rgba(255,0,0,0.5);
-  padding-top:12px;
-}
-
-.cartHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom:8px;
-}
-.cartHeader h3{
-  margin:0;
-  color:#ff0000;
-  font-size:16px;
-}
-
-.grid4{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
-}
-@media(min-width: 760px){
-  .grid4{ grid-template-columns: 1.1fr .7fr 1fr 1fr; }
-}
-
-.rowPrice{
-  margin-top:8px;
-  text-align:right;
-  color:#ffb347;
-  font-weight:700;
-}
-
-.smallNote{
-  font-size:12px;
-  opacity:.85;
-  margin-top:6px;
-  text-align:center;
-}
+  :root{
+    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+    --text:#fff; --muted:#bdbdbd; --accent:#ff2a2a;
+    --line:#2a2a2a; --radius:16px;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; padding:18px; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  header{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  h1{ margin:0; color:var(--accent); font-size:22px; }
+  .pill{ font-size:12px; padding:6px 10px; border-radius:999px; background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a; }
+  .card{ background:var(--panel); border:1px solid #262626; border-radius:var(--radius); padding:14px; box-shadow:0 0 18px rgba(255,0,0,.18); }
+  .chat{ height:580px; overflow:auto; padding:12px; border-radius:14px; background:#000; border:1px solid var(--line); }
+  .msg{ max-width:92%; padding:10px 12px; border-radius:14px; margin:10px 0; white-space:pre-line; line-height:1.35; }
+  .bot{ background:#101010; border:1px solid #2a2a2a; border-top-left-radius:6px; }
+  .user{ background:#1c1c1c; border:1px solid #333; margin-left:auto; border-top-right-radius:6px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip{ background:#191919; border:1px solid #2f2f2f; color:#fff; padding:8px 10px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:800; }
+  .chip:hover{ filter:brightness(1.08); }
+  .bar{ display:flex; gap:10px; margin-top:10px; }
+  input{ flex:1; border:none; outline:none; border-radius:14px; padding:12px 12px; font-size:15px; color:#fff; background:var(--panel2); border:1px solid var(--line); }
+  button{ border:none; border-radius:14px; padding:12px 14px; font-weight:900; cursor:pointer; background:var(--accent); color:#fff; }
+  button:hover{ filter:brightness(1.08); }
+  .secondary{ background:#242424; border:1px solid #343434; color:#fff; }
+  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
+  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; }
+  .small{ font-size:12px; color:var(--muted); margin-top:6px; }
 </style>
 </head>
 
 <body>
+<div class="wrap">
+  <header>
+    <h1>Tactics & Treats – Chat Order</h1>
+    <div class="pill">Auto-fill + upsells + donation + coupon + resume draft</div>
+  </header>
 
-<nav>
-  <a href="bracelets.html">Bracelets</a>
-  <a href="spiritwear.html">Spirit Wear</a>
-</nav>
-
-<h1>Bracelet Preorder</h1>
-
-<!-- IMAGE PREVIEW (shows last selected bracelet type) -->
-<div id="imagePreviewContainer">
-  <div style="display:flex; flex-direction:column; gap:10px;">
-    <img id="sideImg1" class="sideImg" alt="">
-    <img id="sideImg2" class="sideImg" alt="">
-  </div>
-
-  <img id="mainBraceletImg" alt="">
-
-  <div style="display:flex; flex-direction:column; gap:10px;">
-    <img id="sideImg3" class="sideImg" alt="">
-    <img id="sideImg4" class="sideImg" alt="">
+  <div class="card">
+    <div id="chat" class="chat"></div>
+    <div id="chips" class="chips"></div>
+    <div id="status"></div>
+    <div class="bar">
+      <input id="input" placeholder="Type your answer…" autocomplete="off" />
+      <button id="sendBtn">Send</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+    <div class="meta">
+      Commands: <b>BACK</b>, <b>RESTART</b>, <b>CONFIRM</b>
+    </div>
+    <div class="small">
+      Tip: Customers can type a whole request like “king cobra outside white middle black inside white, 8 inches, regular” and it will fill it in.
+    </div>
   </div>
 </div>
 
-<form id="braceletForm">
-  <label>Name</label>
-  <input id="braceletName" required>
-
-  <label>Phone</label>
-  <input id="braceletPhone" required>
-
-  <div class="smallNote">
-    Add up to 4 bracelets. Each one can be a different type + size + colors.
-    Submit creates separate orders (admin easier).
-  </div>
-
-  <div class="cartWrap" id="cartWrap"></div>
-
-  <button type="button" class="secondary" id="addBraceletBtn">+ Add Bracelet</button>
-
-  <p id="priceDisplay">Total: $0.00</p>
-
-  <button type="button" id="submitBtn">Submit Order</button>
-</form>
-
-<p id="orderMsg"></p>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
+/* ✅ YOUR FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
   authDomain:"bracelets-and-color.firebaseapp.com",
@@ -238,333 +75,474 @@ const firebaseConfig = {
   appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
 };
 
+const ORDERS_COLLECTION = "tt_orders";
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const cartWrap = document.getElementById("cartWrap");
-const addBraceletBtn = document.getElementById("addBraceletBtn");
+/* ========= PRICING ========= */
+const PRICE_PER_INCH = 1;
+const MIN_IN = 5;
+const MAX_IN = 40;
 
-let products = [];            // [{id, ...data}]
-let productsById = {};        // id -> product
-let rowCount = 0;
-const MAX_ROWS = 4;
+const SHIPPING_IN = 6;
+const SHIPPING_OUT = 10;
 
-/* IMAGE FADE */
-function fade(img, src){
-  img.style.opacity = 0;
-  img.src = src;
-  img.onerror = () => { img.style.opacity = 0.25; };
-  setTimeout(()=>img.style.opacity = 1, 100);
+// add-ons
+const FEE_RUSH = 5;            // same-day priority
+const FEE_GIFT_NOTE = 2;       // printed note
+const FEE_DURABILITY = 3;      // thicker/tighter build
+const FEE_EXTRA_TAIL = 2;      // extra length/tail
+const FEE_CHARM = 3;           // charm add-on
+const FEE_RING = 2;            // keychain ring add-on
+const FEE_EXTRA_COLOR = 2;     // 4th accent color (king cobra only)
+const FEE_ENGRAVED_TAG = 8;    // dog collar tag
+const FEE_TRACKING = 3;        // tracking upgrade
+const FEE_PACKAGING = 2;       // box packaging
+const BUNDLE_SHIP_DISCOUNT = 2;// if 2 items, shipping cheaper
+const SET_DISCOUNT = 3;        // bracelet + dog collar set discount
+
+// Coupon
+const COUPON_CODE = "NORTHIDAHO";
+const COUPON_PCT = 10; // percent off subtotal (not shipping)
+
+/* ========= SALES TEXT ========= */
+const POPULAR_PICK_LINE = "Most popular pick: King Cobra in red/black.";
+const LIMITED_SPOTS_LINE = "Heads up: I can do same-day, but I have limited spots today.";
+const PHONE = "208-304-3821";
+const SIGNATURE = "Tactics & Treats Team";
+
+const BRAND_STORY =
+`I started Tactics & Treats because I wanted to build something real with my hands and turn it into a positive business.
+
+Every bracelet and dog collar is handmade, and each order helps me grow this into something bigger — better tools, more designs, and faster turnaround.
+
+It’s not a big factory or a drop-ship store. It’s just honest work, custom pieces, and pride in what I make.
+
+When you order, you’re not just buying a bracelet — you’re helping support a small, growing brand.
+
+— Tactics & Treats Team`;
+
+/* ========= UI ========= */
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const chipsBox = document.getElementById("chips");
+const statusEl = document.getElementById("status");
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
+function addMsg(text, who="bot"){
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "user" ? "user" : "bot");
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
-function loadImages(type){
-  const key = String(type || "").toLowerCase().trim().replace(/\s+/g,"-");
-  fade(mainBraceletImg, `${key}-main.png`);
-  fade(sideImg1, `${key}-side1.png`);
-  fade(sideImg2, `${key}-side2.png`);
-  fade(sideImg3, `${key}-side3.png`);
-  fade(sideImg4, `${key}-side4.png`);
-}
-
-/* HELPERS */
-function getPriceMap(p){
-  if(!p || p.price == null) return {};
-  if(typeof p.price === "object") return p.price;
-
-  if(typeof p.price === "string"){
-    try { return JSON.parse(p.price); } catch { return {}; }
-  }
-  return {};
-}
-
-function getSizesFromProduct(p){
-  if(!p) return [];
-
-  // main field
-  if(Array.isArray(p.sizeOptions)) return p.sizeOptions;
-
-  if(typeof p.sizeOptions === "string"){
-    const arr = p.sizeOptions.split(",").map(s=>s.trim()).filter(Boolean);
-    if(arr.length) return arr;
-  }
-
-  // backups
-  if(Array.isArray(p.sizeOptions_array)) return p.sizeOptions_array;
-
-  if(typeof p.sizeOptions_text === "string"){
-    const arr = p.sizeOptions_text.split(",").map(s=>s.trim()).filter(Boolean);
-    if(arr.length) return arr;
-  }
-
-  return [];
-}
-
-function unitPriceForSize(product, size){
-  const priceMap = getPriceMap(product);
-  const sizeRaw = String(size||"").trim();
-  const sizeAlt = sizeRaw.replace(/"/g,"").trim();
-
-  let unit = parseFloat(priceMap[sizeRaw]);
-  if(Number.isNaN(unit)) unit = parseFloat(priceMap[sizeAlt]);
-
-  if(Number.isNaN(unit)){
-    const matchKey = Object.keys(priceMap).find(k => {
-      const kk = String(k).trim();
-      return kk === sizeRaw || kk === sizeAlt;
-    });
-    unit = matchKey ? parseFloat(priceMap[matchKey]) : NaN;
-  }
-  if(Number.isNaN(unit)) unit = 0;
-  return unit;
-}
-
-function splitColors(colorOptions){
-  return String(colorOptions || "")
-    .split(",")
-    .map(c => c.trim())
-    .filter(Boolean);
-}
-
-/* TOTAL UPDATE */
-function updateTotals(){
-  let total = 0;
-
-  cartWrap.querySelectorAll(".cartRow").forEach(row=>{
-    const typeSel = row.querySelector(".typeSel");
-    const sizeSel = row.querySelector(".sizeSel");
-    const priceEl = row.querySelector(".rowPrice");
-
-    const productId = typeSel.value;
-    const p = productsById[productId];
-
-    let unit = 0;
-    if(p && sizeSel.value) unit = unitPriceForSize(p, sizeSel.value);
-
-    total += unit;
-    priceEl.textContent = `Bracelet price: $${unit.toFixed(2)}`;
+function setChips(options){
+  chipsBox.innerHTML = "";
+  (options || []).forEach(opt=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = opt;
+    b.onclick = ()=>{ input.value = opt; send(); };
+    chipsBox.appendChild(b);
   });
-
-  priceDisplay.textContent = `Total: $${total.toFixed(2)}`;
 }
-
-/* FILL A ROW BASED ON PRODUCT */
-function fillRowOptions(row, productId){
-  const p = productsById[productId];
-
-  const sizeSel = row.querySelector(".sizeSel");
-  const c1Sel = row.querySelector(".c1Sel");
-  const c2Sel = row.querySelector(".c2Sel");
-
-  // sizes
-  sizeSel.innerHTML = "";
-  sizeSel.add(new Option("Select size", ""));
-  if(p){
-    const sizes = getSizesFromProduct(p);
-    sizes.forEach(s => sizeSel.add(new Option(s, s)));
-    if(sizes.length) sizeSel.value = sizes[0]; // auto pick first
-  }
-
-  // colors
-  const colors = p ? splitColors(p.colorOptions) : [];
-  c1Sel.innerHTML = "";
-  c2Sel.innerHTML = "";
-  c1Sel.add(new Option("Select color 1", ""));
-  c2Sel.add(new Option("Select color 2", ""));
-  colors.forEach(c=>{
-    c1Sel.add(new Option(c,c));
-    c2Sel.add(new Option(c,c));
-  });
-
-  if(colors.length){
-    c1Sel.value = colors[0];
-    c2Sel.value = colors[Math.min(1, colors.length-1)];
-  }
-
-  // preview updates to last selected type
-  if(p) loadImages(p.type);
-
-  updateTotals();
+function clean(s){ return (s||"").toLowerCase(); }
+function money(n){
+  const x = Number(n);
+  if(!isFinite(x)) return "$0";
+  return "$" + x.toFixed(2).replace(/\.00$/,"");
 }
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 
-/* ADD ROW */
-function addRow(){
-  if(rowCount >= MAX_ROWS) return;
-
-  rowCount++;
-  const idx = rowCount;
-
-  const row = document.createElement("div");
-  row.className = "cartRow";
-  row.dataset.index = idx;
-
-  row.innerHTML = `
-    <div class="cartHeader">
-      <h3>Bracelet ${idx}</h3>
-      <button type="button" class="secondary removeBtn" style="width:auto; padding:8px 10px;">Remove</button>
-    </div>
-
-    <div class="grid4">
-      <div>
-        <label>Type</label>
-        <select class="typeSel"></select>
-      </div>
-
-      <div>
-        <label>Size</label>
-        <select class="sizeSel"></select>
-      </div>
-
-      <div>
-        <label>Color 1</label>
-        <select class="c1Sel"></select>
-      </div>
-
-      <div>
-        <label>Color 2</label>
-        <select class="c2Sel"></select>
-      </div>
-    </div>
-
-    <div class="rowPrice">Bracelet price: $0.00</div>
-  `;
-
-  cartWrap.appendChild(row);
-
-  // fill type list
-  const typeSel = row.querySelector(".typeSel");
-  typeSel.innerHTML = "";
-  typeSel.add(new Option("Select bracelet", ""));
-  products.forEach(p=>{
-    typeSel.add(new Option(p.type ?? p.id, p.id));
-  });
-
-  // events
-  typeSel.addEventListener("change", ()=>{
-    fillRowOptions(row, typeSel.value);
-  });
-  row.querySelector(".sizeSel").addEventListener("change", updateTotals);
-
-  row.querySelector(".removeBtn").addEventListener("click", ()=>{
-    row.remove();
-
-    // re-number titles
-    const rows = [...cartWrap.querySelectorAll(".cartRow")];
-    rowCount = rows.length;
-    rows.forEach((r,i)=>{
-      r.dataset.index = i+1;
-      r.querySelector("h3").textContent = `Bracelet ${i+1}`;
-    });
-
-    updateTotals();
-  });
-
-  updateTotals();
-}
-
-/* LOAD PRODUCTS */
-async function loadProducts(){
-  const snap = await getDocs(collection(db,"products_bracelets"));
-
-  products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  products.sort((a,b)=>{
-    const A = String(a.type ?? a.id).toLowerCase();
-    const B = String(b.type ?? b.id).toLowerCase();
-    return A.localeCompare(B);
-  });
-
-  productsById = {};
-  products.forEach(p=> productsById[p.id] = p);
-}
-
-/* SUBMIT: separate orders */
-submitBtn.onclick = async () => {
-  const name = braceletName.value.trim();
-  const phone = braceletPhone.value.trim();
-  if(!name || !phone) return alert("Enter name + phone");
-
-  const rows = [...cartWrap.querySelectorAll(".cartRow")];
-  if(!rows.length) return alert("Add at least 1 bracelet");
-
-  // build items (validation)
-  let items = [];
+/* ========= DRAFT SAVE / RESUME ========= */
+const DRAFT_KEY = "tt_chat_order_draft_v1";
+function saveDraft(){
   try{
-    items = rows.map((row,i)=>{
-      const typeId = row.querySelector(".typeSel").value;
-      const size = (row.querySelector(".sizeSel").value || "").trim();
-      const color1 = (row.querySelector(".c1Sel").value || "").trim();
-      const color2 = (row.querySelector(".c2Sel").value || "").trim();
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ mode, stepIndex, order, items }));
+  }catch{}
+}
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch{ return null; }
+}
+function clearDraft(){
+  try{ localStorage.removeItem(DRAFT_KEY); }catch{}
+}
 
-      const p = productsById[typeId];
+/* ========= ORDER DATA =========
+   We support 1 item OR a 2-item set (bracelet + dog collar).
+*/
+const defaultItem = ()=>({
+  itemType:"",     // bracelet / dog collar / keychain
+  weave:"",        // cobra / king cobra
+  inches:0,
+  fit:"",
+  colors:[],       // 2 for cobra, 3 for king cobra
+  patternStyle:"", // stripes / split / fade / chevron
+  extraColor:false,
+  durability:false,
+  extraTail:false,
+  charm:false,
+  keychainRing:false,
+  engravedTagText:"" // for dog collar only
+});
 
-      if(!typeId) throw new Error(`Pick a bracelet type for Bracelet ${i+1}`);
-      if(!size) throw new Error(`Pick a size for Bracelet ${i+1}`);
-      if(!color1 || !color2) throw new Error(`Pick both colors for Bracelet ${i+1}`);
+let items = [defaultItem()];
 
-      const unit = unitPriceForSize(p, size);
-
-      return {
-        productId: typeId,
-        type: p?.type ?? "",
-        size,
-        color1,
-        color2,
-        unit
-      };
-    });
-  }catch(err){
-    return alert(err.message || String(err));
-  }
-
-  const createdAt = new Date();
-  const groupId = `${createdAt.getTime()}-${Math.random().toString(16).slice(2)}`;
-
-  let totalAll = 0;
-
-  for(let i=0; i<items.length; i++){
-    const it = items[i];
-    totalAll += it.unit;
-
-    await addDoc(collection(db,"braceletOrders"),{
-      name,
-      phone,
-      type: it.type,
-      size: it.size,
-      color1: it.color1,
-      color2: it.color2,
-
-      qty: 1,
-      price: it.unit,
-      total: it.unit,
-
-      status: "new",
-      createdAt,
-
-      // grouping helpers (optional)
-      groupId,
-      groupIndex: i+1,
-      groupCount: items.length,
-
-      productId: it.productId
-    });
-  }
-
-  orderMsg.textContent = `Submitted ${items.length} orders! Total: $${totalAll.toFixed(2)}`;
-
-  braceletForm.reset();
-  cartWrap.innerHTML = "";
-  rowCount = 0;
-  addRow();       // start again with 1 row
-  updateTotals();
+const order = {
+  isSet:false,             // bracelet + dog collar
+  rush:false,
+  giftNote:false,
+  giftNoteText:"",
+  tracking:false,
+  packaging:false,
+  photoBeforePay:false,
+  donation:0,
+  coupon:"",
+  shipping:"",             // in/out
+  address:"",
+  name:"",
+  phone:"",
+  notes:""
 };
 
-/* INIT */
-await loadProducts();
-addRow();
+/* ========= PRICING CALC ========= */
+function itemBase(i){
+  return (Number(i.inches)||0) * PRICE_PER_INCH;
+}
+function itemAddons(i){
+  let a = 0;
+  if(i.durability) a += FEE_DURABILITY;
+  if(i.extraTail) a += FEE_EXTRA_TAIL;
+  if(i.charm) a += FEE_CHARM;
+  if(i.keychainRing) a += FEE_RING;
+  if(i.extraColor) a += FEE_EXTRA_COLOR;
+  if(i.itemType === "dog collar" && i.engravedTagText) a += FEE_ENGRAVED_TAG;
+  return a;
+}
+function orderAddons(){
+  let a = 0;
+  if(order.rush) a += FEE_RUSH;
+  if(order.giftNote) a += FEE_GIFT_NOTE;
+  if(order.tracking) a += FEE_TRACKING;
+  if(order.packaging) a += FEE_PACKAGING;
+  return a;
+}
+function shippingCost(){
+  let ship = order.shipping === "in" ? SHIPPING_IN : (order.shipping === "out" ? SHIPPING_OUT : 0);
+  if(items.length >= 2) ship = Math.max(0, ship - BUNDLE_SHIP_DISCOUNT);
+  return ship;
+}
+function setDiscount(){
+  // set discount applies only if it’s specifically bracelet+dog collar
+  if(items.length !== 2) return 0;
+  const types = items.map(x=>x.itemType).sort().join("|");
+  if(types === "bracelet|dog collar") return SET_DISCOUNT;
+  return 0;
+}
+function couponDiscount(subtotal){
+  const code = String(order.coupon||"").trim().toUpperCase();
+  if(!code) return 0;
+  if(code !== COUPON_CODE) return 0;
+  return subtotal * (COUPON_PCT/100);
+}
+function calcTotals(){
+  const base = items.reduce((s,i)=>s+itemBase(i),0);
+  const itemUpsells = items.reduce((s,i)=>s+itemAddons(i),0);
+  const orderUpsells = orderAddons();
+  const setDisc = setDiscount();
+  const ship = shippingCost();
+  const donation = Number(order.donation)||0;
 
-addBraceletBtn.addEventListener("click", ()=>{
-  if(rowCount >= MAX_ROWS) return alert("Max 4 bracelets");
-  addRow();
-});
-</script>
+  // subtotal eligible for coupon (everything except shipping + donation)
+  const subtotal = Math.max(0, base + itemUpsells + orderUpsells - setDisc);
+  const coup = couponDiscount(subtotal);
+  const subtotalAfterCoupon = Math.max(0, subtotal - coup);
 
-</body>
-</html>
+  const total = subtotalAfterCoupon + ship + donation;
+
+  return {
+    base, itemUpsells, orderUpsells, setDisc,
+    subtotal, coup, subtotalAfterCoupon,
+    ship, donation, total
+  };
+}
+function pricePreviewLine(){
+  const t = calcTotals();
+  const bits = [];
+  bits.push(`Est. total: ${money(t.total)}`);
+  if(t.coup > 0) bits.push(`(coupon -${money(t.coup)})`);
+  return bits.join(" ");
+}
+
+/* ========= SALES / FAQ ========= */
+function wantsToBuy(text){
+  const t = clean(text);
+
+  // strong
+  if(
+    t.includes("i want") || t.includes("i'll get") || t.includes("ill get") ||
+    t.includes("i'll take") || t.includes("ill take") ||
+    t.includes("order") || t.includes("buy") || t.includes("get one") ||
+    t.includes("i need one")
+  ) return true;
+
+  // soft intent inside a question + product clue
+  const soft = (t.includes("could i") || t.includes("can i") || t.includes("can you") || t.includes("if possible") || t.includes("is it possible"));
+  const clue = (t.includes("cobra") || t.includes("bracelet") || t.includes("collar") || t.includes("paracord") || t.includes("micro cord"));
+  return soft && clue;
+}
+
+function answerFAQ(text){
+  const t = clean(text);
+
+  if(
+    t.includes("why") || t.includes("your story") || t.includes("about you") ||
+    t.includes("why are you") || t.includes("why do you") || t.includes("your business")
+  ) return BRAND_STORY;
+
+  if(t.includes("price") || t.includes("cost") || t.includes("how much")){
+    return `Pricing is $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN}).\nWe can add upgrades like rush, gift note, durability, engraved tag (collars), charms, tracking, and more.\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("size") || t.includes("how big") || t.includes("inch") || t.includes("measure") || t.includes("fit")){
+    return `Sizing:\n• Measure wrist or dog’s neck\n• Pick snug / regular / loose\n• Sizes run ${MIN_IN}-${MAX_IN} inches\n\n${POPULAR_PICK_LINE}`;
+  }
+  if(t.includes("color")){
+    return `Colors:\n• Any colors you want\n• Cobra = 2 colors\n• King Cobra = 3 colors\n• (Optional) add a 4th accent color upgrade\n\n${POPULAR_PICK_LINE}`;
+  }
+  if(t.includes("ship") || t.includes("shipping") || t.includes("address")){
+    return `Shipping:\n• $${SHIPPING_IN} in-state\n• $${SHIPPING_OUT} out-of-state\n• Bundle discount if you get 2 items\n\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("contact") || t.includes("phone") || t.includes("number")){
+    return `Contact: ${PHONE}\n\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("meet") || t.includes("pickup")){
+    return `No meetups — shipping only.\n\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("coupon") || t.includes("discount") || t.includes("code")){
+    return `You can enter a coupon code during checkout.\n(Example: ${COUPON_CODE} gives ${COUPON_PCT}% off eligible subtotal.)`;
+  }
+  if(t.includes("donate") || t.includes("donation") || t.includes("tip")){
+    return `You can add a donation during checkout — it gets added to the total, and it’s optional.`;
+  }
+  return `Ask me about price, sizing, colors, shipping, upgrades, coupons, or just say what you want and I’ll build the order.\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
+}
+
+let nudgeCount = 0;
+function gentlePush(){
+  nudgeCount++;
+  addMsg(
+`If you want, you can type what you want in one message and I’ll fill it in.
+Example: “king cobra outside white middle black inside white, 8 inches, regular, bracelet”
+
+${POPULAR_PICK_LINE}
+${LIMITED_SPOTS_LINE}`,
+  "bot"
+);
+  setChips(["I want one","king cobra outside white middle black inside white","Price","Sizing","Shipping","Upgrades"]);
+}
+
+/* ========= AUTO-FILL PARSER ========= */
+function extractHints(text){
+  const t = clean(text);
+  const h = {
+    weave:null,
+    colors:null,
+    inches:null,
+    fit:null,
+    itemType:null
+  };
+
+  if(t.includes("dog") && t.includes("collar")) h.itemType="dog collar";
+  else if(t.includes("collar")) h.itemType="dog collar";
+  else if(t.includes("keychain")) h.itemType="keychain";
+  else if(t.includes("bracelet")) h.itemType="bracelet";
+
+  if(t.includes("king cobra")) h.weave="king cobra";
+  else if(t.includes("cobra")) h.weave="cobra";
+
+  const mIn = t.match(/(\d+(\.\d+)?)/);
+  if(mIn){
+    const n = Number(mIn[1]);
+    if(isFinite(n) && n>=MIN_IN && n<=MAX_IN) h.inches=n;
+  }
+
+  if(t.includes("snug")) h.fit="snug";
+  else if(t.includes("regular")) h.fit="regular";
+  else if(t.includes("loose")) h.fit="loose";
+
+  // outside/middle/inside = 3 colors (king cobra)
+  const outside = t.match(/outside\s+([a-z]+)/);
+  const middle  = t.match(/middle\s+(?:band\s+)?([a-z]+)/);
+  const inside  = t.match(/inside\s+([a-z]+)/);
+  if(outside && middle && inside){
+    h.colors=[outside[1], middle[1], inside[1]];
+    return h;
+  }
+
+  // comma colors
+  if(text.includes(",")){
+    const parts = text.split(",").map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=2 && parts.length<=3){
+      h.colors = parts.map(p=>p.split(" ")[0].toLowerCase());
+    }
+  }
+
+  // red/black or red/black/gray
+  const slash = t.match(/\b([a-z]+)\s*\/\s*([a-z]+)(?:\s*\/\s*([a-z]+))?\b/);
+  if(slash){
+    h.colors=[slash[1],slash[2],slash[3]].filter(Boolean);
+  }
+
+  return h;
+}
+function applyHintsToItem(h, item){
+  if(h.itemType && !item.itemType) item.itemType = h.itemType;
+  if(h.weave && !item.weave) item.weave = h.weave;
+  if(h.inches && !item.inches) item.inches = h.inches;
+  if(h.fit && !item.fit) item.fit = h.fit;
+
+  if(h.colors && h.colors.length){
+    // infer weave from color count if missing
+    if(!item.weave){
+      if(h.colors.length===3) item.weave="king cobra";
+      if(h.colors.length===2) item.weave="cobra";
+    }
+    const need = item.weave==="king cobra" ? 3 : (item.weave==="cobra" ? 2 : null);
+    if(need && h.colors.length===need && item.colors.length===0){
+      item.colors = h.colors.slice(0,need);
+    }
+  }
+}
+
+/* ========= FLOW (ask only missing) ========= */
+let mode = "sales"; // sales | order | review | done
+let stepIndex = 0;
+const backStack = [];
+
+function needColorsCount(item){
+  if(item.weave === "king cobra") return 3;
+  if(item.weave === "cobra") return 2;
+  return 0;
+}
+
+function stepSatisfied(stepKey){
+  const item = items[0]; // first item main (we collect set second item later)
+  switch(stepKey){
+    case "setAsk": return true; // always ask once
+    case "setBuild": return !order.isSet || items.length===2;
+    case "itemType": return !!item.itemType;
+    case "weave": return !!item.weave;
+    case "inches": return !!item.inches;
+    case "fit": return !!item.fit;
+    case "colors": {
+      const need = needColorsCount(item);
+      return need>0 && item.colors.length===need;
+    }
+    case "patternStyle": return !!item.patternStyle;
+    case "extraColorAsk": return item.weave!=="king cobra" ? true : true; // asked once, can be false
+    case "durabilityAsk": return true;
+    case "extraTailAsk": return true;
+    case "charmAsk": return true;
+    case "ringAsk": return true;
+    case "engravedTagAsk": return item.itemType==="dog collar" ? true : true;
+    case "engravedTagText": return item.itemType==="dog collar" ? (!!item.engravedTagText || item.engravedTagText==="") : true;
+
+    case "rushAsk": return true;
+    case "giftAsk": return true;
+    case "giftText": return order.giftNote ? (order.giftNoteText.length>0) : true;
+
+    case "trackingAsk": return true;
+    case "packagingAsk": return true;
+    case "couponAsk": return true;
+    case "couponCode": return order.coupon !== null; // always fine
+
+    case "donateAsk": return true;
+    case "donationAmt": return true;
+
+    case "shipping": return !!order.shipping;
+    case "address": return !!order.address;
+    case "name": return !!order.name;
+    case "phone": return !!order.phone;
+    case "photoAsk": return true;
+    case "notes": return true;
+    default: return false;
+  }
+}
+
+function nextUnfilledIndex(start){
+  let i = start;
+  while(i < steps.length && stepSatisfied(steps[i].key)){
+    i++;
+  }
+  return i;
+}
+
+function askStep(){
+  stepIndex = nextUnfilledIndex(stepIndex);
+  if(stepIndex >= steps.length){
+    mode = "review";
+    addMsg(buildSummary(), "bot");
+    setChips(["CONFIRM","BACK","RESTART"]);
+    saveDraft();
+    return;
+  }
+  const s = steps[stepIndex];
+  addMsg(s.ask, "bot");
+  setChips(s.chips || []);
+  addMsg(pricePreviewLine(), "bot");
+  saveDraft();
+}
+
+function buildSummary(){
+  const t = calcTotals();
+  const main = items[0];
+  const setLine = (items.length===2) ? `\nSET item 2: ${items[1].itemType} • ${items[1].weave} • ${items[1].inches}"` : "";
+
+  const ups = [];
+  if(order.rush) ups.push("rush");
+  if(order.giftNote) ups.push("gift note");
+  if(order.tracking) ups.push("tracking");
+  if(order.packaging) ups.push("protective packaging");
+
+  const itemUps = [];
+  if(main.durability) itemUps.push("durability");
+  if(main.extraTail) itemUps.push("extra tail");
+  if(main.charm) itemUps.push("charm");
+  if(main.keychainRing) itemUps.push("keychain ring");
+  if(main.extraColor) itemUps.push("4th accent color");
+  if(main.itemType==="dog collar" && main.engravedTagText) itemUps.push(`engraved tag: "${main.engravedTagText}"`);
+
+  const couponOk = (String(order.coupon||"").trim().toUpperCase() === COUPON_CODE);
+
+  return (
+`Order Summary
+• Item: ${main.itemType}
+• Weave: ${main.weave}
+• Size: ${main.inches}"
+• Fit: ${main.fit}
+• Colors: ${main.colors.join(", ")}
+• Pattern: ${main.patternStyle}
+• Item upgrades: ${itemUps.length ? itemUps.join(", ") : "none"}${setLine}
+
+• Order upgrades: ${ups.length ? ups.join(", ") : "none"}
+• Shipping: ${order.shipping === "in" ? "in-state" : "out-of-state"}
+• Address: ${order.address}
+• Name: ${order.name}
+• Phone: ${order.phone}
+• Coupon: ${order.coupon ? (couponOk ? `${order.coupon} ✅` : `${order.coupon} (not valid)`) : "none"}
+• Donation: ${money(order.donation || 0)}
+• Photo before pay link: ${order.photoBeforePay ? "yes" : "no"}
+• Notes: ${order.notes ? order.notes : "none"}
+
+Price
+• Base: ${money(t.base)}
+• Item upsells: ${money(t.itemUpsells)}
+• Order upsells: ${money(t.orderUpsells)}
+• Set discount: -${money(t.setDisc)}
+• Subtotal: ${money(t.subtotal)}
+• Coupon discount: -${money(t.co
