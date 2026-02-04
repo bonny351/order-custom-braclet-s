@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
-    --text:#fff; --muted:#bdbdbd; --accent:#ff2a2a; --good:#00ff88;
+    --text:#fff; --muted:#bdbdbd; --accent:#ff2a2a;
     --line:#2a2a2a; --radius:16px;
   }
   *{ box-sizing:border-box; }
@@ -108,7 +108,12 @@
     margin-top:10px;
     line-height:1.35;
   }
-  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  #status{
+    margin-top:10px;
+    color:#ffb347;
+    font-weight:800;
+    min-height:18px;
+  }
 </style>
 </head>
 
@@ -122,6 +127,8 @@
   <div class="card">
     <div id="chat" class="chat"></div>
     <div id="chips" class="chips"></div>
+
+    <div id="status"></div>
 
     <div class="bar">
       <input id="input" placeholder="Type your answer…" autocomplete="off" />
@@ -139,17 +146,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* ===================== FIREBASE ===================== */
+/* ✅ YOUR FIREBASE CONFIG (from your earlier page) */
 const firebaseConfig = {
-  apiKey: "PASTE_YOURS",
-  authDomain: "PASTE_YOURS",
-  projectId: "PASTE_YOURS",
-  storageBucket: "PASTE_YOURS",
-  messagingSenderId: "PASTE_YOURS",
-  appId: "PASTE_YOURS"
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
 };
 
-const ORDERS_COLLECTION = "tt_orders";
+const ORDERS_COLLECTION = "tt_orders"; // <-- where chat orders go
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -175,6 +182,9 @@ const SIGNATURE = "Tactics & Treats Team";
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const chipsBox = document.getElementById("chips");
+const statusEl = document.getElementById("status");
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
 
 function addMsg(text, who="bot"){
   const div = document.createElement("div");
@@ -216,26 +226,21 @@ function wantsToBuy(text){
   );
 }
 
-/* Answers EVERY message with something useful (no loop). */
 function answerFAQ(text){
   const t = clean(text);
 
-  // Custom pattern questions like:
-  // "king cobra outside white middle black inside white"
   const looksLikePattern =
     (t.includes("king cobra") || t.includes("cobra")) &&
     (t.includes("outside") || t.includes("middle") || t.includes("inside") || t.includes("band"));
 
   if(looksLikePattern){
-    return `Yes — that’s doable.\nFor King Cobra, you’ll pick 3 colors.\nIf you want outside white + middle black + inside white, we can do:\n• Color 1: white\n• Color 2: black\n• Color 3: white\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
+    return `Yes — that’s doable.\nFor King Cobra you pick 3 colors.\nOutside white + middle black + inside white works like:\n• Color 1: white\n• Color 2: black\n• Color 3: white\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // PRICE
   if(t.includes("price") || t.includes("cost") || t.includes("how much") || t.includes("$")){
-    return `Pricing:\n• $${PRICE_PER_INCH} per inch (sizes ${MIN_IN}–${MAX_IN})\n• Add-ons cost extra (names/letters, metal buckles/special clasps, glow/reflective, survival cord)\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
+    return `Pricing:\n• $${PRICE_PER_INCH} per inch (sizes ${MIN_IN}–${MAX_IN})\n• Add-ons cost extra\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // SIZE / HOW BIG
   if(
     t.includes("size") || t.includes("sizing") ||
     t.includes("how big") ||
@@ -243,40 +248,33 @@ function answerFAQ(text){
     t.includes("measure") || t.includes("measurement") ||
     t.includes("fit")
   ){
-    return `Sizing:\n• Measure your wrist or your dog’s neck\n• Choose snug / regular / loose fit\n• Sizes run ${MIN_IN}–${MAX_IN} inches\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
+    return `Sizing:\n• Measure wrist or dog’s neck\n• Choose snug / regular / loose\n• Sizes run ${MIN_IN}–${MAX_IN} inches\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // COLORS
-  if(t.includes("color") || t.includes("colors")){
-    return `Colors:\n• You can choose any colors you want\n• Cobra = 2 colors\n• King Cobra = 3 colors\n• If you want a special color I can get it (may take a little longer)\n\n${POPULAR_PICK_LINE}`;
+  if(t.includes("color")){
+    return `Colors:\n• Any colors you want\n• Cobra = 2 colors\n• King Cobra = 3 colors\n• Special colors can be ordered (may take a bit longer)\n\n${POPULAR_PICK_LINE}`;
   }
 
-  // SHIPPING
   if(t.includes("ship") || t.includes("shipping") || t.includes("deliver") || t.includes("address") || t.includes("mail")){
     return `Shipping:\n• $${SHIPPING_IN} in-state\n• $${SHIPPING_OUT} out-of-state\n• I’ll need your shipping address\n\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // ADD-ONS
-  if(t.includes("add") || t.includes("add-on") || t.includes("addon") || t.includes("upgrade") || t.includes("extra")){
-    return `Add-ons (extra):\n• Names / letters\n• Metal buckles / special clasps\n• Glow / reflective cord\n• Survival cord (includes flammable strands + fishing line)\n\n${POPULAR_PICK_LINE}`;
+  if(t.includes("add") || t.includes("upgrade") || t.includes("extra") || t.includes("addon") || t.includes("add-on")){
+    return `Add-ons (extra):\n• Names / letters\n• Metal buckles / special clasps\n• Glow / reflective\n• Survival cord (flammable strands + fishing line)\n\n${POPULAR_PICK_LINE}`;
   }
 
-  // SURVIVAL
   if(t.includes("survival")){
     return `Survival cord is an upgrade (extra). It includes flammable strands and fishing line.\n\n${POPULAR_PICK_LINE}`;
   }
 
-  // CONTACT
   if(t.includes("contact") || t.includes("phone") || t.includes("number")){
     return `Contact:\n• ${PHONE}\n\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // MEETUP
-  if(t.includes("meet") || t.includes("meet up") || t.includes("pickup") || t.includes("pick up")){
+  if(t.includes("meet") || t.includes("pickup") || t.includes("pick up")){
     return `I don’t do meetups — shipping only.\n\n${LIMITED_SPOTS_LINE}`;
   }
 
-  // DEFAULT (still answers)
   return `I can help with price, sizing, colors, shipping, or add-ons.\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
 }
 
@@ -301,7 +299,7 @@ const order = {
   fit: "",
   colors: [],
   addOns: { names:false, metal:false, glow:false, survival:false },
-  shipping: "", // "in" or "out"
+  shipping: "",
   address: "",
   name: "",
   phone: "",
@@ -355,127 +353,52 @@ Type CONFIRM to submit, or BACK to change something.`
 }
 
 const steps = [
-  {
-    key:"itemType",
-    ask:"What are you ordering?\n(bracelet, dog collar, keychain)",
-    chips:["bracelet","dog collar","keychain"],
-    parse:(v)=>{
-      v = clean(v).trim();
-      return ["bracelet","dog collar","keychain"].includes(v) ? v : null;
-    }
-  },
-  {
-    key:"weave",
-    ask:`Which weave?\n(cobra = 2 colors, king cobra = 3 colors)\nTip: ${POPULAR_PICK_LINE}`,
-    chips:["cobra","king cobra"],
-    parse:(v)=>{
-      v = clean(v).trim();
-      return (v==="cobra" || v==="king cobra") ? v : null;
-    }
-  },
-  {
-    key:"inches",
-    ask:`What size in inches? (${MIN_IN}–${MAX_IN})`,
-    chips:["6","7","8","9","10","12","14","16"],
-    parse:(v)=>{
-      const n = Number(String(v).replace(/"/g,"").trim());
-      return (isFinite(n) && n>=MIN_IN && n<=MAX_IN) ? n : null;
-    }
-  },
-  {
-    key:"fit",
-    ask:"How should it fit?\n(snug, regular, or loose)",
-    chips:["snug","regular","loose"],
-    parse:(v)=>{
-      v = clean(v).trim();
-      return ["snug","regular","loose"].includes(v) ? v : null;
-    }
-  },
-  {
-    key:"colors",
-    ask:"What colors do you want?\nCobra: 2 colors like “black, red”\nKing cobra: 3 colors like “white, black, white”",
+  { key:"itemType", ask:"What are you ordering?\n(bracelet, dog collar, keychain)", chips:["bracelet","dog collar","keychain"],
+    parse:(v)=>{ v=clean(v).trim(); return ["bracelet","dog collar","keychain"].includes(v)?v:null; } },
+  { key:"weave", ask:`Which weave?\n(cobra = 2 colors, king cobra = 3 colors)\nTip: ${POPULAR_PICK_LINE}`, chips:["cobra","king cobra"],
+    parse:(v)=>{ v=clean(v).trim(); return (v==="cobra"||v==="king cobra")?v:null; } },
+  { key:"inches", ask:`What size in inches? (${MIN_IN}–${MAX_IN})`, chips:["6","7","8","9","10","12","14","16"],
+    parse:(v)=>{ const n=Number(String(v).replace(/"/g,"").trim()); return (isFinite(n)&&n>=MIN_IN&&n<=MAX_IN)?n:null; } },
+  { key:"fit", ask:"How should it fit?\n(snug, regular, or loose)", chips:["snug","regular","loose"],
+    parse:(v)=>{ v=clean(v).trim(); return ["snug","regular","loose"].includes(v)?v:null; } },
+  { key:"colors", ask:"What colors do you want?\nCobra: 2 colors like “black, red”\nKing cobra: 3 colors like “white, black, white”",
     chips:["red, black","white, black, white","black, red","black, red, gray","camo, black"],
-    parse:(v)=>{
-      const parts = v.split(",").map(s=>s.trim()).filter(Boolean);
-      const needed = (order.weave === "king cobra") ? 3 : 2;
-      return (parts.length === needed) ? parts : null;
-    }
-  },
-  {
-    key:"addOns",
-    ask:"Any add-ons?\nReply: none OR names, metal, glow, survival (you can list multiple)",
+    parse:(v)=>{ const parts=v.split(",").map(s=>s.trim()).filter(Boolean); const needed=(order.weave==="king cobra")?3:2; return (parts.length===needed)?parts:null; } },
+  { key:"addOns", ask:"Any add-ons?\nReply: none OR names, metal, glow, survival (you can list multiple)",
     chips:["none","names","metal","glow","survival","names, metal","glow, survival"],
     parse:(v)=>{
-      v = clean(v).trim();
-      if(v === "none") return {names:false, metal:false, glow:false, survival:false};
-      const picks = v.split(",").map(s=>s.trim()).filter(Boolean);
-      const ok = new Set(["names","metal","glow","survival"]);
+      v=clean(v).trim();
+      if(v==="none") return {names:false, metal:false, glow:false, survival:false};
+      const picks=v.split(",").map(s=>s.trim()).filter(Boolean);
+      const ok=new Set(["names","metal","glow","survival"]);
       if(!picks.length) return null;
       for(const p of picks){ if(!ok.has(p)) return null; }
-      return {
-        names: picks.includes("names"),
-        metal: picks.includes("metal"),
-        glow: picks.includes("glow"),
-        survival: picks.includes("survival")
-      };
-    }
-  },
-  {
-    key:"shipping",
-    ask:`Shipping: in-state or out-of-state?\n${LIMITED_SPOTS_LINE}`,
-    chips:["in-state","out-of-state"],
-    parse:(v)=>{
-      v = clean(v).trim();
-      if(v === "in-state") return "in";
-      if(v === "out-of-state") return "out";
-      return null;
-    }
-  },
-  {
-    key:"address",
-    ask:"What shipping address should we ship to?\n(Street, City, State, ZIP)",
-    chips:[],
-    parse:(v)=> (v.trim().length >= 10 ? v.trim() : null)
-  },
-  {
-    key:"name",
-    ask:"What name should I put on the order?",
-    chips:[],
-    parse:(v)=> (v.trim().length >= 2 ? v.trim() : null)
-  },
-  {
-    key:"phone",
-    ask:"What phone number should I attach to the order?",
-    chips:[],
-    parse:(v)=>{
-      const digits = v.replace(/[^\d]/g,"");
-      return (digits.length >= 10) ? v.trim() : null;
-    }
-  },
-  {
-    key:"notes",
-    ask:"Any notes?\n(reply: none, or type your note)",
-    chips:["none"],
-    parse:(v)=>{
-      const vv = v.trim();
-      if(clean(vv) === "none") return "";
-      return vv;
-    }
-  }
+      return {names:picks.includes("names"), metal:picks.includes("metal"), glow:picks.includes("glow"), survival:picks.includes("survival")};
+    } },
+  { key:"shipping", ask:`Shipping: in-state or out-of-state?\n${LIMITED_SPOTS_LINE}`, chips:["in-state","out-of-state"],
+    parse:(v)=>{ v=clean(v).trim(); if(v==="in-state") return "in"; if(v==="out-of-state") return "out"; return null; } },
+  { key:"address", ask:"What shipping address should we ship to?\n(Street, City, State, ZIP)", chips:[],
+    parse:(v)=> (v.trim().length>=10? v.trim(): null) },
+  { key:"name", ask:"What name should I put on the order?", chips:[],
+    parse:(v)=> (v.trim().length>=2? v.trim(): null) },
+  { key:"phone", ask:"What phone number should I attach to the order?", chips:[],
+    parse:(v)=>{ const digits=v.replace(/[^\d]/g,""); return (digits.length>=10)? v.trim(): null; } },
+  { key:"notes", ask:"Any notes?\n(reply: none, or type your note)", chips:["none"],
+    parse:(v)=>{ const vv=v.trim(); if(clean(vv)==="none") return ""; return vv; } }
 ];
 
 function applyStep(key, val){
-  if(key === "itemType") order.itemType = val;
-  if(key === "weave") order.weave = val;
-  if(key === "inches") order.inches = val;
-  if(key === "fit") order.fit = val;
-  if(key === "colors") order.colors = val;
-  if(key === "addOns") order.addOns = val;
-  if(key === "shipping") order.shipping = val;
-  if(key === "address") order.address = val;
-  if(key === "name") order.name = val;
-  if(key === "phone") order.phone = val;
-  if(key === "notes") order.notes = val;
+  if(key==="itemType") order.itemType = val;
+  if(key==="weave") order.weave = val;
+  if(key==="inches") order.inches = val;
+  if(key==="fit") order.fit = val;
+  if(key==="colors") order.colors = val;
+  if(key==="addOns") order.addOns = val;
+  if(key==="shipping") order.shipping = val;
+  if(key==="address") order.address = val;
+  if(key==="name") order.name = val;
+  if(key==="phone") order.phone = val;
+  if(key==="notes") order.notes = val;
 }
 
 /* ===================== FLOW CONTROL ===================== */
@@ -494,18 +417,11 @@ function resetAll(){
   stepIndex = 0;
   backStack.length = 0;
   nudgeCount = 0;
+  setStatus("");
 
-  order.itemType = "";
-  order.weave = "";
-  order.inches = 0;
-  order.fit = "";
-  order.colors = [];
-  order.addOns = {names:false, metal:false, glow:false, survival:false};
-  order.shipping = "";
-  order.address = "";
-  order.name = "";
-  order.phone = "";
-  order.notes = "";
+  order.itemType=""; order.weave=""; order.inches=0; order.fit="";
+  order.colors=[]; order.addOns={names:false,metal:false,glow:false,survival:false};
+  order.shipping=""; order.address=""; order.name=""; order.phone=""; order.notes="";
 
   chat.innerHTML = "";
   addMsg(
@@ -554,10 +470,7 @@ async function submitOrder(){
 
 function handleCommand(text){
   const t = clean(text).trim();
-  if(t === "restart"){
-    resetAll();
-    return true;
-  }
+  if(t === "restart"){ resetAll(); return true; }
   if(t === "back"){
     if(mode !== "order"){
       addMsg("BACK only works while we’re building the order.", "bot");
@@ -583,10 +496,10 @@ async function send(){
   input.value = "";
   addMsg(text, "user");
   setChips([]);
+  setStatus("");
 
   if(handleCommand(text)) return;
 
-  /* ===== SALES MODE: ALWAYS ANSWER (NO LOOP) ===== */
   if(mode === "sales"){
     if(wantsToBuy(text)){
       mode = "order";
@@ -595,13 +508,11 @@ async function send(){
       return;
     }
 
-    // Always answer the message, then push
     addMsg(answerFAQ(text), "bot");
     gentlePush();
     return;
   }
 
-  /* ===== ORDER MODE ===== */
   if(mode === "order"){
     const s = steps[stepIndex];
     const parsed = s.parse(text);
@@ -627,19 +538,21 @@ async function send(){
     return;
   }
 
-  /* ===== REVIEW MODE ===== */
   if(mode === "review"){
     if(clean(text).trim() === "confirm"){
       try{
+        setStatus("Submitting…");
         addMsg("Submitting your order…", "bot");
         const id = await submitOrder();
-        mode = "done";
         const totals = calcTotals();
+        setStatus("Submitted!");
+        mode = "done";
         addMsg(`✅ Order submitted!\nOrder ID: ${id}\nTotal: ${money(totals.total)}\n\nWe’ll send your payment link next.\n\n${SIGNATURE}`, "bot");
         setChips(["RESTART"]);
       }catch(e){
         console.error(e);
-        addMsg("❌ Submit failed. Check Firebase config + Firestore rules.", "bot");
+        setStatus("Submit failed: " + (e?.message || e));
+        addMsg("❌ Submit failed: " + (e?.message || e), "bot");
         setChips(["RESTART"]);
       }
       return;
@@ -650,12 +563,10 @@ async function send(){
     return;
   }
 
-  /* ===== DONE MODE ===== */
   addMsg("Type RESTART to start a new order.", "bot");
   setChips(["RESTART"]);
 }
 
-/* ===================== EVENTS ===================== */
 document.getElementById("sendBtn").onclick = send;
 document.getElementById("resetBtn").onclick = resetAll;
 input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") send(); });
