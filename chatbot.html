@@ -3,154 +3,57 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Chat Order (Firebase)</title>
+<title>Tactics & Treats – Sales Chat Order (Firebase)</title>
 <style>
   :root{
-    --bg:#0b0b0b;
-    --panel:#141414;
-    --panel2:#0f0f0f;
-    --text:#fff;
-    --muted:#bdbdbd;
-    --accent:#ff2a2a;
-    --good:#00ff88;
-    --line:#2a2a2a;
-    --radius:16px;
+    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+    --text:#fff; --muted:#bdbdbd; --accent:#ff2a2a; --good:#00ff88;
+    --line:#2a2a2a; --radius:16px;
   }
   *{ box-sizing:border-box; }
-  body{
-    margin:0;
-    padding:18px;
-    background:var(--bg);
-    color:var(--text);
-    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  }
+  body{ margin:0; padding:18px; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
   .wrap{ max-width:820px; margin:0 auto; }
-  header{
-    display:flex; gap:12px; flex-wrap:wrap;
-    align-items:center; justify-content:space-between;
-    margin-bottom:14px;
-  }
+  header{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:14px; }
   h1{ margin:0; color:var(--accent); font-size:22px; }
-  .pill{
-    font-size:12px; padding:6px 10px; border-radius:999px;
-    background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a;
-  }
-  .card{
-    background:var(--panel);
-    border:1px solid #262626;
-    border-radius:var(--radius);
-    padding:14px;
-    box-shadow: 0 0 18px rgba(255,0,0,.18);
-  }
-  .chat{
-    height: 520px;
-    overflow:auto;
-    padding:12px;
-    border-radius:14px;
-    background:#000;
-    border:1px solid var(--line);
-  }
-  .msg{
-    max-width: 92%;
-    padding:10px 12px;
-    border-radius:14px;
-    margin:10px 0;
-    white-space:pre-line;
-    line-height:1.35;
-  }
-  .bot{
-    background:#101010;
-    border:1px solid #2a2a2a;
-    color:#fff;
-    border-top-left-radius:6px;
-  }
-  .user{
-    background:#1c1c1c;
-    border:1px solid #333;
-    margin-left:auto;
-    border-top-right-radius:6px;
-  }
-  .meta{
-    font-size:12px;
-    color:var(--muted);
-    margin-top:10px;
-    line-height:1.35;
-  }
-  .bar{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
-  }
-  input{
-    flex:1;
-    border:none;
-    outline:none;
-    border-radius:14px;
-    padding:12px 12px;
-    font-size:15px;
-    color:#fff;
-    background:var(--panel2);
-    border:1px solid var(--line);
-  }
-  button{
-    border:none;
-    border-radius:14px;
-    padding:12px 14px;
-    font-weight:800;
-    cursor:pointer;
-    background:var(--accent);
-    color:#fff;
-  }
+  .pill{ font-size:12px; padding:6px 10px; border-radius:999px; background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a; }
+  .card{ background:var(--panel); border:1px solid #262626; border-radius:var(--radius); padding:14px; box-shadow:0 0 18px rgba(255,0,0,.18); }
+  .chat{ height:560px; overflow:auto; padding:12px; border-radius:14px; background:#000; border:1px solid var(--line); }
+  .msg{ max-width:92%; padding:10px 12px; border-radius:14px; margin:10px 0; white-space:pre-line; line-height:1.35; }
+  .bot{ background:#101010; border:1px solid #2a2a2a; border-top-left-radius:6px; }
+  .user{ background:#1c1c1c; border:1px solid #333; margin-left:auto; border-top-right-radius:6px; }
+  .bar{ display:flex; gap:10px; margin-top:10px; }
+  input{ flex:1; border:none; outline:none; border-radius:14px; padding:12px 12px; font-size:15px; color:#fff;
+    background:var(--panel2); border:1px solid var(--line); }
+  button{ border:none; border-radius:14px; padding:12px 14px; font-weight:800; cursor:pointer; background:var(--accent); color:#fff; }
   button:hover{ filter:brightness(1.08); }
-  .secondary{
-    background:#242424;
-    border:1px solid #343434;
-    color:#fff;
-  }
-  .good{
-    background:var(--good);
-    color:#000;
-  }
-  .chips{
-    display:flex; flex-wrap:wrap; gap:8px;
-    margin-top:10px;
-  }
-  .chip{
-    background:#191919;
-    border:1px solid #2f2f2f;
-    color:#fff;
-    padding:8px 10px;
-    border-radius:999px;
-    cursor:pointer;
-    font-size:13px;
-    font-weight:700;
-  }
+  .secondary{ background:#242424; border:1px solid #343434; color:#fff; }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip{ background:#191919; border:1px solid #2f2f2f; color:#fff; padding:8px 10px; border-radius:999px; cursor:pointer;
+    font-size:13px; font-weight:800; }
   .chip:hover{ filter:brightness(1.08); }
+  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Tactics & Treats – Chat Order</h1>
-    <div class="pill">Asks questions → shows total → CONFIRM → submits to Firestore</div>
+    <h1>Tactics & Treats – Sales Chat</h1>
+    <div class="pill">Popular pick + limited spots • Order flow • CONFIRM → Firestore</div>
   </header>
 
   <div class="card">
     <div id="chat" class="chat"></div>
-
     <div class="chips" id="chips"></div>
 
     <div class="bar">
       <input id="input" placeholder="Type your answer…" autocomplete="off" />
       <button id="sendBtn">Send</button>
-      <button class="secondary" id="resetBtn" title="Start over">Reset</button>
+      <button class="secondary" id="resetBtn">Reset</button>
     </div>
 
     <div class="meta">
-      Commands:
-      • type <b>BACK</b> to go back one question
-      • type <b>RESTART</b> to start over
-      • at the end type <b>CONFIRM</b> to submit
+      Commands: <b>BACK</b> (go back), <b>RESTART</b> (start over), <b>CONFIRM</b> (submit at the end)
     </div>
   </div>
 </div>
@@ -169,12 +72,11 @@ const firebaseConfig = {
   appId: "PASTE_YOURS"
 };
 
-const ORDERS_COLLECTION = "tt_orders"; // change if you want
-
+const ORDERS_COLLECTION = "tt_orders";
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ---------- Your Business Rules ---------- */
+/* ---------- Business Rules ---------- */
 const PRICE_PER_INCH = 1;
 const MIN_IN = 5;
 const MAX_IN = 40;
@@ -182,12 +84,21 @@ const SHIPPING_IN = 6;
 const SHIPPING_OUT = 10;
 
 // default add-on charges (edit if you want)
-const ADDON_FEE = 3;       // names/metal/glow
-const SURVIVAL_FEE = 5;    // survival cord
+const ADDON_FEE = 3;     // names/metal/glow
+const SURVIVAL_FEE = 5;  // survival cord
 
 const SIGNATURE = "Tactics & Treats Team";
 
-/* ---------- Chat Engine ---------- */
+// Sales nudges you requested
+const POPULAR_PICK = {
+  weave: "king cobra",
+  colors: "red/black",
+  line: "Most popular pick right now: King Cobra weave in red/black."
+};
+// “Limited spots today” message (same-day)
+const LIMITED_SPOTS_LINE = "Heads up: I can do same-day, but I have limited spots today.";
+
+/* ---------- UI helpers ---------- */
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("sendBtn");
@@ -201,7 +112,6 @@ function addMsg(text, who="bot"){
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
-
 function setChips(options){
   chipsBox.innerHTML = "";
   (options || []).forEach(opt=>{
@@ -213,183 +123,95 @@ function setChips(options){
     chipsBox.appendChild(b);
   });
 }
-
+function clean(s){ return (s||"").toLowerCase(); }
 function money(n){
   const x = Number(n);
   if(!isFinite(x)) return "$0";
   return "$" + x.toFixed(2).replace(/\.00$/,"");
 }
 
+/* ---------- Intent detection ---------- */
+function wantsToBuy(text){
+  const t = clean(text);
+  return (
+    t.includes("i'll get") || t.includes("ill get") ||
+    t.includes("i will get") || t.includes("i want one") ||
+    t.includes("i want a") || t.includes("i'll take") ||
+    t.includes("ill take") || t.includes("i will take") ||
+    t.includes("i'm down") || t.includes("im down") ||
+    t.includes("i'll buy") || t.includes("ill buy") ||
+    t.includes("i will buy") || t.includes("order one") ||
+    t.includes("place an order") ||
+    t === "yes" || t === "yep"
+  );
+}
+
+function answerFAQ(text){
+  const t = clean(text);
+
+  if(t.includes("price") || t.includes("cost") || t.includes("how much")){
+    return `Pricing is $${PRICE_PER_INCH} per inch (sizes ${MIN_IN}–${MAX_IN}).\nAdd-ons cost extra (names/letters, metal buckles/special clasps, glow/reflective, survival cord).\n\n${POPULAR_PICK.line}\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("colors") || t.includes("color")){
+    return `Colors: you can choose any colors you want.\nCobra = 2 colors, King Cobra = 3 colors.\nIf you need a special color I don’t have on hand, I can get it (it may take a little longer).\n\n${POPULAR_PICK.line}`;
+  }
+  if(t.includes("ship") || t.includes("shipping") || t.includes("deliver") || t.includes("address") || t.includes("mail")){
+    return `Shipping is $${SHIPPING_IN} in-state and $${SHIPPING_OUT} out-of-state.\nI’ll need your shipping address to send it.\n\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("meet") || t.includes("meet up") || t.includes("pickup") || t.includes("pick up")){
+    return `I don’t do meetups—shipping only.\n\n${LIMITED_SPOTS_LINE}`;
+  }
+  if(t.includes("survival")){
+    return `Survival cord is an upgrade (extra). It includes flammable strands and fishing line.\n\n${POPULAR_PICK.line}`;
+  }
+  if(t.includes("glow") || t.includes("reflect")){
+    return `Glow/reflective cord is an upgrade (extra).\n\n${POPULAR_PICK.line}`;
+  }
+  if(t.includes("metal") || t.includes("buckle") || t.includes("clasp")){
+    return `Metal buckles/special clasps are an upgrade (extra).\n\n${POPULAR_PICK.line}`;
+  }
+  if(t.includes("name") || t.includes("letters") || t.includes("initial")){
+    return `Names/letters are an upgrade (extra).\n\n${POPULAR_PICK.line}`;
+  }
+
+  return null;
+}
+
+/* ---------- Order state ---------- */
 const order = {
-  name: "",
-  phone: "",
-  address: "",
-  itemType: "",
-  weave: "",
-  inches: 0,
-  fit: "",
-  colors: [],
-  shipping: "", // "in" | "out"
-  addOns: {
-    names: false,
-    metal: false,
-    glow: false,
-    survival: false
-  },
-  notes: ""
+  name:"", phone:"", address:"",
+  itemType:"", weave:"",
+  inches:0, fit:"",
+  colors:[],
+  shipping:"",
+  addOns:{ names:false, metal:false, glow:false, survival:false },
+  notes:""
 };
 
-const steps = [
-  {
-    key: "itemType",
-    ask: "What are you ordering?\nReply with: bracelet, dog collar, or keychain",
-    chips: ["bracelet","dog collar","keychain"],
-    parse: (v)=>{
-      v = v.toLowerCase().trim();
-      if(["bracelet","dog collar","keychain"].includes(v)) return v;
-      return null;
-    }
-  },
-  {
-    key: "weave",
-    ask: "Which weave do you want?\nReply with: cobra (2 colors) or king cobra (3 colors)",
-    chips: ["cobra","king cobra"],
-    parse: (v)=>{
-      v = v.toLowerCase().trim();
-      if(v === "cobra" || v === "king cobra") return v;
-      return null;
-    }
-  },
-  {
-    key: "inches",
-    ask: `What size in inches? (Between ${MIN_IN} and ${MAX_IN})\nExample: 8`,
-    chips: ["6","7","8","9","10","12","14","16"],
-    parse: (v)=>{
-      const n = Number(String(v).replace(/"/g,"").trim());
-      if(isFinite(n) && n >= MIN_IN && n <= MAX_IN) return n;
-      return null;
-    }
-  },
-  {
-    key: "fit",
-    ask: "How do you want it to fit?\nReply: snug, regular, or loose",
-    chips: ["snug","regular","loose"],
-    parse: (v)=>{
-      v = v.toLowerCase().trim();
-      if(["snug","regular","loose"].includes(v)) return v;
-      return null;
-    }
-  },
-  {
-    key: "colors",
-    ask: "Now the colors.\nFor cobra: send 2 colors (example: black, red)\nFor king cobra: send 3 colors (example: black, red, gray)",
-    chips: ["black, red", "black, red, gray", "camo, black", "red, black"],
-    parse: (v)=>{
-      const parts = v.split(",").map(s=>s.trim()).filter(Boolean);
-      const needed = (order.weave === "king cobra") ? 3 : 2;
-      if(parts.length === needed) return parts;
-      return null;
-    }
-  },
-  {
-    key: "addOns",
-    ask: "Any add-ons?\nReply with: none, or list what you want: names, metal, glow, survival",
-    chips: ["none","names","metal","glow","survival","names, metal","glow, survival"],
-    parse: (v)=>{
-      v = v.toLowerCase().trim();
-      if(v === "none") return {names:false,metal:false,glow:false,survival:false};
-
-      const picks = v.split(",").map(s=>s.trim()).filter(Boolean);
-      const ok = new Set(["names","metal","glow","survival"]);
-      if(picks.length === 0) return null;
-      for(const p of picks){ if(!ok.has(p)) return null; }
-
-      return {
-        names: picks.includes("names"),
-        metal: picks.includes("metal"),
-        glow: picks.includes("glow"),
-        survival: picks.includes("survival")
-      };
-    }
-  },
-  {
-    key: "shipping",
-    ask: "Shipping: are you in-state or out-of-state?\nReply: in-state or out-of-state",
-    chips: ["in-state","out-of-state"],
-    parse: (v)=>{
-      v = v.toLowerCase().trim();
-      if(v === "in-state") return "in";
-      if(v === "out-of-state") return "out";
-      return null;
-    }
-  },
-  {
-    key: "address",
-    ask: "What shipping address should we ship to?\nType the full address (Street, City, State, ZIP).",
-    chips: [],
-    parse: (v)=>{
-      v = v.trim();
-      if(v.length >= 10) return v;
-      return null;
-    }
-  },
-  {
-    key: "name",
-    ask: "What name should I put on the order?",
-    chips: [],
-    parse: (v)=>{
-      v = v.trim();
-      if(v.length >= 2) return v;
-      return null;
-    }
-  },
-  {
-    key: "phone",
-    ask: "What phone number should I attach to the order?",
-    chips: [],
-    parse: (v)=>{
-      const cleaned = v.replace(/[^\d]/g,"");
-      if(cleaned.length >= 10) return v.trim();
-      return null;
-    }
-  },
-  {
-    key: "notes",
-    ask: "Any notes? (Reply: none, or type your note.)",
-    chips: ["none"],
-    parse: (v)=>{
-      v = v.trim();
-      if(v.toLowerCase() === "none") return "";
-      if(v.length >= 0) return v;
-      return null;
-    }
-  }
-];
-
+/* Modes: sales → order → review → done */
+let mode = "sales";
 let stepIndex = 0;
-const historySteps = []; // stack for BACK
+const backStack = [];
+let nudgesGiven = 0;
 
 function calcTotals(){
-  const base = (Number(order.inches) || 0) * PRICE_PER_INCH;
+  const base = (Number(order.inches)||0) * PRICE_PER_INCH;
   let addons = 0;
   if(order.addOns.names) addons += ADDON_FEE;
   if(order.addOns.metal) addons += ADDON_FEE;
   if(order.addOns.glow) addons += ADDON_FEE;
   if(order.addOns.survival) addons += SURVIVAL_FEE;
-
   const ship = order.shipping === "in" ? SHIPPING_IN : (order.shipping === "out" ? SHIPPING_OUT : 0);
-  const total = base + addons + ship;
-
-  return { base, addons, ship, total };
+  return { base, addons, ship, total: base + addons + ship };
 }
 
-function summaryText(){
+function buildSummary(){
   const t = calcTotals();
-  const addList = [];
-  if(order.addOns.names) addList.push("names/letters");
-  if(order.addOns.metal) addList.push("metal buckle/special clasp");
-  if(order.addOns.glow) addList.push("glow/reflective");
-  if(order.addOns.survival) addList.push("survival cord (includes flammable strands + fishing line)");
+  const adds = [];
+  if(order.addOns.names) adds.push("names/letters");
+  if(order.addOns.metal) adds.push("metal buckle/special clasp");
+  if(order.addOns.glow) adds.push("glow/reflective");
+  if(order.addOns.survival) adds.push("survival cord (flammable strands + fishing line)");
 
   return (
 `Order Summary
@@ -398,7 +220,7 @@ function summaryText(){
 • Size: ${order.inches}"
 • Fit: ${order.fit}
 • Colors: ${order.colors.join(", ")}
-• Add-ons: ${addList.length ? addList.join(", ") : "none"}
+• Add-ons: ${adds.length ? adds.join(", ") : "none"}
 • Shipping: ${order.shipping === "in" ? "in-state" : "out-of-state"}
 • Address: ${order.address}
 • Name: ${order.name}
@@ -411,36 +233,80 @@ Price
 • Shipping: ${money(t.ship)}
 • Total: ${money(t.total)}
 
-If everything looks right, type: CONFIRM
-If you need to change something, type: BACK (or RESTART).`
+If that looks right, type: CONFIRM`
   );
 }
 
-function askCurrent(){
+/* ---------- Order questions ---------- */
+const steps = [
+  { key:"itemType", ask:"Perfect — what would you like to order?\n(bracelet, dog collar, or keychain)",
+    chips:["bracelet","dog collar","keychain"],
+    parse:(v)=>{ v=clean(v).trim(); return ["bracelet","dog collar","keychain"].includes(v)?v:null; } },
+  { key:"weave", ask:`Which weave?\nTip: ${POPULAR_PICK.weave} in ${POPULAR_PICK.colors} is the most popular.\n(cobra or king cobra)`,
+    chips:["cobra","king cobra"],
+    parse:(v)=>{ v=clean(v).trim(); return (v==="cobra"||v==="king cobra")?v:null; } },
+  { key:"inches", ask:`What size in inches? (${MIN_IN}–${MAX_IN})`,
+    chips:["6","7","8","9","10","12","14","16"],
+    parse:(v)=>{ const n=Number(String(v).replace(/"/g,"").trim()); return (isFinite(n)&&n>=MIN_IN&&n<=MAX_IN)?n:null; } },
+  { key:"fit", ask:"How should it fit?\n(snug, regular, or loose)",
+    chips:["snug","regular","loose"],
+    parse:(v)=>{ v=clean(v).trim(); return ["snug","regular","loose"].includes(v)?v:null; } },
+  { key:"colors", ask:"What colors do you want?\nCobra: 2 colors like “black, red”\nKing cobra: 3 colors like “black, red, gray”\nTip: red/black is the most popular.",
+    chips:["red, black","black, red","black, red, gray","red, black, gray","camo, black"],
+    parse:(v)=>{ const parts=v.split(",").map(s=>s.trim()).filter(Boolean); const needed=order.weave==="king cobra"?3:2; return parts.length===needed?parts:null; } },
+  { key:"addOns", ask:"Any upgrades?\nReply: none OR names, metal, glow, survival (you can list multiple)",
+    chips:["none","names","metal","glow","survival","names, metal","glow, survival"],
+    parse:(v)=>{ v=clean(v).trim();
+      if(v==="none") return {names:false,metal:false,glow:false,survival:false};
+      const picks=v.split(",").map(s=>s.trim()).filter(Boolean);
+      const ok=new Set(["names","metal","glow","survival"]);
+      if(!picks.length) return null;
+      for(const p of picks){ if(!ok.has(p)) return null; }
+      return { names:picks.includes("names"), metal:picks.includes("metal"), glow:picks.includes("glow"), survival:picks.includes("survival") };
+    } },
+  { key:"shipping", ask:`Are you in-state or out-of-state?\n${LIMITED_SPOTS_LINE}`,
+    chips:["in-state","out-of-state"],
+    parse:(v)=>{ v=clean(v).trim(); return v==="in-state"?"in":(v==="out-of-state"?"out":null); } },
+  { key:"address", ask:"What shipping address should we ship to? (Street, City, State, ZIP)",
+    chips:[], parse:(v)=>{ v=v.trim(); return v.length>=10?v:null; } },
+  { key:"name", ask:"What name should I put on the order?",
+    chips:[], parse:(v)=>{ v=v.trim(); return v.length>=2?v:null; } },
+  { key:"phone", ask:"What phone number should I attach to the order?",
+    chips:[], parse:(v)=>{ const cleaned=v.replace(/[^\d]/g,""); return cleaned.length>=10?v.trim():null; } },
+  { key:"notes", ask:"Any notes? (Reply: none or type your note)",
+    chips:["none"], parse:(v)=>{ v=v.trim(); return clean(v)==="none"?"":v; } }
+];
+
+function applyParsed(key, val){
+  if(key==="itemType") order.itemType = val;
+  if(key==="weave") order.weave = val;
+  if(key==="inches") order.inches = val;
+  if(key==="fit") order.fit = val;
+  if(key==="colors") order.colors = val;
+  if(key==="addOns") order.addOns = val;
+  if(key==="shipping") order.shipping = val;
+  if(key==="address") order.address = val;
+  if(key==="name") order.name = val;
+  if(key==="phone") order.phone = val;
+  if(key==="notes") order.notes = val;
+}
+
+function askStep(){
   const s = steps[stepIndex];
   addMsg(s.ask, "bot");
   setChips(s.chips || []);
 }
 
-function resetAll(){
-  stepIndex = 0;
-  historySteps.length = 0;
-
-  order.name = "";
-  order.phone = "";
-  order.address = "";
-  order.itemType = "";
-  order.weave = "";
-  order.inches = 0;
-  order.fit = "";
-  order.colors = [];
-  order.shipping = "";
-  order.addOns = {names:false,metal:false,glow:false,survival:false};
-  order.notes = "";
-
-  chat.innerHTML = "";
-  addMsg("Hi! I’ll take your order step-by-step.\nPrices: $1 per inch (5–40). Shipping: $6 in-state, $10 out-of-state.\nLet’s start.", "bot");
-  askCurrent();
+function gentlePush(){
+  nudgesGiven++;
+  const extra = nudgesGiven >= 2 ? `\n\n${LIMITED_SPOTS_LINE}` : "";
+  addMsg(
+`If you want, I can get your order started right now.
+Most popular pick: King Cobra in red/black.${extra}
+Just tell me “I want one” and I’ll ask the exact questions.`,
+  "bot"
+);
+  setChips(["I want one","I’ll get one","Not yet"]);
 }
 
 async function submitOrder(){
@@ -462,65 +328,51 @@ async function submitOrder(){
     colors: order.colors,
     addOns: addList,
     notes: order.notes || "",
-    pricing: {
-      pricePerInch: PRICE_PER_INCH,
-      base: t.base,
-      addOnsTotal: t.addons,
-      shipping: t.ship,
-      total: t.total
-    },
+    pricing: { pricePerInch: PRICE_PER_INCH, base: t.base, addOnsTotal: t.addons, shipping: t.ship, total: t.total },
     status: "new",
     createdAt: serverTimestamp()
   };
 
-  const ref = await addDoc(collection(db, ORDERS_COLLECTION), doc);
+  const ref = await addDoc(collection(db, "tt_orders"), doc);
   return ref.id;
 }
 
-function handleCommand(cmd){
-  const c = cmd.toLowerCase().trim();
-  if(c === "restart"){
-    resetAll();
-    return true;
-  }
-  if(c === "back"){
-    if(historySteps.length === 0){
-      addMsg("You’re already at the first question.", "bot");
-      return true;
-    }
-    stepIndex = historySteps.pop();
-    addMsg("Okay — going back one step.", "bot");
-    askCurrent();
+function resetAll(){
+  mode = "sales";
+  stepIndex = 0;
+  backStack.length = 0;
+  nudgesGiven = 0;
+
+  order.name=""; order.phone=""; order.address="";
+  order.itemType=""; order.weave="";
+  order.inches=0; order.fit="";
+  order.colors=[]; order.shipping="";
+  order.addOns={names:false,metal:false,glow:false,survival:false};
+  order.notes="";
+
+  chat.innerHTML = "";
+  addMsg(
+`Hi! Welcome to Tactics & Treats.
+Pricing: $1 per inch (sizes 5–40)
+Shipping: $6 in-state / $10 out-of-state
+
+Do you have any questions before ordering?`,
+  "bot");
+  setChips(["Price","Colors","Shipping","Add-ons","No questions","I want one"]);
+}
+
+function handleCommand(text){
+  const t = clean(text).trim();
+  if(t === "restart"){ resetAll(); return true; }
+  if(t === "back"){
+    if(mode !== "order"){ addMsg("Back only works while we’re building an order.", "bot"); return true; }
+    if(backStack.length === 0){ addMsg("You’re already at the first order question.", "bot"); return true; }
+    stepIndex = backStack.pop();
+    addMsg("Okay — going back one question.", "bot");
+    askStep();
     return true;
   }
   return false;
-}
-
-async function handleConfirm(){
-  try{
-    addMsg("Submitting your order to the system…", "bot");
-    const id = await submitOrder();
-    addMsg(`✅ Order submitted!\nOrder ID: ${id}\n\nWe’ll send your payment link next.\n\n${SIGNATURE}`, "bot");
-    setChips(["RESTART"]);
-  }catch(e){
-    console.error(e);
-    addMsg("❌ Order submit failed.\nThis usually means the Firebase config or Firestore rules need fixing.", "bot");
-    setChips(["RESTART"]);
-  }
-}
-
-function applyParsed(stepKey, parsed){
-  if(stepKey === "itemType") order.itemType = parsed;
-  if(stepKey === "weave") order.weave = parsed;
-  if(stepKey === "inches") order.inches = parsed;
-  if(stepKey === "fit") order.fit = parsed;
-  if(stepKey === "colors") order.colors = parsed;
-  if(stepKey === "addOns") order.addOns = parsed;
-  if(stepKey === "shipping") order.shipping = parsed;
-  if(stepKey === "address") order.address = parsed;
-  if(stepKey === "name") order.name = parsed;
-  if(stepKey === "phone") order.phone = parsed;
-  if(stepKey === "notes") order.notes = parsed;
 }
 
 async function send(){
@@ -530,57 +382,91 @@ async function send(){
   addMsg(text, "user");
   setChips([]);
 
-  // Commands
   if(handleCommand(text)) return;
 
-  // End confirm
-  if(stepIndex >= steps.length){
-    if(text.trim().toLowerCase() === "confirm"){
-      await handleConfirm();
+  // SALES
+  if(mode === "sales"){
+    if(wantsToBuy(text)){
+      mode = "order";
+      addMsg(`${LIMITED_SPOTS_LINE}\n\nPerfect — I’ll build your order step-by-step.`, "bot");
+      askStep();
       return;
     }
+
+    const faq = answerFAQ(text);
+    if(faq){
+      addMsg(faq, "bot");
+      gentlePush();
+      return;
+    }
+
+    if(clean(text).includes("no questions") || clean(text)==="no" || clean(text)==="nah" || clean(text)==="not yet"){
+      gentlePush();
+      return;
+    }
+
+    addMsg("No problem — do you have any questions about price, colors, shipping, or add-ons?", "bot");
+    setChips(["Price","Colors","Shipping","Add-ons","I want one"]);
+    return;
+  }
+
+  // ORDER
+  if(mode === "order"){
+    const s = steps[stepIndex];
+    const parsed = s.parse(text);
+
+    if(parsed == null){
+      addMsg("I didn’t catch that. Please answer in the format I asked.", "bot");
+      askStep();
+      return;
+    }
+
+    backStack.push(stepIndex);
+    applyParsed(s.key, parsed);
+    stepIndex++;
+
+    if(stepIndex >= steps.length){
+      mode = "review";
+      addMsg(buildSummary(), "bot");
+      setChips(["CONFIRM","BACK","RESTART"]);
+      return;
+    }
+
+    askStep();
+    return;
+  }
+
+  // REVIEW
+  if(mode === "review"){
+    if(clean(text) === "confirm"){
+      try{
+        addMsg("Submitting your order…", "bot");
+        const id = await submitOrder();
+        mode = "done";
+        addMsg(`✅ Order submitted!\nOrder ID: ${id}\n\nWe’ll send your payment link next.\n\n${SIGNATURE}`, "bot");
+        setChips(["RESTART"]);
+      }catch(e){
+        console.error(e);
+        addMsg("❌ Submit failed. This usually means Firebase config or Firestore rules need fixing.", "bot");
+        setChips(["RESTART"]);
+      }
+      return;
+    }
+
     addMsg('Type CONFIRM to submit, or BACK / RESTART to change something.', "bot");
     setChips(["CONFIRM","BACK","RESTART"]);
     return;
   }
 
-  const s = steps[stepIndex];
-  const parsed = s.parse(text);
-
-  if(parsed == null){
-    addMsg("I didn’t catch that. Please answer in the format I asked.", "bot");
-    askCurrent();
-    return;
-  }
-
-  // Save history for BACK
-  historySteps.push(stepIndex);
-
-  // Apply
-  applyParsed(s.key, parsed);
-
-  // Special: if weave is cobra, ignore color3 expectation (already handled in parse)
-  // Move next
-  stepIndex++;
-
-  // If finished -> show summary
-  if(stepIndex >= steps.length){
-    addMsg(summaryText(), "bot");
-    setChips(["CONFIRM","BACK","RESTART"]);
-    return;
-  }
-
-  // Continue
-  askCurrent();
+  // DONE
+  addMsg("Type RESTART to start a new order.", "bot");
+  setChips(["RESTART"]);
 }
 
 sendBtn.onclick = send;
 resetBtn.onclick = resetAll;
-input.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter") send();
-});
+input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
 
-/* Start */
 resetAll();
 </script>
 </body>
