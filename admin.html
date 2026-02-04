@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Admin Panel (Test)</title>
+<title>Tactics & Treats – Admin Panel</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +111,6 @@
   }
   .toolbar button:hover{ background:darkred; }
 
-  /* ✅ MOBILE FIX: allow swipe scroll instead of squished columns */
   .tableWrap{
     width:100%;
     overflow-x:auto;
@@ -124,14 +123,15 @@
     width:100%;
     border-collapse:collapse;
     table-layout:auto;
-    min-width:1100px; /* ✅ forces scroll on phone */
+    min-width:1200px;
   }
 
   th,td{
     border:1px solid #ff0000;
     padding:10px 8px;
     text-align:center;
-    white-space:nowrap; /* ✅ stops vertical letters */
+    white-space:nowrap;
+    vertical-align:top;
   }
 
   th{
@@ -154,13 +154,11 @@
     font-weight:700;
   }
 
-  /* STATUS COLORS */
   .newRow{ background:rgba(255,255,0,0.25)!important; }
   .doneRow{ background:rgba(0,255,0,0.25)!important; }
   .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
   .pendingRow{ background:rgba(0,170,255,0.22)!important; }
 
-  /* ✅ DELETE BUTTON */
   .deleteBtn{
     background:#ff2222;
     color:white;
@@ -181,6 +179,12 @@
     opacity:.85;
     margin-top:10px;
   }
+
+  .wrapCell{
+    white-space:normal;
+    max-width:520px;
+    line-height:1.2;
+  }
 </style>
 </head>
 
@@ -188,7 +192,8 @@
 <header><h1>Tactics & Treats Admin Panel</h1></header>
 
 <div class="tabs">
-  <div class="tab active" data-col="braceletOrders">Bracelet Orders</div>
+  <div class="tab active" data-col="tt_orders">Chat Orders</div>
+  <div class="tab" data-col="braceletOrders">Bracelet Orders</div>
   <div class="tab" data-col="cookieOrders">Cookie Orders</div>
   <div class="tab" data-col="spiritOrders">Spirit Wear</div>
   <div class="tab" data-col="products_bracelets">Bracelet Products</div>
@@ -203,26 +208,25 @@
 </div>
 
 <section>
-  <h2 id="tableTitle">Bracelet Orders</h2>
+  <h2 id="tableTitle">Chat Orders</h2>
 
   <div class="toolbar">
-    <input id="searchBox" placeholder="Search (name, phone, product, etc.)" />
+    <input id="searchBox" placeholder="Search (name, phone, address, item, etc.)" />
     <button id="refreshBtn">Refresh</button>
   </div>
 
-  <!-- ✅ Wrap table so it scrolls on mobile -->
   <div class="tableWrap">
     <table id="table"></table>
   </div>
 
-  <div class="note">Swipe left/right on the table. Click a cell to edit → click off to save.</div>
+  <div class="note">Swipe left/right on the table. (Chat Orders: status + delete only.)</div>
 </section>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import {
     getFirestore,
-    collection, doc, setDoc, addDoc, deleteDoc,
+    collection, doc, setDoc, addDoc, deleteDoc, updateDoc,
     onSnapshot, query, orderBy
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
@@ -247,42 +251,60 @@
   const searchBox = document.getElementById("searchBox");
   const refreshBtn = document.getElementById("refreshBtn");
 
-  let currentCollection = "braceletOrders";
+  let currentCollection = "tt_orders";
   let unsub = null;
   let lastRows = [];
 
   const COLLECTION_CONFIG = {
+    tt_orders: {
+      title: "Chat Orders",
+      showDashboard: true,
+      statusValues: ["new","pending","done","unpaid"],
+      editable: [], // (Chat Orders: we only edit status via dropdown)
+      columns: [
+        "status","createdAt","name","phone",
+        "items","total","donation","coupon",
+        "shipping","address","photoBeforePay",
+        "id","delete"
+      ]
+    },
     braceletOrders: {
       title: "Bracelet Orders",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid"],
+      editable: ["name","phone","type","size","color1","color2","qty","price","total","status"],
       columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id","delete"]
     },
     cookieOrders: {
       title: "Cookie Orders",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid","Pending","Completed"],
+      editable: ["name","phone","email","product","type","qty","total","status"],
       columns: ["status","createdAt","name","phone","email","product","type","qty","total","id","delete"]
     },
     spiritOrders: {
       title: "Spirit Wear",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid"],
+      editable: ["name","phone","email","item","size","qty","price","total","status"],
       columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id","delete"]
     },
     products_bracelets: {
       title: "Bracelet Products",
       showDashboard: false,
+      editable: ["type","sizeOptions","colorOptions","price"],
       columns: ["type","sizeOptions","colorOptions","price","id"]
     },
     products_cookies: {
       title: "Cookie Products",
       showDashboard: false,
+      editable: ["name","price","stock"],
       columns: ["name","price","stock","id"]
     },
     auditLog: {
       title: "Audit Log",
       showDashboard: false,
+      editable: [],
       columns: ["at","type","collection","id","field","from","to"]
     }
   };
@@ -329,8 +351,48 @@
     });
   }
 
-  /* ✅ Revenue helper: total OR price*qty */
+  // 🔥 Chat order flattening (tt_orders shape -> table row)
+  function summarizeItems(items){
+    if(!Array.isArray(items) || !items.length) return "";
+    return items.map((it, idx)=>{
+      const colors = Array.isArray(it.colors) ? it.colors.join("/") : "";
+      const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
+      return `${idx+1}) ${it.itemType || ""} • ${it.weave || ""} • ${it.inches || ""}" • ${it.fit || ""} • ${colors}${tag}`.trim();
+    }).join("  ||  ");
+  }
+
+  function flattenChatOrder(docRow){
+    const o = docRow.order || {};
+    const totals = docRow.totals || {};
+    const items = docRow.items || [];
+
+    return {
+      id: docRow.id,
+      status: docRow.status || "new",
+      createdAt: docRow.createdAt || docRow.order?.createdAt || null,
+
+      name: o.name || "",
+      phone: o.phone || "",
+      address: o.address || "",
+
+      shipping: o.shipping || "",
+      coupon: o.coupon || "",
+      donation: (typeof o.donation === "number" ? o.donation : (totals.donation ?? 0)),
+
+      photoBeforePay: o.photoBeforePay ? "yes" : "no",
+
+      items: summarizeItems(items),
+
+      total: (totals.total ?? docRow.total ?? "")
+    };
+  }
+
+  /* Revenue helper */
   function getRowAmount(r){
+    // chat orders store totals.total
+    const tt = parseFloat(r.total);
+    if(!isNaN(tt)) return tt;
+
     const total = parseFloat(r.total);
     if(!isNaN(total)) return total;
 
@@ -341,7 +403,6 @@
     return 0;
   }
 
-  /* ✅ Dashboard with status-based revenue */
   function updateDashboard(rows){
     let today=0, week=0, revenue=0;
     const now = new Date();
@@ -358,11 +419,10 @@
       const amount = getRowAmount(r);
 
       if(status === "done"){
-        revenue += amount;      // paid adds
+        revenue += amount;
       } else if(status === "unpaid"){
-        revenue -= amount;      // unpaid subtracts
+        revenue -= amount;
       }
-      // new/pending = no effect
     });
 
     todayCountEl.textContent = today;
@@ -374,10 +434,25 @@
     const cfg = COLLECTION_CONFIG[currentCollection];
     return cfg?.columns?.length ? cfg.columns : ["id"];
   }
+  function isEditable(col){
+    const cfg = COLLECTION_CONFIG[currentCollection] || {};
+    return (cfg.editable || []).includes(col);
+  }
   function setTitleAndDashboard(){
     const cfg = COLLECTION_CONFIG[currentCollection] || {};
     tableTitle.textContent = cfg.title || currentCollection;
     dashboardEl.style.display = cfg.showDashboard ? "grid" : "none";
+  }
+
+  async function logAudit(payload){
+    try{
+      await addDoc(collection(db, "auditLog"), {
+        ...payload,
+        at: new Date()
+      });
+    }catch(e){
+      console.warn("Audit log failed:", e?.message || e);
+    }
   }
 
   function buildTable(rows){
@@ -388,7 +463,6 @@
     }
 
     const cols = getColumns();
-
     const header = table.insertRow();
     cols.forEach(c=>{
       const th = document.createElement("th");
@@ -402,34 +476,25 @@
       cols.forEach(col=>{
         const cell = row.insertCell();
 
-        /* ✅ DELETE BUTTON COLUMN */
         if(col === "delete"){
-          // Only show delete for Orders collections (not products/audit)
-          if(currentCollection.includes("Orders")){
+          if(currentCollection.includes("Orders") || currentCollection === "tt_orders"){
             const btn = document.createElement("button");
             btn.textContent = "🗑 Delete";
             btn.className = "deleteBtn";
-
             btn.onclick = async () => {
               if(!confirm("Delete this order forever?")) return;
 
               await deleteDoc(doc(db, currentCollection, r.id));
-
-              await addDoc(collection(db, "auditLog"), {
-                type: "delete",
-                collection: currentCollection,
-                id: r.id,
-                at: new Date()
-              });
+              await logAudit({ type:"delete", collection: currentCollection, id:r.id });
             };
-
             cell.appendChild(btn);
           } else {
             cell.textContent = "";
           }
+          return;
         }
 
-        else if(col === "status"){
+        if(col === "status"){
           const cfg = COLLECTION_CONFIG[currentCollection] || {};
           const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
           const sel = document.createElement("select");
@@ -449,35 +514,53 @@
             const old = r.status ?? null;
             r.status = sel.value;
 
-            await setDoc(doc(db, currentCollection, r.id), r);
+            // ✅ For chat orders, update ONLY the status field
+            if(currentCollection === "tt_orders"){
+              await updateDoc(doc(db, currentCollection, r.id), { status: r.status });
+            } else {
+              // legacy collections stored as flat doc; keep your old behavior
+              await setDoc(doc(db, currentCollection, r.id), r);
+            }
 
-            await addDoc(collection(db, "auditLog"), {
-              type: "status_change",
+            await logAudit({
+              type:"status_change",
               collection: currentCollection,
               id: r.id,
               from: old,
-              to: r.status,
-              at: new Date()
+              to: r.status
             });
 
             colorRow(row, r.status);
           };
 
           cell.appendChild(sel);
+          return;
         }
-        else if(col === "createdAt" || col === "at"){
-          cell.textContent = formatDate(r[col]);
-        }
-        else{
-          cell.textContent = stringifyCell(r[col] ?? "");
 
-          if(col !== "id"){
-            cell.contentEditable = true;
-            cell.onblur = async () => {
-              r[col] = cell.textContent.trim();
-              await setDoc(doc(db, currentCollection, r.id), r);
-            };
-          }
+        if(col === "createdAt" || col === "at"){
+          cell.textContent = formatDate(r[col]);
+          return;
+        }
+
+        // pretty wrap for long cells
+        if(col === "items" || col === "address"){
+          cell.classList.add("wrapCell");
+        }
+
+        cell.textContent = stringifyCell(r[col] ?? "");
+
+        // ✅ Only allow editing where configured
+        if(col !== "id" && isEditable(col)){
+          cell.contentEditable = true;
+          cell.onblur = async () => {
+            const before = r[col];
+            r[col] = cell.textContent.trim();
+
+            await setDoc(doc(db, currentCollection, r.id), r);
+            await logAudit({ type:"edit", collection: currentCollection, id:r.id, field:col, from: before, to: r[col] });
+          };
+        } else {
+          cell.contentEditable = false;
         }
       });
 
@@ -491,20 +574,28 @@
     setTitleAndDashboard();
     table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
 
-    const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog";
+    const isSorted = (currentCollection.includes("Orders") || currentCollection === "auditLog" || currentCollection === "tt_orders");
     const colRef = collection(db, currentCollection);
 
     let qRef = colRef;
-    if(wantsOrder){
+    if(isSorted){
       const field = (currentCollection === "auditLog") ? "at" : "createdAt";
       qRef = query(colRef, orderBy(field, "desc"));
     }
 
     unsub = onSnapshot(qRef, snap=>{
-      lastRows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+      let rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+      // ✅ Flatten chat orders for table display
+      if(currentCollection === "tt_orders"){
+        rows = rows.map(flattenChatOrder);
+      }
+
+      lastRows = rows;
+
       const filtered = applySearch(lastRows);
 
-      if(currentCollection.includes("Orders")){
+      if(COLLECTION_CONFIG[currentCollection]?.showDashboard){
         updateDashboard(filtered);
       }
 
@@ -526,7 +617,7 @@
 
   searchBox.addEventListener("input", ()=>{
     const filtered = applySearch(lastRows);
-    if(currentCollection.includes("Orders")) updateDashboard(filtered);
+    if(COLLECTION_CONFIG[currentCollection]?.showDashboard) updateDashboard(filtered);
     buildTable(filtered);
   });
 
