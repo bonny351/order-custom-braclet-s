@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -123,7 +123,7 @@
     width:100%;
     border-collapse:collapse;
     table-layout:auto;
-    min-width:1200px;
+    min-width:1250px;
   }
 
   th,td{
@@ -182,7 +182,7 @@
 
   .wrapCell{
     white-space:normal;
-    max-width:520px;
+    max-width:560px;
     line-height:1.2;
   }
 </style>
@@ -219,7 +219,7 @@
     <table id="table"></table>
   </div>
 
-  <div class="note">Swipe left/right on the table. (Chat Orders: status + delete only.)</div>
+  <div class="note">Swipe left/right on the table. Chat Orders: status + delete only.</div>
 </section>
 
 <script type="module">
@@ -260,13 +260,8 @@
       title: "Chat Orders",
       showDashboard: true,
       statusValues: ["new","pending","done","unpaid"],
-      editable: [], // (Chat Orders: we only edit status via dropdown)
-      columns: [
-        "status","createdAt","name","phone",
-        "items","total","donation","coupon",
-        "shipping","address","photoBeforePay",
-        "id","delete"
-      ]
+      editable: [], // status only
+      columns: ["status","createdAt","name","phone","items","total","donation","coupon","shipping","address","photoBeforePay","id","delete"]
     },
     braceletOrders: {
       title: "Bracelet Orders",
@@ -351,7 +346,7 @@
     });
   }
 
-  // 🔥 Chat order flattening (tt_orders shape -> table row)
+  // ✅ flatten chat orders
   function summarizeItems(items){
     if(!Array.isArray(items) || !items.length) return "";
     return items.map((it, idx)=>{
@@ -369,37 +364,25 @@
     return {
       id: docRow.id,
       status: docRow.status || "new",
-      createdAt: docRow.createdAt || docRow.order?.createdAt || null,
-
+      createdAt: docRow.createdAt || null,
       name: o.name || "",
       phone: o.phone || "",
-      address: o.address || "",
-
-      shipping: o.shipping || "",
-      coupon: o.coupon || "",
-      donation: (typeof o.donation === "number" ? o.donation : (totals.donation ?? 0)),
-
-      photoBeforePay: o.photoBeforePay ? "yes" : "no",
-
       items: summarizeItems(items),
-
-      total: (totals.total ?? docRow.total ?? "")
+      total: totals.total ?? "",
+      donation: (typeof o.donation === "number" ? o.donation : (totals.donation ?? 0)),
+      coupon: o.coupon || "",
+      shipping: o.shipping || "",
+      address: o.address || "",
+      photoBeforePay: o.photoBeforePay ? "yes" : "no"
     };
   }
 
-  /* Revenue helper */
   function getRowAmount(r){
-    // chat orders store totals.total
-    const tt = parseFloat(r.total);
-    if(!isNaN(tt)) return tt;
-
     const total = parseFloat(r.total);
     if(!isNaN(total)) return total;
-
     const price = parseFloat(r.price);
     const qty = parseFloat(r.qty);
     if(!isNaN(price) && !isNaN(qty)) return price * qty;
-
     return 0;
   }
 
@@ -418,11 +401,8 @@
       const status = normalizeStatus(r.status);
       const amount = getRowAmount(r);
 
-      if(status === "done"){
-        revenue += amount;
-      } else if(status === "unpaid"){
-        revenue -= amount;
-      }
+      if(status === "done") revenue += amount;
+      else if(status === "unpaid") revenue -= amount;
     });
 
     todayCountEl.textContent = today;
@@ -446,10 +426,7 @@
 
   async function logAudit(payload){
     try{
-      await addDoc(collection(db, "auditLog"), {
-        ...payload,
-        at: new Date()
-      });
+      await addDoc(collection(db, "auditLog"), { ...payload, at: new Date() });
     }catch(e){
       console.warn("Audit log failed:", e?.message || e);
     }
@@ -483,14 +460,11 @@
             btn.className = "deleteBtn";
             btn.onclick = async () => {
               if(!confirm("Delete this order forever?")) return;
-
               await deleteDoc(doc(db, currentCollection, r.id));
               await logAudit({ type:"delete", collection: currentCollection, id:r.id });
             };
             cell.appendChild(btn);
-          } else {
-            cell.textContent = "";
-          }
+          } else cell.textContent = "";
           return;
         }
 
@@ -514,22 +488,13 @@
             const old = r.status ?? null;
             r.status = sel.value;
 
-            // ✅ For chat orders, update ONLY the status field
             if(currentCollection === "tt_orders"){
               await updateDoc(doc(db, currentCollection, r.id), { status: r.status });
-            } else {
-              // legacy collections stored as flat doc; keep your old behavior
+            }else{
               await setDoc(doc(db, currentCollection, r.id), r);
             }
 
-            await logAudit({
-              type:"status_change",
-              collection: currentCollection,
-              id: r.id,
-              from: old,
-              to: r.status
-            });
-
+            await logAudit({ type:"status_change", collection: currentCollection, id: r.id, from: old, to: r.status });
             colorRow(row, r.status);
           };
 
@@ -542,20 +507,15 @@
           return;
         }
 
-        // pretty wrap for long cells
-        if(col === "items" || col === "address"){
-          cell.classList.add("wrapCell");
-        }
+        if(col === "items" || col === "address") cell.classList.add("wrapCell");
 
         cell.textContent = stringifyCell(r[col] ?? "");
 
-        // ✅ Only allow editing where configured
         if(col !== "id" && isEditable(col)){
           cell.contentEditable = true;
           cell.onblur = async () => {
             const before = r[col];
             r[col] = cell.textContent.trim();
-
             await setDoc(doc(db, currentCollection, r.id), r);
             await logAudit({ type:"edit", collection: currentCollection, id:r.id, field:col, from: before, to: r[col] });
           };
@@ -574,19 +534,21 @@
     setTitleAndDashboard();
     table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
 
-    const isSorted = (currentCollection.includes("Orders") || currentCollection === "auditLog" || currentCollection === "tt_orders");
     const colRef = collection(db, currentCollection);
 
+    // ✅ DO NOT orderBy for tt_orders (prevents query failures)
     let qRef = colRef;
-    if(isSorted){
-      const field = (currentCollection === "auditLog") ? "at" : "createdAt";
-      qRef = query(colRef, orderBy(field, "desc"));
+    if(currentCollection !== "tt_orders"){
+      const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog";
+      if(wantsOrder){
+        const field = (currentCollection === "auditLog") ? "at" : "createdAt";
+        qRef = query(colRef, orderBy(field, "desc"));
+      }
     }
 
     unsub = onSnapshot(qRef, snap=>{
       let rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
 
-      // ✅ Flatten chat orders for table display
       if(currentCollection === "tt_orders"){
         rows = rows.map(flattenChatOrder);
       }
@@ -602,7 +564,7 @@
       buildTable(filtered);
     }, err=>{
       console.error(err);
-      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data (check console).</td></tr>";
+      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data. Check console for permissions/rules.</td></tr>";
     });
   }
 
