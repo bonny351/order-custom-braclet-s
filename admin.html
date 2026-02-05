@@ -1,613 +1,303 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Admin Panel</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactics & Treats – Admin</title>
 
 <style>
-  body{
-    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:500;
-    background:#111;
-    color:#fff;
-    margin:0;
-    padding:20px;
-  }
+:root{
+  --bg:#0b0b0b;
+  --panel:#141414;
+  --line:#2a2a2a;
+  --accent:#ff2a2a;
+  --muted:#bdbdbd;
+}
+body{
+  margin:0;
+  padding:14px;
+  background:var(--bg);
+  color:#fff;
+  font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
+}
+h1{ color:var(--accent); margin-bottom:10px; }
 
-  h1,h2{
-    text-align:center;
-    color:#ff0000;
-    margin:0;
-    font-weight:700;
-    letter-spacing:.2px;
-  }
+.row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 
-  header{
-    display:flex;
-    justify-content:center;
-    background:linear-gradient(90deg,#7a0c0c,#000);
-    padding:15px;
-    border-radius:10px;
-    box-shadow:0 0 12px rgba(255,0,0,0.4);
-    margin-bottom:15px;
-  }
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:14px;
+}
 
-  .tabs{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    margin-bottom:15px;
-    flex-wrap:wrap;
-  }
+.filters{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.filter{
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#1a1a1a;
+  font-size:13px;
+  cursor:pointer;
+}
+.filter.active{ background:var(--accent); }
 
-  .tab{
-    padding:10px 20px;
-    cursor:pointer;
-    border-radius:6px;
-    background:#222;
-    font-weight:700;
-    user-select:none;
-  }
-  .tab.active{
-    background:#ff0000;
-    box-shadow:0 0 8px #ff0000;
-  }
+.order{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.status{
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+}
+.new{ background:#331111; }
+.inprogress{ background:#332200; }
+.paid{ background:#113311; }
+.shipped{ background:#112233; }
+.done{ background:#222; }
 
-  .dashboard{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:12px;
-    margin-bottom:15px;
-  }
-  .stat{
-    background:#181818;
-    padding:12px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(255,0,0,.25);
-    text-align:center;
-  }
-  .stat h3{ margin:0; color:#ffb347; font-weight:700; }
-  .stat p{ font-size:20px; margin:5px 0 0; font-weight:700; }
+.small{ font-size:12px; color:var(--muted); line-height:1.4; }
 
-  section{
-    background:#181818;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 0 12px rgba(255,0,0,0.2);
-  }
+.actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+button{
+  border:none;
+  border-radius:10px;
+  padding:6px 12px;
+  font-weight:800;
+  cursor:pointer;
+  background:var(--accent);
+  color:#fff;
+}
+button.secondary{
+  background:#222;
+  border:1px solid #333;
+}
 
-  .toolbar{
-    display:flex;
-    gap:10px;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    margin-top:12px;
-  }
-  .toolbar input{
-    flex:1;
-    min-width:220px;
-    background:#111;
-    color:#fff;
-    border:1px solid #ff0000;
-    border-radius:10px;
-    padding:10px 12px;
-    outline:none;
-    font-weight:500;
-  }
-  .toolbar button{
-    background:#ff0000;
-    color:#fff;
-    border:none;
-    border-radius:10px;
-    padding:10px 14px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .toolbar button:hover{ background:darkred; }
-
-  .tableWrap{
-    width:100%;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    margin-top:12px;
-    border-radius:10px;
-  }
-
-  table{
-    width:100%;
-    border-collapse:collapse;
-    table-layout:auto;
-    min-width:1250px;
-  }
-
-  th,td{
-    border:1px solid #ff0000;
-    padding:10px 8px;
-    text-align:center;
-    white-space:nowrap;
-    vertical-align:top;
-  }
-
-  th{
-    background:#111;
-    position:sticky;
-    top:0;
-    z-index:2;
-    font-weight:800;
-    letter-spacing:.2px;
-  }
-
-  tr:nth-child(even){ background:#222; }
-
-  .statusSelect{
-    background:#222;
-    color:white;
-    border:1px solid #ff0000;
-    border-radius:8px;
-    padding:7px;
-    font-weight:700;
-  }
-
-  .newRow{ background:rgba(255,255,0,0.25)!important; }
-  .doneRow{ background:rgba(0,255,0,0.25)!important; }
-  .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
-  .pendingRow{ background:rgba(0,170,255,0.22)!important; }
-
-  .deleteBtn{
-    background:#ff2222;
-    color:white;
-    border:none;
-    border-radius:8px;
-    padding:6px 10px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .deleteBtn:hover{
-    background:#aa0000;
-    box-shadow:0 0 8px rgba(255,0,0,.6);
-  }
-
-  .note{
-    text-align:center;
-    font-size:12px;
-    opacity:.85;
-    margin-top:10px;
-  }
-
-  .wrapCell{
-    white-space:normal;
-    max-width:560px;
-    line-height:1.2;
-  }
+textarea{
+  width:100%;
+  margin-top:8px;
+  border-radius:10px;
+  border:1px solid #333;
+  background:#000;
+  color:#fff;
+  padding:8px;
+  font-size:13px;
+}
 </style>
 </head>
 
 <body>
-<header><h1>Tactics & Treats Admin Panel</h1></header>
 
-<div class="tabs">
-  <div class="tab active" data-col="tt_orders">Chat Orders</div>
-  <div class="tab" data-col="braceletOrders">Bracelet Orders</div>
-  <div class="tab" data-col="cookieOrders">Cookie Orders</div>
-  <div class="tab" data-col="spiritOrders">Spirit Wear</div>
-  <div class="tab" data-col="products_bracelets">Bracelet Products</div>
-  <div class="tab" data-col="products_cookies">Cookie Products</div>
-  <div class="tab" data-col="auditLog">Audit Log</div>
+<h1>Tactics & Treats – Admin</h1>
+
+<!-- STATS -->
+<div class="panel">
+  <div class="row">
+    <div><strong>Today:</strong> <span id="todayTotal">$0</span></div>
+    <div><strong>This Month:</strong> <span id="monthTotal">$0</span></div>
+    <div><strong>Avg / Month:</strong> <span id="avgMonth">$0</span></div>
+    <div><strong>Paid Orders:</strong> <span id="paidCount">0</span></div>
+  </div>
 </div>
 
-<div class="dashboard" id="dashboard">
-  <div class="stat"><h3>Today</h3><p id="todayCount">0</p></div>
-  <div class="stat"><h3>This Week</h3><p id="weekCount">0</p></div>
-  <div class="stat"><h3>Revenue</h3><p id="revenue">$0</p></div>
+<!-- BEST SELLERS -->
+<div class="panel">
+  <div class="row">
+    <div><strong>Top Weave:</strong> <span id="topWeave">—</span></div>
+    <div><strong>Top Size:</strong> <span id="topSize">—</span></div>
+  </div>
+
+  <div class="row" style="margin-top:10px;">
+    <div class="small">
+      <strong>Weave Breakdown</strong><br>
+      <span id="weaveBreakdown">—</span>
+    </div>
+    <div class="small">
+      <strong>Size Breakdown</strong><br>
+      <span id="sizeBreakdown">—</span>
+    </div>
+  </div>
 </div>
 
-<section>
-  <h2 id="tableTitle">Chat Orders</h2>
+<!-- FILTERS -->
+<div class="filters">
+  <div class="filter active" data-filter="all">All</div>
+  <div class="filter" data-filter="rush">Rush</div>
+  <div class="filter" data-filter="unpaid">Unpaid</div>
+  <div class="filter" data-filter="today">Today</div>
+</div>
 
-  <div class="toolbar">
-    <input id="searchBox" placeholder="Search (name, phone, address, item, etc.)" />
-    <button id="refreshBtn">Refresh</button>
-  </div>
-
-  <div class="tableWrap">
-    <table id="table"></table>
-  </div>
-
-  <div class="note">Swipe left/right on the table. Chat Orders: status + delete only.</div>
-</section>
+<div id="orders"></div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import {
-    getFirestore,
-    collection, doc, setDoc, addDoc, deleteDoc, updateDoc,
-    onSnapshot, query, orderBy
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore, collection, query, orderBy, onSnapshot,
+  updateDoc, doc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-    authDomain:"bracelets-and-color.firebaseapp.com",
-    projectId:"bracelets-and-color",
-    storageBucket:"bracelets-and-color.appspot.com",
-    messagingSenderId:"382292570673",
-    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+const firebaseConfig = {
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const ordersDiv = document.getElementById("orders");
+let filter="all";
+let cache=[];
+
+/* HELPERS */
+function money(n){ return "$"+(Number(n)||0).toFixed(2).replace(/\.00$/,""); }
+function isToday(ts){
+  if(!ts?.toDate) return false;
+  return ts.toDate().toDateString()===new Date().toDateString();
+}
+
+/* FILTER UI */
+document.querySelectorAll(".filter").forEach(f=>{
+  f.onclick=()=>{
+    document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+    f.classList.add("active");
+    filter=f.dataset.filter;
+    render();
   };
+});
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+/* RENDER ORDERS */
+function render(){
+  ordersDiv.innerHTML="";
+  cache.forEach(({id,o})=>{
+    if(filter==="rush" && !o.order?.rush) return;
+    if(filter==="unpaid" && ["paid","shipped","done"].includes(o.status)) return;
+    if(filter==="today" && !isToday(o.createdAt)) return;
 
-  const table = document.getElementById("table");
-  const tableTitle = document.getElementById("tableTitle");
-  const todayCountEl = document.getElementById("todayCount");
-  const weekCountEl = document.getElementById("weekCount");
-  const revenueEl = document.getElementById("revenue");
-  const dashboardEl = document.getElementById("dashboard");
-  const searchBox = document.getElementById("searchBox");
-  const refreshBtn = document.getElementById("refreshBtn");
+    const status=o.status||"new";
+    const card=document.createElement("div");
+    card.className="order";
+    card.innerHTML=`
+      <div class="row">
+        <strong>${o.order?.name||"No name"}</strong>
+        <span class="status ${status.replace(" ","")}">${status}</span>
+        <strong>${money(o.totals?.total)}</strong>
+      </div>
 
-  let currentCollection = "tt_orders";
-  let unsub = null;
-  let lastRows = [];
+      <div class="small">
+        📞 ${o.order?.phone||""}<br>
+        📦 ${o.order?.address||""}
+      </div>
 
-  const COLLECTION_CONFIG = {
-    tt_orders: {
-      title: "Chat Orders",
-      showDashboard: true,
-      statusValues: ["new","pending","done","unpaid"],
-      editable: [], // status only
-      columns: ["status","createdAt","name","phone","items","total","donation","coupon","shipping","address","photoBeforePay","id","delete"]
-    },
-    braceletOrders: {
-      title: "Bracelet Orders",
-      showDashboard: true,
-      statusValues: ["new","pending","done","unpaid"],
-      editable: ["name","phone","type","size","color1","color2","qty","price","total","status"],
-      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id","delete"]
-    },
-    cookieOrders: {
-      title: "Cookie Orders",
-      showDashboard: true,
-      statusValues: ["new","pending","done","unpaid","Pending","Completed"],
-      editable: ["name","phone","email","product","type","qty","total","status"],
-      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id","delete"]
-    },
-    spiritOrders: {
-      title: "Spirit Wear",
-      showDashboard: true,
-      statusValues: ["new","pending","done","unpaid"],
-      editable: ["name","phone","email","item","size","qty","price","total","status"],
-      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id","delete"]
-    },
-    products_bracelets: {
-      title: "Bracelet Products",
-      showDashboard: false,
-      editable: ["type","sizeOptions","colorOptions","price"],
-      columns: ["type","sizeOptions","colorOptions","price","id"]
-    },
-    products_cookies: {
-      title: "Cookie Products",
-      showDashboard: false,
-      editable: ["name","price","stock"],
-      columns: ["name","price","stock","id"]
-    },
-    auditLog: {
-      title: "Audit Log",
-      showDashboard: false,
-      editable: [],
-      columns: ["at","type","collection","id","field","from","to"]
-    }
-  };
+      <div class="small">
+        ${o.items.map(i=>`• ${i.itemType} – ${i.weave} – ${i.inches}" – ${i.colors.join("/")}`).join("<br>")}
+      </div>
 
-  function safeDate(v){
-    if(!v) return null;
-    if(typeof v?.toDate === "function") return v.toDate();
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  function formatDate(v){
-    const d = safeDate(v);
-    return d ? d.toLocaleString() : "";
-  }
-  function normalizeStatus(s){
-    if(!s) return "";
-    const lower = String(s).toLowerCase();
-    if(lower === "pending") return "pending";
-    if(lower === "new") return "new";
-    if(lower === "done" || lower === "completed") return "done";
-    if(lower === "unpaid") return "unpaid";
-    return String(s);
-  }
-  function colorRow(row,status){
-    row.classList.remove("newRow","doneRow","unpaidRow","pendingRow");
-    const s = normalizeStatus(status);
-    if(s==="new") row.classList.add("newRow");
-    if(s==="done") row.classList.add("doneRow");
-    if(s==="unpaid") row.classList.add("unpaidRow");
-    if(s==="pending") row.classList.add("pendingRow");
-  }
-  function stringifyCell(val){
-    if(val === null || val === undefined) return "";
-    if(Array.isArray(val)) return val.join(", ");
-    if(typeof val === "object") return JSON.stringify(val);
-    return String(val);
-  }
-  function applySearch(rows){
-    const q = searchBox.value.trim().toLowerCase();
-    if(!q) return rows;
-    return rows.filter(r=>{
-      const blob = Object.values(r).map(v=>stringifyCell(v).toLowerCase()).join(" | ");
-      return blob.includes(q);
-    });
-  }
+      <div class="actions">
+        <button onclick="setStatus('${id}','in progress')">In Progress</button>
+        <button onclick="setStatus('${id}','paid')">Paid</button>
+        <button onclick="setStatus('${id}','shipped')">Shipped</button>
+        <button class="secondary" onclick="setStatus('${id}','done')">Done</button>
+      </div>
 
-  /* ✅ FLATTEN CHAT ORDERS: handles BOTH nested and root formats */
-  function summarizeItems(items){
-    if(!items) return "";
-    if(typeof items === "string") return items;
+      <textarea placeholder="Admin notes…" onblur="saveNote('${id}',this.value)">${o.adminNote||""}</textarea>
+    `;
+    ordersDiv.appendChild(card);
+  });
+}
 
-    if(Array.isArray(items) && items.length){
-      return items.map((it, idx)=>{
-        const colors = Array.isArray(it.colors) ? it.colors.join("/") : (it.colors || "");
-        const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
-        return `${idx+1}) ${it.itemType || ""} • ${it.weave || ""} • ${it.inches || ""}" • ${it.fit || ""} • ${colors}${tag}`.trim();
-      }).join("  ||  ");
-    }
+/* STATS */
+function calculateStats(){
+  const now=new Date();
+  let today=0, month=0, paid=0;
+  const monthly={};
 
-    if(typeof items === "object") return JSON.stringify(items);
-    return String(items);
-  }
+  cache.forEach(({o})=>{
+    if(!["paid","shipped","done"].includes(o.status)) return;
+    if(!o.totals?.total) return;
 
-  function flattenChatOrder(docRow){
-    const o = (docRow && typeof docRow.order === "object" && docRow.order) ? docRow.order : {};
+    const amt=Number(o.totals.total);
+    const ts=o.paidAt||o.createdAt;
+    if(!ts?.toDate) return;
 
-    const totals =
-      (docRow && typeof docRow.totals === "object" && docRow.totals) ? docRow.totals :
-      (o && typeof o.totals === "object" && o.totals) ? o.totals : {};
+    const d=ts.toDate();
+    paid++;
 
-    const rawItems = docRow.items ?? o.items ?? totals.items ?? "";
+    if(isToday(ts)) today+=amt;
+    if(d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear()) month+=amt;
 
-    const total = docRow.total ?? totals.total ?? o.total ?? "";
+    const key=`${d.getFullYear()}-${d.getMonth()+1}`;
+    monthly[key]=(monthly[key]||0)+amt;
+  });
 
-    const donation =
-      docRow.donation ??
-      o.donation ??
-      totals.donation ??
-      0;
+  const avg=Object.values(monthly).length
+    ? Object.values(monthly).reduce((a,b)=>a+b,0)/Object.keys(monthly).length
+    : 0;
 
-    return {
-      id: docRow.id,
-      status: docRow.status || o.status || "new",
-      createdAt: docRow.createdAt || o.createdAt || null,
+  todayTotal.textContent=money(today);
+  monthTotal.textContent=money(month);
+  avgMonth.textContent=money(avg);
+  paidCount.textContent=paid;
+}
 
-      name: docRow.name || o.name || "",
-      phone: docRow.phone || o.phone || "",
+/* BEST SELLERS */
+function calculateBestSellers(){
+  const weave={}, size={};
 
-      items: summarizeItems(rawItems),
-
-      total: total,
-      donation: donation,
-      coupon: docRow.coupon || o.coupon || "",
-      shipping: docRow.shipping || o.shipping || "",
-      address: docRow.address || o.address || "",
-      photoBeforePay: (docRow.photoBeforePay ?? o.photoBeforePay) ? "yes" : "no"
-    };
-  }
-
-  function getRowAmount(r){
-    const total = parseFloat(r.total);
-    if(!isNaN(total)) return total;
-    const price = parseFloat(r.price);
-    const qty = parseFloat(r.qty);
-    if(!isNaN(price) && !isNaN(qty)) return price * qty;
-    return 0;
-  }
-
-  function updateDashboard(rows){
-    let today=0, week=0, revenue=0;
-    const now = new Date();
-
-    rows.forEach(r=>{
-      const d = safeDate(r.createdAt);
-      if(d){
-        const diffDays = (now - d) / 86400000;
-        if(diffDays < 1) today++;
-        if(diffDays < 7) week++;
+  cache.forEach(({o})=>{
+    if(!["paid","shipped","done"].includes(o.status)) return;
+    o.items.forEach(i=>{
+      if(i.weave) weave[i.weave]=(weave[i.weave]||0)+1;
+      if(i.inches){
+        const s=`${i.inches}"`;
+        size[s]=(size[s]||0)+1;
       }
-
-      const status = normalizeStatus(r.status);
-      const amount = getRowAmount(r);
-
-      if(status === "done") revenue += amount;
-      else if(status === "unpaid") revenue -= amount;
-    });
-
-    todayCountEl.textContent = today;
-    weekCountEl.textContent = week;
-    revenueEl.textContent = "$" + revenue.toFixed(2);
-  }
-
-  function getColumns(){
-    const cfg = COLLECTION_CONFIG[currentCollection];
-    return cfg?.columns?.length ? cfg.columns : ["id"];
-  }
-  function isEditable(col){
-    const cfg = COLLECTION_CONFIG[currentCollection] || {};
-    return (cfg.editable || []).includes(col);
-  }
-  function setTitleAndDashboard(){
-    const cfg = COLLECTION_CONFIG[currentCollection] || {};
-    tableTitle.textContent = cfg.title || currentCollection;
-    dashboardEl.style.display = cfg.showDashboard ? "grid" : "none";
-  }
-
-  async function logAudit(payload){
-    try{
-      await addDoc(collection(db, "auditLog"), { ...payload, at: new Date() });
-    }catch(e){
-      console.warn("Audit log failed:", e?.message || e);
-    }
-  }
-
-  function buildTable(rows){
-    table.innerHTML = "";
-    if(!rows.length){
-      table.innerHTML = "<tr><td style='padding:14px;'>No Data</td></tr>";
-      return;
-    }
-
-    const cols = getColumns();
-    const header = table.insertRow();
-    cols.forEach(c=>{
-      const th = document.createElement("th");
-      th.textContent = c;
-      header.appendChild(th);
-    });
-
-    rows.forEach(r=>{
-      const row = table.insertRow();
-
-      cols.forEach(col=>{
-        const cell = row.insertCell();
-
-        if(col === "delete"){
-          if(currentCollection.includes("Orders") || currentCollection === "tt_orders"){
-            const btn = document.createElement("button");
-            btn.textContent = "🗑 Delete";
-            btn.className = "deleteBtn";
-            btn.onclick = async () => {
-              if(!confirm("Delete this order forever?")) return;
-              await deleteDoc(doc(db, currentCollection, r.id));
-              await logAudit({ type:"delete", collection: currentCollection, id:r.id });
-            };
-            cell.appendChild(btn);
-          } else cell.textContent = "";
-          return;
-        }
-
-        if(col === "status"){
-          const cfg = COLLECTION_CONFIG[currentCollection] || {};
-          const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
-          const sel = document.createElement("select");
-          sel.className = "statusSelect";
-
-          const current = r.status ?? "";
-          const normalized = normalizeStatus(current);
-          const options = [...new Set([normalized, ...allowed.map(normalizeStatus)])].filter(Boolean);
-
-          options.forEach(v=>{
-            const o = new Option(v, v);
-            if(normalizeStatus(current) === v) o.selected = true;
-            sel.add(o);
-          });
-
-          sel.onchange = async () => {
-            const old = r.status ?? null;
-            r.status = sel.value;
-
-            if(currentCollection === "tt_orders"){
-              await updateDoc(doc(db, currentCollection, r.id), { status: r.status });
-            }else{
-              await setDoc(doc(db, currentCollection, r.id), r);
-            }
-
-            await logAudit({ type:"status_change", collection: currentCollection, id: r.id, from: old, to: r.status });
-            colorRow(row, r.status);
-          };
-
-          cell.appendChild(sel);
-          return;
-        }
-
-        if(col === "createdAt" || col === "at"){
-          cell.textContent = formatDate(r[col]);
-          return;
-        }
-
-        if(col === "items" || col === "address") cell.classList.add("wrapCell");
-
-        cell.textContent = stringifyCell(r[col] ?? "");
-
-        if(col !== "id" && isEditable(col)){
-          cell.contentEditable = true;
-          cell.onblur = async () => {
-            const before = r[col];
-            r[col] = cell.textContent.trim();
-            await setDoc(doc(db, currentCollection, r.id), r);
-            await logAudit({ type:"edit", collection: currentCollection, id:r.id, field:col, from: before, to: r[col] });
-          };
-        } else {
-          cell.contentEditable = false;
-        }
-      });
-
-      colorRow(row, r.status);
-    });
-  }
-
-  function subscribe(){
-    if(unsub) unsub();
-
-    setTitleAndDashboard();
-    table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
-
-    const colRef = collection(db, currentCollection);
-
-    // ✅ DO NOT orderBy for tt_orders (avoid query/index failures)
-    let qRef = colRef;
-    if(currentCollection !== "tt_orders"){
-      const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog";
-      if(wantsOrder){
-        const field = (currentCollection === "auditLog") ? "at" : "createdAt";
-        qRef = query(colRef, orderBy(field, "desc"));
-      }
-    }
-
-    unsub = onSnapshot(qRef, snap=>{
-      let rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-
-      if(currentCollection === "tt_orders"){
-        rows = rows.map(flattenChatOrder);
-      }
-
-      lastRows = rows;
-
-      const filtered = applySearch(lastRows);
-
-      if(COLLECTION_CONFIG[currentCollection]?.showDashboard){
-        updateDashboard(filtered);
-      }
-
-      buildTable(filtered);
-    }, err=>{
-      console.error(err);
-      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data. Check console for permissions/rules.</td></tr>";
-    });
-  }
-
-  document.querySelectorAll(".tab").forEach(tab=>{
-    tab.addEventListener("click", e=>{
-      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-      e.currentTarget.classList.add("active");
-      currentCollection = e.currentTarget.dataset.col;
-      subscribe();
     });
   });
 
-  searchBox.addEventListener("input", ()=>{
-    const filtered = applySearch(lastRows);
-    if(COLLECTION_CONFIG[currentCollection]?.showDashboard) updateDashboard(filtered);
-    buildTable(filtered);
-  });
+  const topW=Object.entries(weave).sort((a,b)=>b[1]-a[1])[0];
+  const topS=Object.entries(size).sort((a,b)=>b[1]-a[1])[0];
 
-  refreshBtn.addEventListener("click", subscribe);
+  topWeave.textContent=topW?`${topW[0]} (${topW[1]})`:"—";
+  topSize.textContent=topS?`${topS[0]} (${topS[1]})`:"—";
 
-  subscribe();
+  weaveBreakdown.innerHTML=Object.entries(weave).map(([k,v])=>`${k}: ${v}`).join("<br>")||"—";
+  sizeBreakdown.innerHTML=Object.entries(size).map(([k,v])=>`${k}: ${v}`).join("<br>")||"—";
+}
+
+/* FIRESTORE */
+onSnapshot(query(collection(db,"tt_orders"),orderBy("createdAt","desc")),snap=>{
+  cache=[];
+  snap.forEach(d=>cache.push({id:d.id,o:d.data()}));
+  render();
+  calculateStats();
+  calculateBestSellers();
+});
+
+/* ACTIONS */
+window.setStatus=async(id,status)=>{
+  const data={status};
+  if(status==="paid") data.paidAt=serverTimestamp();
+  if(status==="shipped") data.shippedAt=serverTimestamp();
+  await updateDoc(doc(db,"tt_orders",id),data);
+};
+window.saveNote=async(id,val)=>{
+  await updateDoc(doc(db,"tt_orders",id),{adminNote:val});
+};
 </script>
 
 </body>
