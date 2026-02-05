@@ -3,1199 +3,685 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Chat Order</title>
+<title>Tactics & Treats – Admin Panel</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  :root{
-    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
-    --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
-    --line:#2a2a2a; --radius:16px;
-  }
-  *{ box-sizing:border-box; }
   body{
-    margin:0; padding:18px;
-    background:var(--bg); color:var(--text);
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  }
-  .wrap{ max-width:980px; margin:0 auto; }
-  header{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap; margin-bottom:14px;
-  }
-  h1{ margin:0; color:var(--accent); font-size:22px; }
-  .pill{
-    font-size:12px; padding:6px 10px; border-radius:999px;
-    background:#1f1f1f; border:1px solid #2a2a2a; color:var(--muted);
-  }
-  .card{
-    background:var(--panel);
-    border:1px solid #262626;
-    border-radius:var(--radius);
-    padding:14px;
-    box-shadow:0 0 18px rgba(255,0,0,.18);
-  }
-  .chat{
-    height:590px; overflow:auto;
-    padding:12px;
-    border-radius:14px;
-    background:#000;
-    border:1px solid var(--line);
-  }
-  .msg{
-    max-width:92%;
-    padding:10px 12px;
-    border-radius:14px;
-    margin:10px 0;
-    white-space:pre-line;
-    line-height:1.35;
-  }
-  .bot{
-    background:#101010;
-    border:1px solid #2a2a2a;
-    border-top-left-radius:6px;
-  }
-  .user{
-    background:#1c1c1c;
-    border:1px solid #333;
-    margin-left:auto;
-    border-top-right-radius:6px;
-  }
-  .chips{
-    display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
-  }
-  .chip{
-    background:#191919;
-    border:1px solid #2f2f2f;
+    font-weight:500;
+    background:#111;
     color:#fff;
-    padding:8px 10px;
-    border-radius:999px;
+    margin:0;
+    padding:20px;
+  }
+
+  h1,h2{
+    text-align:center;
+    color:#ff0000;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+
+  header{
+    display:flex;
+    justify-content:center;
+    background:linear-gradient(90deg,#7a0c0c,#000);
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 0 12px rgba(255,0,0,0.4);
+    margin-bottom:15px;
+  }
+
+  .tabs{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+  }
+
+  .tab{
+    padding:10px 20px;
     cursor:pointer;
-    font-size:13px;
-    font-weight:800;
+    border-radius:6px;
+    background:#222;
+    font-weight:700;
     user-select:none;
   }
-  .chip:hover{ filter:brightness(1.08); }
-  .bar{ display:flex; gap:10px; margin-top:10px; }
-  input{
+  .tab.active{
+    background:#ff0000;
+    box-shadow:0 0 8px #ff0000;
+  }
+
+  .dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;
+    margin-bottom:15px;
+  }
+  .stat{
+    background:#181818;
+    padding:12px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(255,0,0,.25);
+    text-align:center;
+  }
+  .stat h3{ margin:0; color:#ffb347; font-weight:700; }
+  .stat p{ font-size:20px; margin:5px 0 0; font-weight:700; }
+
+  section{
+    background:#181818;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 0 12px rgba(255,0,0,0.2);
+  }
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+  .toolbar input{
     flex:1;
-    border:none; outline:none;
-    border-radius:14px;
-    padding:12px 12px;
-    font-size:15px;
+    min-width:220px;
+    background:#111;
     color:#fff;
-    background:var(--panel2);
-    border:1px solid var(--line);
+    border:1px solid #ff0000;
+    border-radius:10px;
+    padding:10px 12px;
+    outline:none;
+    font-weight:500;
   }
-  button{
+  .toolbar button{
+    background:#ff0000;
+    color:#fff;
     border:none;
-    border-radius:14px;
-    padding:12px 14px;
-    font-weight:900;
+    border-radius:10px;
+    padding:10px 14px;
+    font-weight:800;
     cursor:pointer;
-    background:var(--accent);
-    color:#fff;
   }
-  button:hover{ filter:brightness(1.08); }
-  .secondary{
-    background:#242424;
-    border:1px solid #343434;
-    color:#fff;
+  .toolbar button:hover{ background:darkred; }
+
+  .tableWrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    margin-top:12px;
+    border-radius:10px;
   }
-  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
-  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:auto;
+    min-width:1250px;
+  }
+
+  th,td{
+    border:1px solid #ff0000;
+    padding:10px 8px;
+    text-align:center;
+    white-space:nowrap;
+    vertical-align:top;
+  }
+
+  th{
+    background:#111;
+    position:sticky;
+    top:0;
+    z-index:2;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+
+  tr:nth-child(even){ background:#222; }
+
+  .statusSelect{
+    background:#222;
+    color:white;
+    border:1px solid #ff0000;
+    border-radius:8px;
+    padding:7px;
+    font-weight:700;
+  }
+
+  .newRow{ background:rgba(255,255,0,0.25)!important; }
+  .doneRow{ background:rgba(0,255,0,0.25)!important; }
+  .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
+  .pendingRow{ background:rgba(0,170,255,0.22)!important; }
+
+  .deleteBtn{
+    background:#ff2222;
+    color:white;
+    border:none;
+    border-radius:8px;
+    padding:6px 10px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .deleteBtn:hover{
+    background:#aa0000;
+    box-shadow:0 0 8px rgba(255,0,0,.6);
+  }
+
+  .note{
+    text-align:center;
+    font-size:12px;
+    opacity:.85;
+    margin-top:10px;
+  }
+
+  .wrapCell{
+    white-space:normal;
+    max-width:560px;
+    line-height:1.2;
+  }
 </style>
 </head>
 
 <body>
-<div class="wrap">
-  <header>
-    <h1>Tactics & Treats – Chat Order</h1>
-    <div class="pill">CONFIRM submits • Auto-fill • Quote first</div>
-  </header>
+<header><h1>Tactics & Treats Admin Panel</h1></header>
 
-  <div class="card">
-    <div id="chat" class="chat"></div>
-    <div id="chips" class="chips"></div>
-    <div id="status"></div>
+<div class="tabs">
+  <div class="tab active" data-col="tt_orders">Chat Orders</div>
+  <div class="tab" data-col="braceletOrders">Bracelet Orders</div>
+  <div class="tab" data-col="cookieOrders">Cookie Orders</div>
+  <div class="tab" data-col="spiritOrders">Spirit Wear</div>
+  <div class="tab" data-col="products_bracelets">Bracelet Products</div>
+  <div class="tab" data-col="products_cookies">Cookie Products</div>
 
-    <div class="bar">
-      <input id="input" placeholder="Type your message…" autocomplete="off" />
-      <button id="sendBtn">Send</button>
-      <button id="resetBtn" class="secondary">Reset</button>
-    </div>
+  <!-- ✅ NEW: chatbot + admin training tabs -->
+  <div class="tab" data-col="tt_faq">Chatbot FAQ</div>
+  <div class="tab" data-col="tt_unanswered">Unanswered Qs</div>
 
-    <div class="meta">
-      Commands: <b>BACK</b>, <b>RESTART</b>, <b>CONFIRM</b> (submits at the end)
-    </div>
-  </div>
+  <div class="tab" data-col="auditLog">Audit Log</div>
 </div>
 
+<div class="dashboard" id="dashboard">
+  <div class="stat"><h3>Today</h3><p id="todayCount">0</p></div>
+  <div class="stat"><h3>This Week</h3><p id="weekCount">0</p></div>
+  <div class="stat"><h3>Revenue</h3><p id="revenue">$0</p></div>
+</div>
+
+<section>
+  <h2 id="tableTitle">Chat Orders</h2>
+
+  <div class="toolbar">
+    <input id="searchBox" placeholder="Search (name, phone, address, item, etc.)" />
+    <button id="addBtn" style="display:none;">➕ Add FAQ</button>
+    <button id="refreshBtn">Refresh</button>
+  </div>
+
+  <div class="tableWrap">
+    <table id="table"></table>
+  </div>
+
+  <div class="note" id="note">
+    Swipe left/right on the table. Chat Orders: status + delete only.
+  </div>
+</section>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection, doc, setDoc, addDoc, deleteDoc, updateDoc,
+    onSnapshot, query, orderBy, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-/* 🔥 FIREBASE */
-const firebaseConfig = {
-  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-  authDomain:"bracelets-and-color.firebaseapp.com",
-  projectId:"bracelets-and-color",
-  storageBucket:"bracelets-and-color.appspot.com",
-  messagingSenderId:"382292570673",
-  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const ORDERS_COLLECTION = "tt_orders";
+  const firebaseConfig = {
+    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+    authDomain:"bracelets-and-color.firebaseapp.com",
+    projectId:"bracelets-and-color",
+    storageBucket:"bracelets-and-color.appspot.com",
+    messagingSenderId:"382292570673",
+    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  };
 
-/* ========= BUSINESS RULES ========= */
-const PRICE_PER_INCH = 1;
-const MIN_IN = 5;
-const MAX_IN = 40;
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-const SHIPPING_IN = 6;
-const SHIPPING_OUT = 10;
+  const table = document.getElementById("table");
+  const tableTitle = document.getElementById("tableTitle");
+  const todayCountEl = document.getElementById("todayCount");
+  const weekCountEl = document.getElementById("weekCount");
+  const revenueEl = document.getElementById("revenue");
+  const dashboardEl = document.getElementById("dashboard");
+  const searchBox = document.getElementById("searchBox");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const addBtn = document.getElementById("addBtn");
+  const noteEl = document.getElementById("note");
 
-const FEE_DURABILITY = 3;
-const FEE_GLOW = 2;
-const FEE_REFLECTIVE = 2;
-const FEE_CHARM = 3;
-const FEE_EXTRA_TAIL = 2;
-const FEE_RUSH = 5; // (your order flow still uses this; FAQ rush is $1 as you stated)
-const FEE_GIFT_NOTE = 2;
-const FEE_ENGRAVED_TAG = 8;
+  let currentCollection = "tt_orders";
+  let unsub = null;
+  let lastRows = [];
 
-const COUPON_CODE = "NORTHIDAHO";
-const COUPON_PCT = 10;
+  const COLLECTION_CONFIG = {
+    tt_orders: {
+      title: "Chat Orders",
+      showDashboard: true,
+      note: "Swipe left/right on the table. Chat Orders: status + delete only.",
+      statusValues: ["new","pending","done","unpaid"],
+      editable: [],
+      columns: ["status","createdAt","name","phone","items","total","donation","coupon","shipping","address","photoBeforePay","id","delete"]
+    },
+    braceletOrders: {
+      title: "Bracelet Orders",
+      showDashboard: true,
+      note: "Bracelet Orders: click cells to edit. Status dropdown updates instantly.",
+      statusValues: ["new","pending","done","unpaid"],
+      editable: ["name","phone","type","size","color1","color2","qty","price","total","status"],
+      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id","delete"]
+    },
+    cookieOrders: {
+      title: "Cookie Orders",
+      showDashboard: true,
+      note: "Cookie Orders: click cells to edit.",
+      statusValues: ["new","pending","done","unpaid","Pending","Completed"],
+      editable: ["name","phone","email","product","type","qty","total","status"],
+      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id","delete"]
+    },
+    spiritOrders: {
+      title: "Spirit Wear",
+      showDashboard: true,
+      note: "Spirit Wear: click cells to edit.",
+      statusValues: ["new","pending","done","unpaid"],
+      editable: ["name","phone","email","item","size","qty","price","total","status"],
+      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id","delete"]
+    },
+    products_bracelets: {
+      title: "Bracelet Products",
+      showDashboard: false,
+      note: "Products: edit fields directly.",
+      editable: ["type","sizeOptions","colorOptions","price"],
+      columns: ["type","sizeOptions","colorOptions","price","id","delete"]
+    },
+    products_cookies: {
+      title: "Cookie Products",
+      showDashboard: false,
+      note: "Products: edit fields directly.",
+      editable: ["name","price","stock"],
+      columns: ["name","price","stock","id","delete"]
+    },
 
-const PHONE_NUMBER = "208-304-3821";
-const SIGNATURE = "Tactics & Treats Team";
+    /* ✅ NEW: Chatbot FAQ (shared with chatbot) */
+    tt_faq: {
+      title: "Chatbot FAQ",
+      showDashboard: false,
+      note: "Edit triggers as comma-separated words. The chatbot matches if the question includes any trigger.",
+      editable: ["triggers","answer"],
+      columns: ["createdAt","triggers","answer","id","delete"]
+    },
 
-const POPULAR_PICK = "Most popular pick: King Cobra in red/black.";
-const LIMITED_SPOTS = "Heads up: I can do same-day, but I have limited spots today.";
+    /* ✅ NEW: Unanswered questions (logged by chatbot) */
+    tt_unanswered: {
+      title: "Unanswered Qs",
+      showDashboard: false,
+      note: "These are questions the chatbot couldn’t answer. Add an FAQ for common ones, then delete the row.",
+      editable: [],
+      columns: ["createdAt","text","id","delete"]
+    },
 
-/* ✅ UPDATED BRAND STORY (locked) */
-const BRAND_STORY =
-`I started Tactics & Treats because I like making things by hand and wanted to turn that into something real. Everything is custom, made with care, and not mass-produced.
+    auditLog: {
+      title: "Audit Log",
+      showDashboard: false,
+      note: "Audit trail of edits/deletes.",
+      editable: [],
+      columns: ["at","type","collection","id","field","from","to"]
+    }
+  };
 
-Quality over quantity. We’re not about the money — we’re about making quality gear and making sure every customer is happy.
+  function safeDate(v){
+    if(!v) return null;
+    if(typeof v?.toDate === "function") return v.toDate();
+    if(typeof v?.seconds === "number") return new Date(v.seconds * 1000);
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function formatDate(v){
+    const d = safeDate(v);
+    return d ? d.toLocaleString() : "";
+  }
 
-— ${SIGNATURE}`;
+  function normalizeStatus(s){
+    if(!s) return "";
+    const lower = String(s).toLowerCase();
+    if(lower === "pending") return "pending";
+    if(lower === "new") return "new";
+    if(lower === "done" || lower === "completed") return "done";
+    if(lower === "unpaid") return "unpaid";
+    return String(s);
+  }
+  function colorRow(row,status){
+    row.classList.remove("newRow","doneRow","unpaidRow","pendingRow");
+    const s = normalizeStatus(status);
+    if(s==="new") row.classList.add("newRow");
+    if(s==="done") row.classList.add("doneRow");
+    if(s==="unpaid") row.classList.add("unpaidRow");
+    if(s==="pending") row.classList.add("pendingRow");
+  }
 
-/* ========= UI ========= */
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const chipsBox = document.getElementById("chips");
-const statusEl = document.getElementById("status");
+  /* ✅ no raw JSON */
+  function stringifyCell(val){
+    if(val === null || val === undefined) return "";
+    if(Array.isArray(val)) return val.join(", ");
+    if(typeof val === "object"){
+      // show timestamp-ish values nicely
+      const d = safeDate(val);
+      if(d) return d.toLocaleString();
+      return "";
+    }
+    return String(val);
+  }
 
-function setStatus(msg){ statusEl.textContent = msg || ""; }
-function addMsg(text, who="bot"){
-  const div = document.createElement("div");
-  div.className = "msg " + (who === "user" ? "user" : "bot");
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
-function setChips(options){
-  chipsBox.innerHTML = "";
-  (options || []).forEach(opt=>{
-    const b = document.createElement("div");
-    b.className = "chip";
-    b.textContent = opt;
-    b.onclick = ()=>{ input.value = opt; send(); };
-    chipsBox.appendChild(b);
-  });
-}
-function clean(s){ return (s||"").toLowerCase(); }
-function money(n){
-  const x = Number(n);
-  if(!isFinite(x)) return "$0";
-  return "$" + x.toFixed(2).replace(/\.00$/,"");
-}
+  function applySearch(rows){
+    const q = searchBox.value.trim().toLowerCase();
+    if(!q) return rows;
+    return rows.filter(r=>{
+      const blob = Object.values(r).map(v=>stringifyCell(v).toLowerCase()).join(" | ");
+      return blob.includes(q);
+    });
+  }
 
-/* ✅ NEW: LOG UNANSWERED QUESTIONS */
-async function logUnanswered(text){
-  try{
-    await addDoc(collection(db,"tt_unanswered"),{
-      text: String(text||"").trim(),
+  // ✅ flatten chat orders
+  function summarizeItems(items){
+    if(!Array.isArray(items) || !items.length) return "";
+    return items.map((it, idx)=>{
+      const colors = Array.isArray(it.colors) ? it.colors.join("/") : "";
+      const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
+      return `${idx+1}) ${it.itemType || ""} • ${it.weave || ""} • ${it.inches || ""}" • ${it.fit || ""} • ${colors}${tag}`.trim();
+    }).join("  ||  ");
+  }
+
+  function flattenChatOrder(docRow){
+    const o = docRow.order || {};
+    const totals = docRow.totals || {};
+    const items = docRow.items || [];
+
+    return {
+      id: docRow.id,
+      status: docRow.status || "new",
+      createdAt: docRow.createdAt || null,
+      name: o.name || "",
+      phone: o.phone || "",
+      items: summarizeItems(items),
+      total: totals.total ?? "",
+      donation: (typeof o.donation === "number" ? o.donation : (totals.donation ?? 0)),
+      coupon: o.coupon || "",
+      shipping: o.shipping || "",
+      address: o.address || "",
+      photoBeforePay: o.photoBeforePay ? "yes" : "no"
+    };
+  }
+
+  function getRowAmount(r){
+    const total = parseFloat(r.total);
+    if(!isNaN(total)) return total;
+    const price = parseFloat(r.price);
+    const qty = parseFloat(r.qty);
+    if(!isNaN(price) && !isNaN(qty)) return price * qty;
+    return 0;
+  }
+
+  function updateDashboard(rows){
+    let today=0, week=0, revenue=0;
+    const now = new Date();
+
+    rows.forEach(r=>{
+      const d = safeDate(r.createdAt);
+      if(d){
+        const diffDays = (now - d) / 86400000;
+        if(diffDays < 1) today++;
+        if(diffDays < 7) week++;
+      }
+
+      const status = normalizeStatus(r.status);
+      const amount = getRowAmount(r);
+
+      if(status === "done") revenue += amount;
+      else if(status === "unpaid") revenue -= amount;
+    });
+
+    todayCountEl.textContent = today;
+    weekCountEl.textContent = week;
+    revenueEl.textContent = "$" + revenue.toFixed(2);
+  }
+
+  function getColumns(){
+    const cfg = COLLECTION_CONFIG[currentCollection];
+    return cfg?.columns?.length ? cfg.columns : ["id"];
+  }
+  function isEditable(col){
+    const cfg = COLLECTION_CONFIG[currentCollection] || {};
+    return (cfg.editable || []).includes(col);
+  }
+  function setTitleAndDashboard(){
+    const cfg = COLLECTION_CONFIG[currentCollection] || {};
+    tableTitle.textContent = cfg.title || currentCollection;
+    dashboardEl.style.display = cfg.showDashboard ? "grid" : "none";
+    noteEl.textContent = cfg.note || "";
+    addBtn.style.display = (currentCollection === "tt_faq") ? "inline-block" : "none";
+  }
+
+  async function logAudit(payload){
+    try{
+      await addDoc(collection(db, "auditLog"), { ...payload, at: new Date() });
+    }catch(e){
+      console.warn("Audit log failed:", e?.message || e);
+    }
+  }
+
+  function buildTable(rows){
+    table.innerHTML = "";
+    if(!rows.length){
+      table.innerHTML = "<tr><td style='padding:14px;'>No Data</td></tr>";
+      return;
+    }
+
+    const cols = getColumns();
+    const header = table.insertRow();
+    cols.forEach(c=>{
+      const th = document.createElement("th");
+      th.textContent = c;
+      header.appendChild(th);
+    });
+
+    rows.forEach(r=>{
+      const row = table.insertRow();
+
+      cols.forEach(col=>{
+        const cell = row.insertCell();
+
+        /* ✅ delete works everywhere */
+        if(col === "delete"){
+          const btn = document.createElement("button");
+          btn.textContent = "🗑 Delete";
+          btn.className = "deleteBtn";
+          btn.onclick = async () => {
+            if(!confirm("Delete this item forever?")) return;
+            await deleteDoc(doc(db, currentCollection, r.id));
+            await logAudit({ type:"delete", collection: currentCollection, id:r.id });
+          };
+          cell.appendChild(btn);
+          return;
+        }
+
+        if(col === "status"){
+          const cfg = COLLECTION_CONFIG[currentCollection] || {};
+          const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
+          const sel = document.createElement("select");
+          sel.className = "statusSelect";
+
+          const current = r.status ?? "";
+          const normalized = normalizeStatus(current);
+          const options = [...new Set([normalized, ...allowed.map(normalizeStatus)])].filter(Boolean);
+
+          options.forEach(v=>{
+            const o = new Option(v, v);
+            if(normalizeStatus(current) === v) o.selected = true;
+            sel.add(o);
+          });
+
+          sel.onchange = async () => {
+            const old = r.status ?? null;
+            r.status = sel.value;
+
+            if(currentCollection === "tt_orders"){
+              await updateDoc(doc(db, currentCollection, r.id), { status: r.status });
+            }else{
+              await setDoc(doc(db, currentCollection, r.id), r);
+            }
+
+            await logAudit({ type:"status_change", collection: currentCollection, id: r.id, from: old, to: r.status });
+            colorRow(row, r.status);
+          };
+
+          cell.appendChild(sel);
+          return;
+        }
+
+        if(col === "createdAt" || col === "at"){
+          cell.textContent = formatDate(r[col]);
+          return;
+        }
+
+        if(col === "items" || col === "address" || col === "answer" || col === "text") cell.classList.add("wrapCell");
+
+        // ✅ triggers display as comma list
+        let displayVal = r[col];
+        if(col === "triggers" && Array.isArray(displayVal)){
+          displayVal = displayVal.join(", ");
+        }
+
+        cell.textContent = stringifyCell(displayVal ?? "");
+
+        if(col !== "id" && isEditable(col)){
+          cell.contentEditable = true;
+          cell.onblur = async () => {
+            const before = r[col];
+            let newVal = cell.textContent.trim();
+
+            // ✅ triggers stored as array for chatbot
+            if(col === "triggers"){
+              newVal = newVal
+                .split(",")
+                .map(x=>x.trim().toLowerCase())
+                .filter(Boolean);
+            }
+
+            r[col] = newVal;
+
+            // ✅ keep createdAt so it’s readable/sortable
+            if(!r.createdAt) r.createdAt = serverTimestamp();
+
+            await setDoc(doc(db, currentCollection, r.id), r);
+            await logAudit({ type:"edit", collection: currentCollection, id:r.id, field:col, from: before, to: r[col] });
+          };
+        } else {
+          cell.contentEditable = false;
+        }
+      });
+
+      colorRow(row, r.status);
+    });
+  }
+
+  function subscribe(){
+    if(unsub) unsub();
+
+    setTitleAndDashboard();
+    table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
+
+    const colRef = collection(db, currentCollection);
+
+    // ✅ no orderBy for tt_orders (avoid index/rules issues)
+    let qRef = colRef;
+    if(currentCollection !== "tt_orders"){
+      const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog" || currentCollection === "tt_unanswered" || currentCollection === "tt_faq";
+      if(wantsOrder){
+        const field = (currentCollection === "auditLog") ? "at" : "createdAt";
+        qRef = query(colRef, orderBy(field, "desc"));
+      }
+    }
+
+    unsub = onSnapshot(qRef, snap=>{
+      let rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+
+      if(currentCollection === "tt_orders"){
+        rows = rows.map(flattenChatOrder);
+      }
+
+      lastRows = rows;
+
+      const filtered = applySearch(lastRows);
+
+      if(COLLECTION_CONFIG[currentCollection]?.showDashboard){
+        updateDashboard(filtered);
+      }
+
+      buildTable(filtered);
+    }, err=>{
+      console.error(err);
+      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data. Check console for permissions/rules.</td></tr>";
+    });
+  }
+
+  // ✅ add FAQ button
+  addBtn.addEventListener("click", async ()=>{
+    if(currentCollection !== "tt_faq") return;
+
+    const triggersRaw = prompt('Triggers (comma-separated)\nExample: shipping, deliver, address');
+    if(triggersRaw === null) return;
+
+    const answer = prompt("Answer text the chatbot should reply with:");
+    if(answer === null) return;
+
+    const triggers = triggersRaw
+      .split(",")
+      .map(x=>x.trim().toLowerCase())
+      .filter(Boolean);
+
+    if(!triggers.length || !String(answer).trim()){
+      alert("Need at least 1 trigger and an answer.");
+      return;
+    }
+
+    const ref = await addDoc(collection(db, "tt_faq"), {
+      triggers,
+      answer: String(answer).trim(),
       createdAt: serverTimestamp()
     });
-  }catch(e){}
-}
 
-/* ✅ OPTIONAL: ADMIN-EDITABLE FAQ (tt_faq)
-   Doc format: { triggers:["shipping","deliver"], answer:"..." }
-*/
-let FAQ_DB = [];
-async function loadFAQ(){
-  try{
-    const snap = await getDocs(collection(db,"tt_faq"));
-    FAQ_DB = [];
-    snap.forEach(d=>FAQ_DB.push(d.data()));
-  }catch(e){
-    FAQ_DB = [];
-  }
-}
-
-/* ========= DATA ========= */
-function makeItem(){
-  return {
-    itemType: "",
-    weave: "",
-    inches: 0,
-    fit: "",
-    colors: [],
-    patternStyle: "",
-    durability: false,
-    glow: false,
-    reflective: false,
-    charm: false,
-    extraTail: false,
-    engravedTagText: ""
-  };
-}
-
-let items = [makeItem()];
-
-const order = {
-  rush:false,
-  giftNote:false,
-  giftNoteText:"",
-  donation:0,
-  coupon:"",
-  shipping:"",
-  address:"",
-  name:"",
-  phone:"",
-  photoBeforePay:false,
-  notes:""
-};
-
-function needColorsCount(it){
-  if(it.weave === "king cobra") return 3;
-  if(it.weave === "cobra") return 2;
-  return 0;
-}
-
-/* ========= PRICING ========= */
-function itemBase(it){ return (Number(it.inches)||0) * PRICE_PER_INCH; }
-function itemUpsells(it){
-  let a = 0;
-  if(it.durability) a += FEE_DURABILITY;
-  if(it.glow) a += FEE_GLOW;
-  if(it.reflective) a += FEE_REFLECTIVE;
-  if(it.charm) a += FEE_CHARM;
-  if(it.extraTail) a += FEE_EXTRA_TAIL;
-  if(it.itemType==="dog collar" && it.engravedTagText) a += FEE_ENGRAVED_TAG;
-  return a;
-}
-function orderUpsells(){
-  let a = 0;
-  if(order.rush) a += FEE_RUSH;
-  if(order.giftNote) a += FEE_GIFT_NOTE;
-  return a;
-}
-function shippingCost(){
-  return order.shipping === "in" ? SHIPPING_IN : (order.shipping==="out" ? SHIPPING_OUT : 0);
-}
-function couponDiscount(subtotal){
-  const code = String(order.coupon||"").trim().toUpperCase();
-  if(!code) return 0;
-  if(code !== COUPON_CODE) return 0;
-  return subtotal * (COUPON_PCT/100);
-}
-function calcTotals(){
-  const base = items.reduce((s,it)=>s+itemBase(it),0);
-  const itemUp = items.reduce((s,it)=>s+itemUpsells(it),0);
-  const orderUp = orderUpsells();
-  const donation = Number(order.donation)||0;
-  const ship = shippingCost();
-  const subtotal = Math.max(0, base + itemUp + orderUp);
-  const coup = couponDiscount(subtotal);
-  const subtotalAfterCoupon = Math.max(0, subtotal - coup);
-  const total = subtotalAfterCoupon + ship + donation;
-  return { base, itemUpsells:itemUp, orderUpsells:orderUp, subtotal, coup, subtotalAfterCoupon, ship, donation, total };
-}
-function pricePreviewLine(){
-  const t = calcTotals();
-  return `Estimate so far: ${money(t.total)}${t.coup>0 ? ` (coupon -${money(t.coup)})` : ""}`;
-}
-
-/* ========= UPDATED FAQ / SALES ========= */
-function answerFAQ(text){
-  const t = clean(text);
-
-  // 1) Firestore FAQ overrides (admin-editable)
-  for(const f of FAQ_DB){
-    if(f?.triggers?.some(k => t.includes(String(k).toLowerCase()))){
-      return String(f.answer || "").trim() || null;
-    }
-  }
-
-  // CONTACT
-  if(t.includes("contact") || t.includes("number") || t.includes("phone")){
-    return `Text: ${PHONE_NUMBER}\n— ${SIGNATURE}`;
-  }
-
-  // BRAND / ABOUT
-  if(t.includes("why did you start") || t.includes("your story") || (t.includes("why") && t.includes("start")) || t.includes("story")){
-    return "I started Tactics & Treats because I like making things by hand and wanted to turn that into something real. Everything is custom, made with care, and not mass-produced.";
-  }
-  if(t.includes("who makes") || t.includes("handmade") || t.includes("team")){
-    return "Everything is handmade by a small team, not mass-produced.";
-  }
-  if(t.includes("where are you") || t.includes("where based") || (t.includes("where") && t.includes("located"))){
-    return "I’m currently based in Idaho. That may change in the future, but all orders ship from here for now.";
-  }
-
-  // PRODUCTS
-  if(t.includes("what do you sell") || t.includes("what do you make") || t.includes("what do you do")){
-    return "I make custom paracord bracelets, dog collars, and keychains — all handmade and sized to order.";
-  }
-  if(t.includes("materials") || t.includes("made of") || t.includes("what are these made")){
-    return "I use 550 paracord and micro cord, along with metal or plastic buckles and metal charms or rings, depending on the item.";
-  }
-  if(t.includes("survival") || t.includes("edc") || t.includes("just for looks")){
-    return "They’re made with real paracord and can be used as survival gear, not just for looks.";
-  }
-  if((t.includes("keychain") || t.includes("dog collar")) && (t.includes("same") || t.includes("materials"))){
-    return "Yes, the bracelets, keychains, and dog collars are all made using the same quality cord and materials.";
-  }
-
-  // DOG COLLARS
-  if(t.includes("dog collar") && (t.includes("adjustable") || t.includes("fixed"))){
-    return "Dog collars are fixed size and made to the measurement you provide.";
-  }
-  if(t.includes("dog") && (t.includes("size") || t.includes("measure") || t.includes("collar"))){
-    return "The best way to size a dog collar is to use a fabric measuring tape, put it snug around your dog’s neck, then add about one inch for comfort.";
-  }
-
-  // WATER / DAILY USE
-  if(t.includes("water") || t.includes("wet") || t.includes("rain") || t.includes("sweat") || t.includes("swim") || t.includes("shower")){
-    return "They’re fine for daily wear and can handle sweat, rain, and getting wet. Swimming and showering are okay, but I wouldn’t recommend it regularly since dirt can build up under the bracelet over time.";
-  }
-
-  // LIFESPAN
-  if(t.includes("how long") || t.includes("lifespan") || t.includes("last") || t.includes("wear out")){
-    return "It really depends on how it’s worn and used. With normal wear they can last a long time, but heavy use will wear them out faster.";
-  }
-
-  // SIZING
-  if((t.includes("adult") && t.includes("size")) || t.includes("adult wrist")){
-    return "Most adults usually wear between about 7.5 and 8.5 inches, but measuring your wrist is always best.";
-  }
-  if((t.includes("teen") && (t.includes("size") || t.includes("sizing"))) || t.includes("teen wrist")){
-    return "Teens usually fall around 6.5–7.5 inches, but it can vary a lot depending on wrist size.";
-  }
-  if(t.includes("between sizes") || (t.includes("between") && t.includes("size"))){
-    return "If you’re between sizes, ask me for the most common sizes. A good rule is to go about 0.5 inches under the next size up for a comfortable fit.";
-  }
-  if(t.includes("measure") && (t.includes("wrist") || t.includes("fit"))){
-    return "Measure your wrist with a tape or string. Pick snug/regular/loose depending on how you like it to fit.";
-  }
-
-  // CUSTOM / BULK / LIMITS
-  if(t.includes("custom") || t.includes("special request") || t.includes("bulk") || t.includes("group") || t.includes("matching set")){
-    return "Yes — custom color combos, custom sizes, matching sets (bracelet + dog collar), and bulk or group orders are all available.";
-  }
-  if(t.includes("logo") || t.includes("copyright") || t.includes("hate") || t.includes("offensive") || t.includes("unsafe") || t.includes("harmful")){
-    return "I don’t make copyrighted logos, hate symbols, offensive content, or anything unsafe or harmful.";
-  }
-
-  // ORDER CHANGES / ISSUES
-  if((t.includes("change") || t.includes("edit")) && t.includes("order")){
-    return `Yes, you can change your order as long as it hasn’t been made yet. To check, text ${PHONE_NUMBER} and I’ll let you know.`;
-  }
-  if(t.includes("wrong size") || t.includes("wrong address")){
-    return "If you entered the wrong size or address, contact me as soon as possible. Address issues can usually be fixed, and size changes depend on how far along the order is.";
-  }
-  if(t.includes("break") || t.includes("broke")){
-    return "If it breaks within 2 weeks and it doesn’t look like it was pulled apart on purpose, I’ll replace it. Replacement requires the optional insurance, which is an extra $2.";
-  }
-
-  // PAYMENT
-  if(t.includes("pay") || t.includes("payment") || t.includes("card") || t.includes("cash")){
-    return "I accept card payments and cash. Payment is required before I make the item.";
-  }
-  if(t.includes("tip") || t.includes("donation")){
-    return "Yes, tips or donations are optional and always appreciated, but never required.";
-  }
-
-  // SHIPPING
-  if(t.includes("ship") || t.includes("shipping") || t.includes("deliver")){
-    return "Shipping time depends on your location. I’ll give you an estimate once your order is ready to ship.";
-  }
-  if(t.includes("international") || t.includes("outside the us") || (t.includes("outside") && t.includes("u.s"))){
-    return "Not right now, but I may offer shipping outside the U.S. in the future.";
-  }
-
-  // PICKUP / MEETUPS (locked)
-  if(t.includes("pickup") || t.includes("meet") || t.includes("meet up")){
-    return "Local pickup may be available sometimes. Just ask and I’ll let you know what’s possible.";
-  }
-
-  // RUSH (locked: $1, limited, same-day making)
-  if(t.includes("rush") || t.includes("same day")){
-    if(t.includes("not available") || t.includes("no rush")){
-      return "If rush isn’t available, the order will be made as a normal order.";
-    }
-    return "Rush means same-day making if available. There’s a $1 extra fee, and spots are limited.";
-  }
-
-  // REFUNDS
-  if(t.includes("refund")){
-    return "Refunds are only offered if there’s a mistake on my end.";
-  }
-
-  // UPSET CUSTOMERS
-  if(t.includes("not happy") || t.includes("upset") || t.includes("angry") || t.includes("mad")){
-    return `I’m sorry you’re having an issue. Please text ${PHONE_NUMBER} and I’ll do my best to help.`;
-  }
-
-  // TRUST
-  if(t.includes("amazon") || t.includes("why buy") || t.includes("why you") || t.includes("mass produced")){
-    return "Everything I make is handmade, not mass-produced. That means better materials, tighter builds, and more attention to detail, which makes them stronger and better overall.";
-  }
-
-  // COLORS (general helper)
-  if(t.includes("color") || t.includes("colors")){
-    return `Cobra = 2 colors • King Cobra = 3 colors.\nTell me the weave and the colors you want (example: "king cobra red/black/white").\n\n${POPULAR_PICK}`;
-  }
-
-  // PRICE
-  if(t.includes("price") || t.includes("how much") || t.includes("cost")){
-    return `Pricing is $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN}).\nShipping: $${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state.\n\n${POPULAR_PICK}\n${LIMITED_SPOTS}`;
-  }
-
-  return null;
-}
-
-function wantsToBuy(text){
-  const t = clean(text);
-  const intent =
-    t.includes("i want") || t.includes("ill take") || t.includes("i'll take") ||
-    t.includes("ill get") || t.includes("i'll get") ||
-    t.includes("order") || t.includes("buy") || t.includes("get one") ||
-    t.includes("could i") || t.includes("can i") || t.includes("can you");
-  const product =
-    t.includes("cobra") || t.includes("bracelet") || t.includes("collar") || t.includes("paracord") || t.includes("micro");
-  return intent && product;
-}
-
-/* ========= PARSING HELPERS ========= */
-function extractWeave(seg){
-  if(/king\s*cobra/i.test(seg)) return "king cobra";
-  if(/\bcobra\b/i.test(seg)) return "cobra";
-  return "";
-}
-
-function extractInches(seg){
-  let m = seg.match(/(\d+(?:\.\d+)?)\s*(?:inches|inch|in|")/i) || seg.match(/\bsize\s*(\d+(?:\.\d+)?)/i);
-  if(m) return Number(m[1]);
-  const m2 = seg.match(/\b(\d+(?:\.\d+)?)\b/);
-  return m2 ? Number(m2[1]) : 0;
-}
-
-function extractColors(seg, wantCount){
-  let colors = [];
-  if(seg.includes(",")){
-    colors = seg.split(",").map(x=>x.trim()).filter(Boolean);
-  }else{
-    const slash = seg.match(/\b([a-z]+)\s*\/\s*([a-z]+)(?:\s*\/\s*([a-z]+))?\b/i);
-    if(slash){
-      colors = [slash[1], slash[2], slash[3]].filter(Boolean);
-    }else{
-      const and3 = seg.match(/\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b/i);
-      const and2 = seg.match(/\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b/i);
-      if(and3) colors = [and3[1], and3[2], and3[3]];
-      else if(and2) colors = [and2[1], and2[2]];
-      else{
-        const words = seg.replace(/[^a-z\s]/gi," ").split(/\s+/).map(w=>w.trim()).filter(Boolean);
-        const stop = new Set([
-          "inches","inch","in","is","and","a","the","one","two","three","four",
-          "cobra","king","bracelet","bracelets","i","want","size","with","colors",
-          "outside","middle","band","inside","pattern","weave"
-        ]);
-        const filtered = words.filter(w=>!stop.has(w.toLowerCase()));
-        if(filtered.length >= 2) colors = filtered.slice(0, Math.max(2, wantCount || 2));
-      }
-    }
-  }
-
-  colors = colors.map(c=>c.toLowerCase());
-  if(wantCount) colors = colors.slice(0, wantCount);
-  return colors;
-}
-
-function extractFit(seg){
-  const t = clean(seg);
-  if(t.includes("snug")) return "snug";
-  if(t.includes("loose")) return "loose";
-  if(t.includes("regular")) return "regular";
-  return "";
-}
-
-function extractAddons(seg){
-  return {
-    durability: /\bdurable\b|\bdurability\b|\bsurvival\b|\bsurviv(?:al|le)\b/i.test(seg),
-    glow: /\bglow\b|\bglow[-\s]?in[-\s]?the[-\s]?dark\b/i.test(seg),
-    reflective: /\breflective\b/i.test(seg),
-    charm: /\bcharm\b/i.test(seg),
-    extraTail: /\bextra\s*tail\b|\blonger\s*tail\b/i.test(seg),
-    rush: /\brush\b|\bsame[-\s]?day\b|\btoday\b|\bpriority\b/i.test(seg),
-  };
-}
-
-function parseDonation(text){
-  const m = String(text||"").match(/donat(?:e|ion)\s*\$?\s*(\d+(?:\.\d+)?)/i);
-  return m ? Number(m[1]) : null;
-}
-
-/* ========= MULTI-ITEM MESSAGE PARSER ========= */
-function parseMultiBraceletMessage(text){
-  const raw = String(text || "");
-  const t = raw.toLowerCase();
-
-  const asksPrice = /(price|cost|how much|total|quote|estimate)/i.test(raw);
-  const looksMulti =
-    /(bracelet\s*1|bracelet\s*2|bracelet\s*3|bracelet\s*4)/i.test(raw) ||
-    /(2|two|3|three|4|four)\s+(bracelets|bracelet)/i.test(raw) ||
-    /\bone of them\b|\bthe other\b|\bsecond\b|\bfirst\b/i.test(raw);
-
-  if(!asksPrice && !looksMulti) return null;
-
-  const orderHints = {
-    rush: /\brush\b|\bsame[-\s]?day\b|\btoday\b|\bpriority\b/i.test(raw),
-    donation: parseDonation(raw)
-  };
-
-  let segments = [];
-  if(/bracelet\s*\d/i.test(t)){
-    segments = raw.split(/bracelet\s*\d+\s*[:\-]?\s*/i).map(s=>s.trim()).filter(Boolean);
-  }else{
-    segments = raw.split(/(?:\bone of them\b|\bthe other\b|\bsecond\b|\bfirst\b|\bone\b)\s*(?:is)?\s*/i)
-      .map(s=>s.trim()).filter(Boolean);
-  }
-  if(segments.length < 2) return null;
-
-  const out = [];
-
-  for(const seg of segments){
-    const weave = extractWeave(seg);
-    const inches = extractInches(seg);
-    if(!weave || !inches) continue;
-
-    const need = (weave === "king cobra") ? 3 : 2;
-    const colors = extractColors(seg, need);
-    const fit = extractFit(seg) || "regular";
-    const add = extractAddons(seg);
-
-    out.push({
-      itemType: "bracelet",
-      weave,
-      inches,
-      fit,
-      colors,
-      patternStyle: "stripes",
-      durability: !!add.durability,
-      glow: !!add.glow,
-      reflective: !!add.reflective,
-      charm: !!add.charm,
-      extraTail: !!add.extraTail,
-      engravedTagText: ""
-    });
-
-    if(add.rush) orderHints.rush = true;
-  }
-
-  if(out.length < 2) return null;
-  return { items: out, asksPrice, orderHints };
-}
-
-/* ========= SINGLE-MESSAGE AUTO FILL ========= */
-function extractHints(text){
-  const t = clean(text);
-  const h = { itemType:null, weave:null, colors:null, inches:null, fit:null, addons:null };
-
-  if(t.includes("dog") && t.includes("collar")) h.itemType="dog collar";
-  else if(t.includes("collar")) h.itemType="dog collar";
-  else if(t.includes("keychain")) h.itemType="keychain";
-  else if(t.includes("bracelet")) h.itemType="bracelet";
-
-  if(t.includes("king cobra")) h.weave="king cobra";
-  else if(t.includes("cobra")) h.weave="cobra";
-
-  const inches = extractInches(text);
-  if(inches) h.inches = inches;
-
-  const fit = extractFit(text);
-  if(fit) h.fit = fit;
-
-  h.addons = extractAddons(text);
-
-  const outside = t.match(/outside\s+([a-z]+)/);
-  const middle  = t.match(/middle\s+(?:band\s+)?([a-z]+)/);
-  const inside  = t.match(/inside\s+([a-z]+)/);
-  if(outside && middle && inside){
-    h.colors=[outside[1], middle[1], inside[1]];
-    return h;
-  }
-
-  let guessedWeave = h.weave;
-  if(!guessedWeave){
-    const temp3 = extractColors(text, 3);
-    const temp2 = extractColors(text, 2);
-    if(temp3.length === 3) guessedWeave = "king cobra";
-    else if(temp2.length === 2) guessedWeave = "cobra";
-  }
-  const want = guessedWeave === "king cobra" ? 3 : (guessedWeave === "cobra" ? 2 : 0);
-  if(want){
-    const c = extractColors(text, want);
-    if(c.length === want) h.colors = c;
-  }
-
-  return h;
-}
-
-function applyHintsToItem(h, it){
-  if(h.itemType && !it.itemType) it.itemType = h.itemType;
-  if(h.weave && !it.weave) it.weave = h.weave;
-  if(h.inches && !it.inches) it.inches = h.inches;
-  if(h.fit && !it.fit) it.fit = h.fit;
-
-  if(h.colors && h.colors.length){
-    if(!it.weave){
-      if(h.colors.length===3) it.weave="king cobra";
-      if(h.colors.length===2) it.weave="cobra";
-    }
-    const need = needColorsCount(it);
-    if(need && it.colors.length===0 && h.colors.length===need){
-      it.colors = h.colors.slice(0,need);
-    }
-  }
-
-  if(h.addons){
-    if(h.addons.durability) it.durability = true;
-    if(h.addons.glow) it.glow = true;
-    if(h.addons.reflective) it.reflective = true;
-    if(h.addons.charm) it.charm = true;
-    if(h.addons.extraTail) it.extraTail = true;
-    if(h.addons.rush) order.rush = true;
-  }
-
-  const don = parseDonation(JSON.stringify(h) + " " + JSON.stringify(it));
-  if(typeof don === "number" && isFinite(don)) order.donation = don;
-}
-
-/* ========= FLOW ========= */
-let mode = "sales";
-let stepIndex = 0;
-const backStack = [];
-let skipCoupon = false;
-let skipDonation = false;
-
-/* steps */
-const steps = [
-  { key:"itemType", ask:"What do you want? (bracelet, dog collar, keychain)", chips:["bracelet","dog collar","keychain"],
-    parse:v=>{ v=clean(v).trim(); return ["bracelet","dog collar","keychain"].includes(v)?v:null; },
-    apply:v=> items[0].itemType=v
-  },
-  { key:"weave", ask:`Which weave? (cobra=2 colors, king cobra=3 colors)\n${POPULAR_PICK}`, chips:["cobra","king cobra"],
-    parse:v=>{ v=clean(v).trim(); return (v==="cobra"||v==="king cobra")?v:null; },
-    apply:v=> items[0].weave=v
-  },
-  { key:"inches", ask:`Size in inches (${MIN_IN}-${MAX_IN}) (you can type 8.5 or "size 8")`, chips:["6","7","8","8.5","9","10","12","14"],
-    parse:v=>{
-      const n = extractInches(String(v||""));
-      return (isFinite(n) && n>=MIN_IN && n<=MAX_IN) ? n : null;
-    },
-    apply:v=> items[0].inches=v
-  },
-  { key:"fit", ask:"Fit? (snug, regular, loose)", chips:["snug","regular","loose"],
-    parse:v=>{ v=clean(v).trim(); return ["snug","regular","loose"].includes(v)?v:null; },
-    apply:v=> items[0].fit=v
-  },
-  { key:"colors", ask:"Colors? Cobra=2 (ex: red, black) • King Cobra=3 (ex: white, black, white)", chips:["red, black","white, black, white","camo, black"],
-    parse:v=>{
-      const need = needColorsCount(items[0]);
-      if(!need) return null;
-      const parts = extractColors(String(v||""), need);
-      return (parts.length===need) ? parts : null;
-    },
-    apply:v=> items[0].colors=v
-  },
-  { key:"patternStyle", ask:"Pattern style? (stripes, split, fade, chevron)", chips:["stripes","split","fade","chevron"],
-    parse:v=>{ v=clean(v).trim(); return ["stripes","split","fade","chevron"].includes(v)?v:null; },
-    apply:v=> items[0].patternStyle=v
-  },
-  { key:"durability", ask:`Durability / survival cord upgrade? (+$${FEE_DURABILITY})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> items[0].durability=v
-  },
-  { key:"reflective", ask:`Reflective cord option? (+$${FEE_REFLECTIVE})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> items[0].reflective=v
-  },
-  { key:"glow", ask:`Glow option? (+$${FEE_GLOW})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> items[0].glow=v
-  },
-  { key:"charm", ask:`Add a charm? (+$${FEE_CHARM})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> items[0].charm=v
-  },
-  { key:"extraTail", ask:`Extra tail/length? (+$${FEE_EXTRA_TAIL})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> items[0].extraTail=v
-  },
-  { key:"engravedTagAsk", ask:`If this is a dog collar, do you want an engraved tag? (+$${FEE_ENGRAVED_TAG})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=>{
-      if(items[0].itemType!=="dog collar"){ items[0].engravedTagText=""; return; }
-      if(v===false) items[0].engravedTagText="";
-    }
-  },
-  { key:"engravedTagText", ask:'Engraved tag text (name + phone). If none, type: none', chips:["none"],
-    parse:v=>{ v=String(v||"").trim(); if(clean(v)==="none") return ""; return v.length>=2 ? v : null; },
-    apply:v=>{ if(items[0].itemType==="dog collar") items[0].engravedTagText=v; }
-  },
-  { key:"rush", ask:`Rush (same-day priority) (+$${FEE_RUSH})?`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> order.rush=v
-  },
-  { key:"giftAsk", ask:`Add a gift note? (+$${FEE_GIFT_NOTE})`, chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=>{ order.giftNote=v; if(!v) order.giftNoteText=""; }
-  },
-  { key:"giftText", ask:"Gift note text (or none)", chips:["none"],
-    parse:v=>{ v=String(v||"").trim(); if(clean(v)==="none") return ""; return v.length>=2 ? v : null; },
-    apply:v=>{ if(order.giftNote) order.giftNoteText=v; }
-  },
-  { key:"couponAsk", ask:"Have a coupon code? (yes/no)", chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=>{ skipCoupon = (v===false); if(skipCoupon) order.coupon=""; }
-  },
-  { key:"coupon", ask:`Enter coupon code (or none). Example: ${COUPON_CODE}`, chips:[COUPON_CODE,"none"],
-    parse:v=>{ v=String(v||"").trim(); if(clean(v)==="none") return ""; return v; },
-    apply:v=> order.coupon=v
-  },
-  { key:"donateAsk", ask:"Would you like to add a donation? (optional)", chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=>{ skipDonation = (v===false); if(skipDonation) order.donation=0; }
-  },
-  { key:"donation", ask:"Donation amount (0, 1, 3, 5, 10, etc.)", chips:["0","1","3","5","10"],
-    parse:v=>{ const n=Number(String(v).replace(/[^\d.]/g,"")); return (isFinite(n)&&n>=0)?n:null; },
-    apply:v=> order.donation=v
-  },
-  { key:"shipping", ask:`Shipping: in-state or out-of-state?\n$${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state`, chips:["in-state","out-of-state"],
-    parse:v=>{ v=clean(v).trim(); if(v==="in-state")return "in"; if(v==="out-of-state")return "out"; return null; },
-    apply:v=> order.shipping=v
-  },
-  { key:"address", ask:"Shipping address (Street, City, State, ZIP)", chips:[],
-    parse:v=>{ v=String(v||"").trim(); return v.length>=10 ? v : null; },
-    apply:v=> order.address=v
-  },
-  { key:"name", ask:"Name for the order", chips:[],
-    parse:v=>{ v=String(v||"").trim(); return v.length>=2 ? v : null; },
-    apply:v=> order.name=v
-  },
-  { key:"phone", ask:"Phone number", chips:[],
-    parse:v=>{ const digits=String(v||"").replace(/[^\d]/g,""); return digits.length>=10 ? String(v).trim() : null; },
-    apply:v=> order.phone=v
-  },
-  { key:"photoBeforePay", ask:"Want a photo before I send the pay link? (yes/no)", chips:["yes","no"],
-    parse:v=>{ v=clean(v).trim(); if(v==="yes")return true; if(v==="no")return false; return null; },
-    apply:v=> order.photoBeforePay=v
-  },
-  { key:"notes", ask:"Any notes? (or none)", chips:["none"],
-    parse:v=>{ v=String(v||"").trim(); if(clean(v)==="none") return ""; return v; },
-    apply:v=> order.notes=v
-  }
-];
-
-function stepDone(key){
-  const it = items[0];
-  if(key==="itemType") return !!it.itemType;
-  if(key==="weave") return !!it.weave;
-  if(key==="inches") return !!it.inches;
-  if(key==="fit") return !!it.fit;
-  if(key==="colors"){
-    const need = needColorsCount(it);
-    return need>0 && it.colors.length===need;
-  }
-  if(key==="patternStyle") return !!it.patternStyle;
-  if(key==="engravedTagAsk") return true;
-  if(key==="engravedTagText") return (it.itemType!=="dog collar") ? true : (it.engravedTagText !== null);
-  if(key==="giftText") return order.giftNote ? (order.giftNoteText.length>=0) : true;
-  if(key==="coupon") return true;
-  if(key==="donation") return true;
-  if(key==="shipping") return !!order.shipping;
-  if(key==="address") return !!order.address;
-  if(key==="name") return !!order.name;
-  if(key==="phone") return !!order.phone;
-  return false;
-}
-
-function nextMissing(i){
-  while(i < steps.length){
-    const k = steps[i].key;
-
-    if(k==="engravedTagAsk" && items[0].itemType!=="dog collar"){ i++; continue; }
-    if(k==="engravedTagText" && items[0].itemType!=="dog collar"){ i++; continue; }
-    if(k==="giftText" && !order.giftNote){ i++; continue; }
-    if(k==="coupon" && skipCoupon){ i++; continue; }
-    if(k==="donation" && skipDonation){ i++; continue; }
-
-    if(!stepDone(k)) return i;
-    i++;
-  }
-  return steps.length;
-}
-
-function askStep(){
-  stepIndex = nextMissing(stepIndex);
-
-  if(stepIndex >= steps.length){
-    mode = "review";
-    addMsg(buildSummary(), "bot");
-    setChips(["CONFIRM","BACK","RESTART"]);
-    addMsg("Type CONFIRM to submit.", "bot");
-    return;
-  }
-
-  const s = steps[stepIndex];
-  addMsg(s.ask, "bot");
-  setChips(s.chips || []);
-  addMsg(pricePreviewLine(), "bot");
-}
-
-function buildSummary(){
-  const t = calcTotals();
-  const it = items[0];
-  const colors = (it.colors||[]).join(", ");
-  const add = [];
-  if(it.durability) add.push("durability");
-  if(it.reflective) add.push("reflective");
-  if(it.glow) add.push("glow");
-  if(it.charm) add.push("charm");
-  if(it.extraTail) add.push("extra tail");
-  const addLine = add.length ? `\n• Add-ons: ${add.join(", ")}` : "";
-  const tag = (it.itemType==="dog collar" && it.engravedTagText) ? `\n• Tag: ${it.engravedTagText}` : "";
-
-  return (
-`Order Summary
-• Item: ${it.itemType}
-• Weave: ${it.weave}
-• Size: ${it.inches}"
-• Fit: ${it.fit}
-• Colors: ${colors}
-• Pattern: ${it.patternStyle}${addLine}${tag}
-
-• Rush: ${order.rush ? "yes" : "no"}
-• Gift note: ${order.giftNote ? `yes (${order.giftNoteText || "blank"})` : "no"}
-• Coupon: ${order.coupon || "none"}
-• Donation: ${money(order.donation || 0)}
-• Shipping: ${order.shipping === "in" ? "in-state" : "out-of-state"}
-• Address: ${order.address}
-• Name: ${order.name}
-• Phone: ${order.phone}
-• Photo before pay link: ${order.photoBeforePay ? "yes" : "no"}
-• Notes: ${order.notes || "none"}
-
-Price
-• Base: ${money(t.base)}
-• Item upsells: ${money(t.itemUpsells)}
-• Order upsells: ${money(t.orderUpsells)}
-• Coupon: -${money(t.coup)}
-• Shipping: ${money(t.ship)}
-• Donation: ${money(t.donation)}
-• TOTAL: ${money(t.total)}`
-  );
-}
-
-/* ========= SUBMIT (ONLY AFTER CONFIRM) ========= */
-async function submitOrder(){
-  const totals = calcTotals();
-
-  for(const it of items){
-    const need = needColorsCount(it);
-    if(!it.itemType || !it.weave || !it.inches || !it.fit || it.colors.length!==need){
-      throw new Error("Missing item info. Keep answering the questions.");
-    }
-    if(it.inches < MIN_IN || it.inches > MAX_IN){
-      throw new Error(`Size must be between ${MIN_IN} and ${MAX_IN} inches.`);
-    }
-  }
-  if(!order.shipping || !order.address || !order.name || !order.phone){
-    throw new Error("Missing shipping/contact info.");
-  }
-
-  const payload = {
-    status: "new",
-    createdAt: serverTimestamp(),
-    order: { ...order },
-    items: items.map(x=>({ ...x })),
-    totals
-  };
-
-  const ref = await addDoc(collection(db, ORDERS_COLLECTION), payload);
-  return ref.id;
-}
-
-/* ========= COMMANDS ========= */
-function handleCommand(text){
-  const t = clean(text).trim();
-
-  if(t==="restart"){ resetAll(); return true; }
-
-  if(t==="back"){
-    if(mode!=="order"){ addMsg("BACK only works while building the order.", "bot"); return true; }
-    if(backStack.length===0){ addMsg("Already at the first question.", "bot"); askStep(); return true; }
-    stepIndex = backStack.pop();
-    addMsg("Okay — going back one step.", "bot");
-    askStep();
-    return true;
-  }
-
-  if(t==="confirm"){
-    if(mode!=="review"){
-      addMsg("We’re not at the end yet — keep answering the questions.", "bot");
-      return true;
-    }
-    (async ()=>{
-      try{
-        setStatus("Submitting…");
-        const id = await submitOrder();
-        setStatus("Submitted!");
-        mode = "done";
-        addMsg(`✅ Submitted!\nOrder ID: ${id}\nNext step: I’ll send your pay link.`, "bot");
-        setChips(["RESTART"]);
-      }catch(e){
-        setStatus("");
-        addMsg("❌ Could not submit: " + (e?.message || e), "bot");
-        mode = "order";
-        askStep();
-      }
-    })();
-    return true;
-  }
-
-  return false;
-}
-
-/* ========= MULTI QUOTE HANDLER ========= */
-function applyMultiQuote(multi){
-  items = multi.items;
-
-  if(multi.orderHints){
-    if(multi.orderHints.rush) order.rush = true;
-    if(typeof multi.orderHints.donation === "number" && isFinite(multi.orderHints.donation)){
-      order.donation = multi.orderHints.donation;
-    }
-  }
-
-  const t = calcTotals();
-
-  const breakdown = items.map((it,i)=>{
-    const line = itemBase(it) + itemUpsells(it);
-    const extras = [];
-    if(it.durability) extras.push("durability");
-    if(it.reflective) extras.push("reflective");
-    if(it.glow) extras.push("glow");
-    if(it.charm) extras.push("charm");
-    if(it.extraTail) extras.push("extra tail");
-    return `#${i+1}: ${it.weave} • ${it.inches}" • ${it.colors.join("/")} = ${money(line)}${extras.length ? ` (+ ${extras.join(", ")})` : ""}`;
-  }).join("\n");
-
-  addMsg(
-`Here’s your estimate:
-${breakdown}
-
-Subtotal: ${money(t.subtotal)}
-Shipping not included yet.
-
-Want to place the order? If yes, tell me:
-• in-state or out-of-state
-• shipping address
-• your name + phone`,
-"bot");
-
-  setChips(["in-state","out-of-state","RESTART"]);
-  mode = "order";
-  stepIndex = 0;
-  backStack.length = 0;
-  askStep();
-}
-
-/* ========= MAIN SEND ========= */
-function send(){
-  const text = input.value.trim();
-  if(!text) return;
-  input.value = "";
-  addMsg(text, "user");
-  setChips([]);
-  setStatus("");
-
-  if(handleCommand(text)) return;
-
-  // ✅ NEW: FAQ works in ANY MODE without breaking the order flow
-  const faq = answerFAQ(text);
-  if(faq){
-    addMsg(faq, "bot");
-
-    if(mode === "order"){
-      const cur = steps[stepIndex];
-      if(cur){
-        addMsg("Now back to your order:", "bot");
-        addMsg(cur.ask, "bot");
-        setChips(cur.chips || []);
-        addMsg(pricePreviewLine(), "bot");
-      }
-    }else{
-      setChips(["Price","Sizing","Colors","Shipping","Your story","Contact","I want one"]);
-    }
-    return;
-  }
-
-  // multi-bracelet sentence that asks price
-  if(mode==="sales"){
-    const multi = parseMultiBraceletMessage(text);
-    if(multi && multi.items?.length){
-      applyMultiQuote(multi);
-      return;
-    }
-
-    if(wantsToBuy(text)){
-      const h = extractHints(text);
-      applyHintsToItem(h, items[0]);
-
-      const don = parseDonation(text);
-      if(typeof don === "number" && isFinite(don)) order.donation = don;
-
-      addMsg(`${LIMITED_SPOTS}\n\nGot it — I’ll ask only what’s missing.`, "bot");
-      mode = "order";
-      stepIndex = 0;
-      backStack.length = 0;
-      askStep();
-      return;
-    }
-
-    // fallback sales message
-    addMsg(
-`Ask me anything about price, sizing, colors, shipping, or custom orders.
-Or tell me what you want and I’ll quote it.
-
-${POPULAR_PICK}`,
-      "bot"
-    );
-    setChips(["Price","Sizing","Colors","Shipping","Your story","Contact","I want one"]);
-    logUnanswered(text);
-    return;
-  }
-
-  if(mode==="order"){
-    const h = extractHints(text);
-    applyHintsToItem(h, items[0]);
-    const don = parseDonation(text);
-    if(typeof don === "number" && isFinite(don)) order.donation = don;
-
-    const s = steps[stepIndex] || null;
-    if(!s){ askStep(); return; }
-
-    stepIndex = nextMissing(stepIndex);
-    if(stepIndex >= steps.length){ askStep(); return; }
-
-    const cur = steps[stepIndex];
-
-    const parsed = cur.parse(text);
-    if(parsed == null){
-      const advanced = nextMissing(stepIndex);
-      if(advanced !== stepIndex){
-        addMsg("Got it.", "bot");
-        stepIndex = advanced;
-        askStep();
-        return;
-      }
-
-      addMsg("I didn’t catch that — try again.", "bot");
-      addMsg(cur.ask, "bot");
-      setChips(cur.chips || []);
-      addMsg(pricePreviewLine(), "bot");
-      logUnanswered(text);
-      return;
-    }
-
-    backStack.push(stepIndex);
-    cur.apply(parsed);
-
-    if(cur.key==="couponAsk") skipCoupon = (parsed===false);
-    if(cur.key==="donateAsk") skipDonation = (parsed===false);
-
-    stepIndex++;
-    askStep();
-    return;
-  }
-
-  if(mode==="review"){
-    addMsg("Type CONFIRM to submit, or BACK / RESTART.", "bot");
-    setChips(["CONFIRM","BACK","RESTART"]);
-    return;
-  }
-
-  addMsg("Type RESTART to start again.", "bot");
-  setChips(["RESTART"]);
-}
-
-/* ========= RESET ========= */
-function resetAll(){
-  mode = "sales";
-  stepIndex = 0;
-  backStack.length = 0;
-  skipCoupon = false;
-  skipDonation = false;
-
-  items = [makeItem()];
-  Object.assign(order, {
-    rush:false,
-    giftNote:false,
-    giftNoteText:"",
-    donation:0,
-    coupon:"",
-    shipping:"",
-    address:"",
-    name:"",
-    phone:"",
-    photoBeforePay:false,
-    notes:""
+    await logAudit({ type:"create", collection:"tt_faq", id: ref.id });
   });
 
-  chat.innerHTML = "";
-  setStatus("");
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", e=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      e.currentTarget.classList.add("active");
+      currentCollection = e.currentTarget.dataset.col;
+      subscribe();
+    });
+  });
 
-  addMsg(
-`Hi! Welcome to Tactics & Treats.
-Pricing: $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN})
-Shipping: $${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state
+  searchBox.addEventListener("input", ()=>{
+    const filtered = applySearch(lastRows);
+    if(COLLECTION_CONFIG[currentCollection]?.showDashboard) updateDashboard(filtered);
+    buildTable(filtered);
+  });
 
-${POPULAR_PICK}
-${LIMITED_SPOTS}
+  refreshBtn.addEventListener("click", subscribe);
 
-Do you have any questions before ordering?`,
-  "bot");
-
-  setChips(["Price","Sizing","Colors","Shipping","Your story","Contact","I want one"]);
-}
-
-document.getElementById("sendBtn").onclick = send;
-document.getElementById("resetBtn").onclick = resetAll;
-input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
-
-// load Firestore FAQ (optional) then start
-await loadFAQ();
-resetAll();
+  subscribe();
 </script>
 
 </body>
