@@ -136,7 +136,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /* 🔥 FIREBASE */
 const firebaseConfig = {
@@ -159,31 +159,29 @@ const MAX_IN = 40;
 const SHIPPING_IN = 6;
 const SHIPPING_OUT = 10;
 
-const FEE_DURABILITY = 3;   // survival cord / extra durability
+const FEE_DURABILITY = 3;
 const FEE_GLOW = 2;
 const FEE_REFLECTIVE = 2;
 const FEE_CHARM = 3;
 const FEE_EXTRA_TAIL = 2;
-const FEE_RUSH = 5;
+const FEE_RUSH = 5; // (your order flow still uses this; FAQ rush is $1 as you stated)
 const FEE_GIFT_NOTE = 2;
-const FEE_ENGRAVED_TAG = 8; // collar tag
+const FEE_ENGRAVED_TAG = 8;
 
 const COUPON_CODE = "NORTHIDAHO";
 const COUPON_PCT = 10;
 
-const PHONE_NUMBER = "2083043821";
+const PHONE_NUMBER = "208-304-3821";
 const SIGNATURE = "Tactics & Treats Team";
 
 const POPULAR_PICK = "Most popular pick: King Cobra in red/black.";
 const LIMITED_SPOTS = "Heads up: I can do same-day, but I have limited spots today.";
 
-/* story (no religious language) */
+/* ✅ UPDATED BRAND STORY (locked) */
 const BRAND_STORY =
-`I started Tactics & Treats to build something real with my hands and turn it into a positive business.
+`I started Tactics & Treats because I like making things by hand and wanted to turn that into something real. Everything is custom, made with care, and not mass-produced.
 
-Everything is handmade and customized to the size/colors you want. It’s not a factory — it’s just solid work and attention to detail.
-
-When you order, you’re supporting a small brand that’s growing and improving with every order.
+Quality over quantity. We’re not about the money — we’re about making quality gear and making sure every customer is happy.
 
 — ${SIGNATURE}`;
 
@@ -218,14 +216,38 @@ function money(n){
   return "$" + x.toFixed(2).replace(/\.00$/,"");
 }
 
+/* ✅ NEW: LOG UNANSWERED QUESTIONS */
+async function logUnanswered(text){
+  try{
+    await addDoc(collection(db,"tt_unanswered"),{
+      text: String(text||"").trim(),
+      createdAt: serverTimestamp()
+    });
+  }catch(e){}
+}
+
+/* ✅ OPTIONAL: ADMIN-EDITABLE FAQ (tt_faq)
+   Doc format: { triggers:["shipping","deliver"], answer:"..." }
+*/
+let FAQ_DB = [];
+async function loadFAQ(){
+  try{
+    const snap = await getDocs(collection(db,"tt_faq"));
+    FAQ_DB = [];
+    snap.forEach(d=>FAQ_DB.push(d.data()));
+  }catch(e){
+    FAQ_DB = [];
+  }
+}
+
 /* ========= DATA ========= */
 function makeItem(){
   return {
-    itemType: "",     // bracelet | dog collar | keychain
-    weave: "",        // cobra | king cobra
+    itemType: "",
+    weave: "",
     inches: 0,
-    fit: "",          // snug | regular | loose
-    colors: [],       // 2 cobra / 3 king cobra
+    fit: "",
+    colors: [],
     patternStyle: "",
     durability: false,
     glow: false,
@@ -244,7 +266,7 @@ const order = {
   giftNoteText:"",
   donation:0,
   coupon:"",
-  shipping:"",         // "in" | "out"
+  shipping:"",
   address:"",
   name:"",
   phone:"",
@@ -302,32 +324,153 @@ function pricePreviewLine(){
   return `Estimate so far: ${money(t.total)}${t.coup>0 ? ` (coupon -${money(t.coup)})` : ""}`;
 }
 
-/* ========= FAQ / SALES ========= */
+/* ========= UPDATED FAQ / SALES ========= */
 function answerFAQ(text){
   const t = clean(text);
 
+  // 1) Firestore FAQ overrides (admin-editable)
+  for(const f of FAQ_DB){
+    if(f?.triggers?.some(k => t.includes(String(k).toLowerCase()))){
+      return String(f.answer || "").trim() || null;
+    }
+  }
+
+  // CONTACT
   if(t.includes("contact") || t.includes("number") || t.includes("phone")){
-    return `You can text/call: ${PHONE_NUMBER}\n— ${SIGNATURE}`;
+    return `Text: ${PHONE_NUMBER}\n— ${SIGNATURE}`;
   }
-  if(t.includes("meet") || t.includes("meet up") || t.includes("pickup")){
-    return `I don’t do meetups — I ship it to you.\nShipping is $${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state.\n\n${LIMITED_SPOTS}`;
+
+  // BRAND / ABOUT
+  if(t.includes("why did you start") || t.includes("your story") || (t.includes("why") && t.includes("start")) || t.includes("story")){
+    return "I started Tactics & Treats because I like making things by hand and wanted to turn that into something real. Everything is custom, made with care, and not mass-produced.";
   }
-  if(t.includes("why") || t.includes("story")){
-    return BRAND_STORY;
+  if(t.includes("who makes") || t.includes("handmade") || t.includes("team")){
+    return "Everything is handmade by a small team, not mass-produced.";
   }
-  if(t.includes("color")){
-    return `I’ve got lots of main rainbow colors, and if you want a special color I can get it — it just takes a little more time.\nCobra = 2 colors • King Cobra = 3 colors.\n\n${POPULAR_PICK}`;
+  if(t.includes("where are you") || t.includes("where based") || (t.includes("where") && t.includes("located"))){
+    return "I’m currently based in Idaho. That may change in the future, but all orders ship from here for now.";
   }
-  if(t.includes("size") || t.includes("measure") || t.includes("fit")){
-    return `Measure your wrist (or your dog’s neck). Choose snug/regular/loose.\nPricing is $${PRICE_PER_INCH}/inch.\n\n${POPULAR_PICK}`;
+
+  // PRODUCTS
+  if(t.includes("what do you sell") || t.includes("what do you make") || t.includes("what do you do")){
+    return "I make custom paracord bracelets, dog collars, and keychains — all handmade and sized to order.";
   }
-  if(t.includes("ship") || t.includes("address")){
-    return `Shipping is $${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state.\nI’ll ask for your address during checkout.\n\n${LIMITED_SPOTS}`;
+  if(t.includes("materials") || t.includes("made of") || t.includes("what are these made")){
+    return "I use 550 paracord and micro cord, along with metal or plastic buckles and metal charms or rings, depending on the item.";
   }
+  if(t.includes("survival") || t.includes("edc") || t.includes("just for looks")){
+    return "They’re made with real paracord and can be used as survival gear, not just for looks.";
+  }
+  if((t.includes("keychain") || t.includes("dog collar")) && (t.includes("same") || t.includes("materials"))){
+    return "Yes, the bracelets, keychains, and dog collars are all made using the same quality cord and materials.";
+  }
+
+  // DOG COLLARS
+  if(t.includes("dog collar") && (t.includes("adjustable") || t.includes("fixed"))){
+    return "Dog collars are fixed size and made to the measurement you provide.";
+  }
+  if(t.includes("dog") && (t.includes("size") || t.includes("measure") || t.includes("collar"))){
+    return "The best way to size a dog collar is to use a fabric measuring tape, put it snug around your dog’s neck, then add about one inch for comfort.";
+  }
+
+  // WATER / DAILY USE
+  if(t.includes("water") || t.includes("wet") || t.includes("rain") || t.includes("sweat") || t.includes("swim") || t.includes("shower")){
+    return "They’re fine for daily wear and can handle sweat, rain, and getting wet. Swimming and showering are okay, but I wouldn’t recommend it regularly since dirt can build up under the bracelet over time.";
+  }
+
+  // LIFESPAN
+  if(t.includes("how long") || t.includes("lifespan") || t.includes("last") || t.includes("wear out")){
+    return "It really depends on how it’s worn and used. With normal wear they can last a long time, but heavy use will wear them out faster.";
+  }
+
+  // SIZING
+  if((t.includes("adult") && t.includes("size")) || t.includes("adult wrist")){
+    return "Most adults usually wear between about 7.5 and 8.5 inches, but measuring your wrist is always best.";
+  }
+  if((t.includes("teen") && (t.includes("size") || t.includes("sizing"))) || t.includes("teen wrist")){
+    return "Teens usually fall around 6.5–7.5 inches, but it can vary a lot depending on wrist size.";
+  }
+  if(t.includes("between sizes") || (t.includes("between") && t.includes("size"))){
+    return "If you’re between sizes, ask me for the most common sizes. A good rule is to go about 0.5 inches under the next size up for a comfortable fit.";
+  }
+  if(t.includes("measure") && (t.includes("wrist") || t.includes("fit"))){
+    return "Measure your wrist with a tape or string. Pick snug/regular/loose depending on how you like it to fit.";
+  }
+
+  // CUSTOM / BULK / LIMITS
+  if(t.includes("custom") || t.includes("special request") || t.includes("bulk") || t.includes("group") || t.includes("matching set")){
+    return "Yes — custom color combos, custom sizes, matching sets (bracelet + dog collar), and bulk or group orders are all available.";
+  }
+  if(t.includes("logo") || t.includes("copyright") || t.includes("hate") || t.includes("offensive") || t.includes("unsafe") || t.includes("harmful")){
+    return "I don’t make copyrighted logos, hate symbols, offensive content, or anything unsafe or harmful.";
+  }
+
+  // ORDER CHANGES / ISSUES
+  if((t.includes("change") || t.includes("edit")) && t.includes("order")){
+    return `Yes, you can change your order as long as it hasn’t been made yet. To check, text ${PHONE_NUMBER} and I’ll let you know.`;
+  }
+  if(t.includes("wrong size") || t.includes("wrong address")){
+    return "If you entered the wrong size or address, contact me as soon as possible. Address issues can usually be fixed, and size changes depend on how far along the order is.";
+  }
+  if(t.includes("break") || t.includes("broke")){
+    return "If it breaks within 2 weeks and it doesn’t look like it was pulled apart on purpose, I’ll replace it. Replacement requires the optional insurance, which is an extra $2.";
+  }
+
+  // PAYMENT
+  if(t.includes("pay") || t.includes("payment") || t.includes("card") || t.includes("cash")){
+    return "I accept card payments and cash. Payment is required before I make the item.";
+  }
+  if(t.includes("tip") || t.includes("donation")){
+    return "Yes, tips or donations are optional and always appreciated, but never required.";
+  }
+
+  // SHIPPING
+  if(t.includes("ship") || t.includes("shipping") || t.includes("deliver")){
+    return "Shipping time depends on your location. I’ll give you an estimate once your order is ready to ship.";
+  }
+  if(t.includes("international") || t.includes("outside the us") || (t.includes("outside") && t.includes("u.s"))){
+    return "Not right now, but I may offer shipping outside the U.S. in the future.";
+  }
+
+  // PICKUP / MEETUPS (locked)
+  if(t.includes("pickup") || t.includes("meet") || t.includes("meet up")){
+    return "Local pickup may be available sometimes. Just ask and I’ll let you know what’s possible.";
+  }
+
+  // RUSH (locked: $1, limited, same-day making)
+  if(t.includes("rush") || t.includes("same day")){
+    if(t.includes("not available") || t.includes("no rush")){
+      return "If rush isn’t available, the order will be made as a normal order.";
+    }
+    return "Rush means same-day making if available. There’s a $1 extra fee, and spots are limited.";
+  }
+
+  // REFUNDS
+  if(t.includes("refund")){
+    return "Refunds are only offered if there’s a mistake on my end.";
+  }
+
+  // UPSET CUSTOMERS
+  if(t.includes("not happy") || t.includes("upset") || t.includes("angry") || t.includes("mad")){
+    return `I’m sorry you’re having an issue. Please text ${PHONE_NUMBER} and I’ll do my best to help.`;
+  }
+
+  // TRUST
+  if(t.includes("amazon") || t.includes("why buy") || t.includes("why you") || t.includes("mass produced")){
+    return "Everything I make is handmade, not mass-produced. That means better materials, tighter builds, and more attention to detail, which makes them stronger and better overall.";
+  }
+
+  // COLORS (general helper)
+  if(t.includes("color") || t.includes("colors")){
+    return `Cobra = 2 colors • King Cobra = 3 colors.\nTell me the weave and the colors you want (example: "king cobra red/black/white").\n\n${POPULAR_PICK}`;
+  }
+
+  // PRICE
   if(t.includes("price") || t.includes("how much") || t.includes("cost")){
     return `Pricing is $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN}).\nShipping: $${SHIPPING_IN} in-state / $${SHIPPING_OUT} out-of-state.\n\n${POPULAR_PICK}\n${LIMITED_SPOTS}`;
   }
-  return `Ask me anything about price, sizing, colors, or shipping.\nOr tell me what you want and I’ll quote it.\n\n${POPULAR_PICK}`;
+
+  return null;
 }
 
 function wantsToBuy(text){
@@ -350,34 +493,26 @@ function extractWeave(seg){
 }
 
 function extractInches(seg){
-  // "8.5 inches" / 8.5" / "size 8" / "8 in"
   let m = seg.match(/(\d+(?:\.\d+)?)\s*(?:inches|inch|in|")/i) || seg.match(/\bsize\s*(\d+(?:\.\d+)?)/i);
   if(m) return Number(m[1]);
-
-  // fallback: first number
   const m2 = seg.match(/\b(\d+(?:\.\d+)?)\b/);
   return m2 ? Number(m2[1]) : 0;
 }
 
 function extractColors(seg, wantCount){
   let colors = [];
-
-  // comma list
   if(seg.includes(",")){
     colors = seg.split(",").map(x=>x.trim()).filter(Boolean);
   }else{
-    // red/black/white
     const slash = seg.match(/\b([a-z]+)\s*\/\s*([a-z]+)(?:\s*\/\s*([a-z]+))?\b/i);
     if(slash){
       colors = [slash[1], slash[2], slash[3]].filter(Boolean);
     }else{
-      // "red and black and white" OR "red and black"
       const and3 = seg.match(/\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b/i);
       const and2 = seg.match(/\b([a-z]+)\b\s*(?:and)\s*\b([a-z]+)\b/i);
       if(and3) colors = [and3[1], and3[2], and3[3]];
       else if(and2) colors = [and2[1], and2[2]];
       else{
-        // "blue brown" "white black white"
         const words = seg.replace(/[^a-z\s]/gi," ").split(/\s+/).map(w=>w.trim()).filter(Boolean);
         const stop = new Set([
           "inches","inch","in","is","and","a","the","one","two","three","four",
@@ -432,13 +567,11 @@ function parseMultiBraceletMessage(text){
 
   if(!asksPrice && !looksMulti) return null;
 
-  // order-level hints
   const orderHints = {
     rush: /\brush\b|\bsame[-\s]?day\b|\btoday\b|\bpriority\b/i.test(raw),
     donation: parseDonation(raw)
   };
 
-  // segment splits
   let segments = [];
   if(/bracelet\s*\d/i.test(t)){
     segments = raw.split(/bracelet\s*\d+\s*[:\-]?\s*/i).map(s=>s.trim()).filter(Boolean);
@@ -503,7 +636,6 @@ function extractHints(text){
 
   h.addons = extractAddons(text);
 
-  // outside/middle/inside
   const outside = t.match(/outside\s+([a-z]+)/);
   const middle  = t.match(/middle\s+(?:band\s+)?([a-z]+)/);
   const inside  = t.match(/inside\s+([a-z]+)/);
@@ -512,10 +644,8 @@ function extractHints(text){
     return h;
   }
 
-  // comma or slash or "and"
   let guessedWeave = h.weave;
   if(!guessedWeave){
-    // if they provided 3 colors, assume king cobra; 2 colors assume cobra
     const temp3 = extractColors(text, 3);
     const temp2 = extractColors(text, 2);
     if(temp3.length === 3) guessedWeave = "king cobra";
@@ -536,7 +666,6 @@ function applyHintsToItem(h, it){
   if(h.inches && !it.inches) it.inches = h.inches;
   if(h.fit && !it.fit) it.fit = h.fit;
 
-  // if colors present but weave missing, infer
   if(h.colors && h.colors.length){
     if(!it.weave){
       if(h.colors.length===3) it.weave="king cobra";
@@ -549,7 +678,6 @@ function applyHintsToItem(h, it){
   }
 
   if(h.addons){
-    // do not overwrite if already true
     if(h.addons.durability) it.durability = true;
     if(h.addons.glow) it.glow = true;
     if(h.addons.reflective) it.reflective = true;
@@ -563,10 +691,9 @@ function applyHintsToItem(h, it){
 }
 
 /* ========= FLOW ========= */
-let mode = "sales"; // sales | order | review | done
+let mode = "sales";
 let stepIndex = 0;
 const backStack = [];
-
 let skipCoupon = false;
 let skipDonation = false;
 
@@ -700,19 +827,15 @@ function stepDone(key){
     return need>0 && it.colors.length===need;
   }
   if(key==="patternStyle") return !!it.patternStyle;
-
   if(key==="engravedTagAsk") return true;
   if(key==="engravedTagText") return (it.itemType!=="dog collar") ? true : (it.engravedTagText !== null);
-
   if(key==="giftText") return order.giftNote ? (order.giftNoteText.length>=0) : true;
   if(key==="coupon") return true;
   if(key==="donation") return true;
-
   if(key==="shipping") return !!order.shipping;
   if(key==="address") return !!order.address;
   if(key==="name") return !!order.name;
   if(key==="phone") return !!order.phone;
-
   return false;
 }
 
@@ -760,7 +883,6 @@ function buildSummary(){
   if(it.charm) add.push("charm");
   if(it.extraTail) add.push("extra tail");
   const addLine = add.length ? `\n• Add-ons: ${add.join(", ")}` : "";
-
   const tag = (it.itemType==="dog collar" && it.engravedTagText) ? `\n• Tag: ${it.engravedTagText}` : "";
 
   return (
@@ -798,7 +920,6 @@ Price
 async function submitOrder(){
   const totals = calcTotals();
 
-  // required info
   for(const it of items){
     const need = needColorsCount(it);
     if(!it.itemType || !it.weave || !it.inches || !it.fit || it.colors.length!==need){
@@ -920,6 +1041,25 @@ function send(){
 
   if(handleCommand(text)) return;
 
+  // ✅ NEW: FAQ works in ANY MODE without breaking the order flow
+  const faq = answerFAQ(text);
+  if(faq){
+    addMsg(faq, "bot");
+
+    if(mode === "order"){
+      const cur = steps[stepIndex];
+      if(cur){
+        addMsg("Now back to your order:", "bot");
+        addMsg(cur.ask, "bot");
+        setChips(cur.chips || []);
+        addMsg(pricePreviewLine(), "bot");
+      }
+    }else{
+      setChips(["Price","Sizing","Colors","Shipping","Your story","Contact","I want one"]);
+    }
+    return;
+  }
+
   // multi-bracelet sentence that asks price
   if(mode==="sales"){
     const multi = parseMultiBraceletMessage(text);
@@ -928,7 +1068,6 @@ function send(){
       return;
     }
 
-    // normal “question first” mode
     if(wantsToBuy(text)){
       const h = extractHints(text);
       applyHintsToItem(h, items[0]);
@@ -944,13 +1083,20 @@ function send(){
       return;
     }
 
-    addMsg(answerFAQ(text), "bot");
+    // fallback sales message
+    addMsg(
+`Ask me anything about price, sizing, colors, shipping, or custom orders.
+Or tell me what you want and I’ll quote it.
+
+${POPULAR_PICK}`,
+      "bot"
+    );
     setChips(["Price","Sizing","Colors","Shipping","Your story","Contact","I want one"]);
+    logUnanswered(text);
     return;
   }
 
   if(mode==="order"){
-    // if they type a big sentence mid-order, try to pull info from it
     const h = extractHints(text);
     applyHintsToItem(h, items[0]);
     const don = parseDonation(text);
@@ -959,7 +1105,6 @@ function send(){
     const s = steps[stepIndex] || null;
     if(!s){ askStep(); return; }
 
-    // skip steps that are now complete
     stepIndex = nextMissing(stepIndex);
     if(stepIndex >= steps.length){ askStep(); return; }
 
@@ -967,7 +1112,6 @@ function send(){
 
     const parsed = cur.parse(text);
     if(parsed == null){
-      // if their message filled something else, advance if possible
       const advanced = nextMissing(stepIndex);
       if(advanced !== stepIndex){
         addMsg("Got it.", "bot");
@@ -980,13 +1124,13 @@ function send(){
       addMsg(cur.ask, "bot");
       setChips(cur.chips || []);
       addMsg(pricePreviewLine(), "bot");
+      logUnanswered(text);
       return;
     }
 
     backStack.push(stepIndex);
     cur.apply(parsed);
 
-    // update skip flags for coupon/donation flow
     if(cur.key==="couponAsk") skipCoupon = (parsed===false);
     if(cur.key==="donateAsk") skipDonation = (parsed===false);
 
@@ -1049,6 +1193,8 @@ document.getElementById("sendBtn").onclick = send;
 document.getElementById("resetBtn").onclick = resetAll;
 input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
 
+// load Firestore FAQ (optional) then start
+await loadFAQ();
 resetAll();
 </script>
 
