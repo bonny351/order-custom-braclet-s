@@ -3,686 +3,1329 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Admin Panel</title>
+<title>Tactics & Treats – Admin Bot</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+  :root{
+    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+    --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
+    --line:#2a2a2a; --radius:16px;
+  }
+  *{ box-sizing:border-box; }
   body{
+    margin:0; padding:18px;
+    background:var(--bg); color:var(--text);
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:500;
-    background:#111;
-    color:#fff;
-    margin:0;
-    padding:20px;
   }
-
-  h1,h2{
-    text-align:center;
-    color:#ff0000;
-    margin:0;
-    font-weight:700;
-    letter-spacing:.2px;
-  }
-
+  .wrap{ max-width:980px; margin:0 auto; }
   header{
-    display:flex;
-    justify-content:center;
-    background:linear-gradient(90deg,#7a0c0c,#000);
-    padding:15px;
-    border-radius:10px;
-    box-shadow:0 0 12px rgba(255,0,0,0.4);
-    margin-bottom:15px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap; margin-bottom:14px;
   }
-
-  .tabs{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    margin-bottom:15px;
-    flex-wrap:wrap;
+  h1{ margin:0; color:var(--accent); font-size:22px; }
+  .pill{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:#1f1f1f; border:1px solid #2a2a2a; color:var(--muted);
   }
-
-  .tab{
-    padding:10px 20px;
+  .card{
+    background:var(--panel);
+    border:1px solid #262626;
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 0 18px rgba(255,0,0,.18);
+  }
+  .chat{
+    height:640px; overflow:auto;
+    padding:12px;
+    border-radius:14px;
+    background:#000;
+    border:1px solid var(--line);
+  }
+  .msg{
+    max-width:94%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:10px 0;
+    white-space:pre-line;
+    line-height:1.35;
+  }
+  .bot{
+    background:#101010;
+    border:1px solid #2a2a2a;
+    border-top-left-radius:6px;
+  }
+  .user{
+    background:#1c1c1c;
+    border:1px solid #333;
+    margin-left:auto;
+    border-top-right-radius:6px;
+  }
+  .chips{
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
+  }
+  .chip{
+    background:#191919;
+    border:1px solid #2f2f2f;
+    color:#fff;
+    padding:8px 10px;
+    border-radius:999px;
     cursor:pointer;
-    border-radius:6px;
-    background:#222;
-    font-weight:700;
+    font-size:13px;
+    font-weight:800;
     user-select:none;
   }
-  .tab.active{
-    background:#ff0000;
-    box-shadow:0 0 8px #ff0000;
-  }
-
-  .dashboard{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:12px;
-    margin-bottom:15px;
-  }
-  .stat{
-    background:#181818;
-    padding:12px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(255,0,0,.25);
-    text-align:center;
-  }
-  .stat h3{ margin:0; color:#ffb347; font-weight:700; }
-  .stat p{ font-size:20px; margin:5px 0 0; font-weight:700; }
-
-  section{
-    background:#181818;
-    padding:20px;
-    border-radius:12px;
-    box-shadow:0 0 12px rgba(255,0,0,0.2);
-  }
-
-  .toolbar{
-    display:flex;
-    gap:10px;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    margin-top:12px;
-  }
-  .toolbar input{
+  .chip:hover{ filter:brightness(1.08); }
+  .bar{ display:flex; gap:10px; margin-top:10px; }
+  input{
     flex:1;
-    min-width:220px;
-    background:#111;
+    border:none; outline:none;
+    border-radius:14px;
+    padding:12px 12px;
+    font-size:15px;
     color:#fff;
-    border:1px solid #ff0000;
-    border-radius:10px;
-    padding:10px 12px;
-    outline:none;
-    font-weight:500;
+    background:var(--panel2);
+    border:1px solid var(--line);
   }
-  .toolbar button{
-    background:#ff0000;
+  button{
+    border:none;
+    border-radius:14px;
+    padding:12px 14px;
+    font-weight:900;
+    cursor:pointer;
+    background:var(--accent);
     color:#fff;
-    border:none;
-    border-radius:10px;
-    padding:10px 14px;
-    font-weight:800;
-    cursor:pointer;
   }
-  .toolbar button:hover{ background:darkred; }
-
-  .tableWrap{
-    width:100%;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    margin-top:12px;
-    border-radius:10px;
+  button:hover{ filter:brightness(1.08); }
+  .secondary{
+    background:#242424;
+    border:1px solid #343434;
+    color:#fff;
   }
-
-  table{
-    width:100%;
-    border-collapse:collapse;
-    table-layout:auto;
-    min-width:1250px;
-  }
-
-  th,td{
-    border:1px solid #ff0000;
-    padding:10px 8px;
-    text-align:center;
-    white-space:nowrap;
-    vertical-align:top;
-  }
-
-  th{
-    background:#111;
-    position:sticky;
-    top:0;
-    z-index:2;
-    font-weight:800;
-    letter-spacing:.2px;
-  }
-
-  tr:nth-child(even){ background:#222; }
-
-  .statusSelect{
-    background:#222;
-    color:white;
-    border:1px solid #ff0000;
-    border-radius:8px;
-    padding:7px;
-    font-weight:700;
-  }
-
-  .newRow{ background:rgba(255,255,0,0.25)!important; }
-  .doneRow{ background:rgba(0,255,0,0.25)!important; }
-  .unpaidRow{ background:rgba(255,0,0,0.25)!important; }
-  .pendingRow{ background:rgba(0,170,255,0.22)!important; }
-
-  .deleteBtn{
-    background:#ff2222;
-    color:white;
-    border:none;
-    border-radius:8px;
-    padding:6px 10px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .deleteBtn:hover{
-    background:#aa0000;
-    box-shadow:0 0 8px rgba(255,0,0,.6);
-  }
-
-  .note{
-    text-align:center;
-    font-size:12px;
-    opacity:.85;
-    margin-top:10px;
-  }
-
-  .wrapCell{
-    white-space:normal;
-    max-width:560px;
-    line-height:1.2;
-  }
+  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; }
+  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
 </style>
 </head>
 
 <body>
-<header><h1>Tactics & Treats Admin Panel</h1></header>
+<div class="wrap">
+  <header>
+    <h1>Tactics & Treats – Admin Bot</h1>
+    <div class="pill">Commands • Orders + Inventory + Stats</div>
+  </header>
 
-<div class="tabs">
-  <div class="tab active" data-col="tt_orders">Chat Orders</div>
-  <div class="tab" data-col="braceletOrders">Bracelet Orders</div>
-  <div class="tab" data-col="cookieOrders">Cookie Orders</div>
-  <div class="tab" data-col="spiritOrders">Spirit Wear</div>
-  <div class="tab" data-col="products_bracelets">Bracelet Products</div>
-  <div class="tab" data-col="products_cookies">Cookie Products</div>
+  <div class="card">
+    <div id="chat" class="chat"></div>
+    <div id="chips" class="chips"></div>
+    <div id="status"></div>
 
-  <!-- ✅ NEW: chatbot + admin training tabs -->
-  <div class="tab" data-col="tt_faq">Chatbot FAQ</div>
-  <div class="tab" data-col="tt_unanswered">Unanswered Qs</div>
+    <div class="bar">
+      <input id="input" placeholder="Type a command…" autocomplete="off" />
+      <button id="sendBtn">Send</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
 
-  <div class="tab" data-col="auditLog">Audit Log</div>
+    <div class="meta">
+      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNFINISHED</b>, <b>BYPHONE 2083043821</b>, <b>LOWSTOCK</b>, <b>TOTALS MONTH</b>
+    </div>
+  </div>
 </div>
-
-<div class="dashboard" id="dashboard">
-  <div class="stat"><h3>Today</h3><p id="todayCount">0</p></div>
-  <div class="stat"><h3>This Week</h3><p id="weekCount">0</p></div>
-  <div class="stat"><h3>Revenue</h3><p id="revenue">$0</p></div>
-</div>
-
-<section>
-  <h2 id="tableTitle">Chat Orders</h2>
-
-  <div class="toolbar">
-    <input id="searchBox" placeholder="Search (name, phone, address, item, etc.)" />
-    <button id="addBtn" style="display:none;">➕ Add FAQ</button>
-    <button id="refreshBtn">Refresh</button>
-  </div>
-
-  <div class="tableWrap">
-    <table id="table"></table>
-  </div>
-
-  <div class="note" id="note">
-    Swipe left/right on the table. Chat Orders: status + delete only.
-  </div>
-</section>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import {
-    getFirestore,
-    collection, doc, setDoc, addDoc, deleteDoc, updateDoc,
-    onSnapshot, query, orderBy, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore,
+  collection, doc, getDoc, getDocs,
+  updateDoc, setDoc, deleteDoc,
+  serverTimestamp, limit, query
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-    authDomain:"bracelets-and-color.firebaseapp.com",
-    projectId:"bracelets-and-color",
-    storageBucket:"bracelets-and-color.appspot.com",
-    messagingSenderId:"382292570673",
-    appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+/* 🔥 FIREBASE */
+const firebaseConfig = {
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* Collections */
+const ORDERS = "tt_orders";
+const PRODUCTS = {
+  bracelets: "products_bracelets",
+  cookies: "products_cookies",
+};
+
+/* NOTE:
+   This bot fetches recent docs and filters client-side to avoid Firestore index headaches.
+   If you have more orders/products, bump these limits.
+*/
+const ORDER_FETCH_LIMIT = 900;
+const PRODUCT_FETCH_LIMIT = 900;
+
+/* UI */
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const chipsBox = document.getElementById("chips");
+const statusEl = document.getElementById("status");
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
+function addMsg(text, who="bot"){
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "user" ? "user" : "bot");
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+function setChips(options){
+  chipsBox.innerHTML = "";
+  (options || []).forEach(opt=>{
+    const b = document.createElement("div");
+    b.className = "chip";
+    b.textContent = opt;
+    b.onclick = ()=>{ input.value = opt; send(); };
+    chipsBox.appendChild(b);
+  });
+}
+function clean(s){ return String(s||"").trim(); }
+function upper(s){ return clean(s).toUpperCase(); }
+function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+
+function safeToDate(v){
+  if(!v) return null;
+  if(typeof v?.toDate === "function") return v.toDate();
+  if(typeof v?.seconds === "number") return new Date(v.seconds*1000);
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtDate(v){
+  const d = safeToDate(v);
+  return d ? d.toLocaleString() : "";
+}
+
+function money(v){
+  const n = Number(v);
+  if(!Number.isFinite(n)) return "";
+  return "$" + n.toFixed(2);
+}
+
+function normalizeStatus(s){
+  const t = String(s||"new").toLowerCase().trim();
+  if(["new","pending","unpaid","done","archived","cancelled","refunded","flagged"].includes(t)) return t;
+  if(t === "completed") return "done";
+  return t || "new";
+}
+
+function startOfToday(){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+function startOfWeek(){
+  const d = startOfToday();
+  const day = d.getDay(); // 0=Sun
+  d.setDate(d.getDate() - day);
+  return d;
+}
+function startOfMonth(){
+  const d = startOfToday();
+  d.setDate(1);
+  return d;
+}
+function daysAgo(n){
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+function summarizeItems(items){
+  if(!Array.isArray(items) || !items.length) return "(none)";
+  return items.map((it, i)=>{
+    const colors = Array.isArray(it.colors) ? it.colors.join("/") : "";
+    const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
+    const ups = [];
+    if(it.durability) ups.push("durability");
+    if(it.reflective) ups.push("reflective");
+    if(it.glow) ups.push("glow");
+    if(it.charm) ups.push("charm");
+    if(it.extraTail) ups.push("extra tail");
+    const upsTxt = ups.length ? ` • [${ups.join(", ")}]` : "";
+    return `${i+1}) ${it.itemType||""} • ${it.weave||""} • ${it.inches||""}" • ${it.fit||""} • ${colors}${tag}${upsTxt}`.trim();
+  }).join("\n");
+}
+
+function orderTotal(data){
+  const totals = data?.totals || {};
+  const t = totals.total;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function orderCard(id, data){
+  const o = data?.order || {};
+  const totals = data?.totals || {};
+  const items = data?.items || [];
+  const status = normalizeStatus(data?.status);
+
+  return [
+    `Order: ${id}`,
+    `Status: ${status}`,
+    `Created: ${fmtDate(data?.createdAt)}`,
+    `Name: ${o.name || ""}`,
+    `Phone: ${o.phone || ""}`,
+    `Shipping: ${o.shipping || ""}`,
+    `Address: ${o.address || ""}`,
+    `Rush: ${o.rush ? "yes" : "no"}`,
+    `AssignedTo: ${data?.assignedTo || ""}`,
+    `AdminNote: ${data?.adminNote || ""}`,
+    `Tracking: ${data?.tracking || ""}`,
+    `Flagged: ${data?.flagged ? "yes" : "no"}`,
+    `Problem: ${data?.problemNote || ""}`,
+    `PaidAt: ${fmtDate(data?.paidAt)}`,
+    `ShippedAt: ${fmtDate(data?.shippedAt)}`,
+    `Total: ${typeof totals.total === "number" ? money(totals.total) : (totals.total ?? "")}`,
+    `Items:\n${summarizeItems(items)}`
+  ].join("\n");
+}
+
+function compactOrderLine(r){
+  const o = r.order || {};
+  const t = orderTotal(r);
+  return `• ${r.id} | ${normalizeStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(t)}`;
+}
+
+/* Cached fetches */
+let orderCache = [];
+let orderCacheAt = 0;
+
+let productCache = { bracelets: [], cookies: [] };
+let productCacheAt = 0;
+
+async function refreshOrders(){
+  const qRef = query(collection(db, ORDERS), limit(ORDER_FETCH_LIMIT));
+  const snap = await getDocs(qRef);
+  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  orderCacheAt = Date.now();
+  return orderCache;
+}
+async function refreshProducts(){
+  const out = {};
+  for(const k of ["bracelets","cookies"]){
+    const col = PRODUCTS[k];
+    const qRef = query(collection(db, col), limit(PRODUCT_FETCH_LIMIT));
+    const snap = await getDocs(qRef);
+    out[k] = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  }
+  productCache = out;
+  productCacheAt = Date.now();
+  return productCache;
+}
+async function ensureOrdersFresh(){
+  if(!orderCache.length || (Date.now() - orderCacheAt) > 20_000) await refreshOrders();
+  return orderCache;
+}
+async function ensureProductsFresh(){
+  if((!productCache.bracelets.length && !productCache.cookies.length) || (Date.now() - productCacheAt) > 20_000){
+    await refreshProducts();
+  }
+  return productCache;
+}
+
+/* Firestore ops */
+async function getOrder(id){
+  const snap = await getDoc(doc(db, ORDERS, id));
+  return snap.exists() ? snap.data() : null;
+}
+async function patchOrder(id, patch){
+  await updateDoc(doc(db, ORDERS, id), patch);
+}
+async function setOrder(id, data){
+  await setDoc(doc(db, ORDERS, id), data, { merge:true });
+}
+async function delOrder(id){
+  await deleteDoc(doc(db, ORDERS, id));
+}
+
+function resolveProductCollection(key){
+  const k = String(key||"").toLowerCase().trim();
+  if(k === "bracelets" || k === "products_bracelets") return { key:"bracelets", col: PRODUCTS.bracelets };
+  if(k === "cookies" || k === "products_cookies") return { key:"cookies", col: PRODUCTS.cookies };
+  return null;
+}
+async function getProduct(colKey, id){
+  const rc = resolveProductCollection(colKey);
+  if(!rc) throw new Error("Unknown product collection. Use: bracelets or cookies.");
+  const snap = await getDoc(doc(db, rc.col, id));
+  return snap.exists() ? { id: snap.id, ...snap.data(), __col: rc.col, __key: rc.key } : null;
+}
+async function patchProduct(colKey, id, patch){
+  const rc = resolveProductCollection(colKey);
+  if(!rc) throw new Error("Unknown product collection. Use: bracelets or cookies.");
+  await updateDoc(doc(db, rc.col, id), patch);
+}
+
+function parseCSVList(s){
+  return String(s||"")
+    .split(",")
+    .map(x=>x.trim())
+    .filter(Boolean);
+}
+
+/* Filtering helpers */
+function orderCreatedDate(r){ return safeToDate(r.createdAt) || new Date(0); }
+function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
+function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
+function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
+
+function includesBlob(r, q){
+  const o = r.order || {};
+  const items = r.items || [];
+  const itemText = Array.isArray(items) ? items.map(it=>{
+    const colors = Array.isArray(it.colors)? it.colors.join(" ") : "";
+    return `${it.itemType||""} ${it.weave||""} ${it.inches||""} ${it.fit||""} ${colors} ${it.engravedTagText||""}`.trim();
+  }).join(" | ") : "";
+  const blob = [
+    r.id,
+    normalizeStatus(r.status),
+    o.name, o.phone, o.address,
+    o.shipping, String(o.rush||""),
+    r.assignedTo, r.adminNote, r.tracking, r.problemNote,
+    itemText
+  ].map(x=>String(x||"").toLowerCase()).join(" | ");
+  return blob.includes(q);
+}
+
+function formatOrderList(rows, title){
+  if(!rows.length) return `${title}: none found.`;
+  return [
+    `${title} (showing ${rows.length}):`,
+    ...rows.map(compactOrderLine)
+  ].join("\n");
+}
+
+/* Priority / next */
+function priorityScore(r){
+  const s = normalizeStatus(r.status);
+  const rush = !!(r.order && r.order.rush);
+  if(s === "unpaid" && rush) return 1;
+  if(s === "unpaid") return 2;
+  if(s === "pending" && rush) return 3;
+  if(s === "pending") return 4;
+  if(s === "new" && rush) return 5;
+  if(s === "new") return 6;
+  return 99;
+}
+
+function pickNext(rows){
+  const unfinished = rows.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+  unfinished.sort((a,b)=>{
+    const sa = priorityScore(a), sb = priorityScore(b);
+    if(sa !== sb) return sa - sb;
+    // oldest first within same priority
+    return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
+  });
+  return unfinished[0] || null;
+}
+
+/* Customer aggregations */
+function customerKey(r){
+  const phone = digitsOnly(r?.order?.phone || "");
+  const name = String(r?.order?.name || "").trim().toLowerCase();
+  return phone ? `p:${phone}` : (name ? `n:${name}` : "");
+}
+
+function groupByPhone(rows){
+  const map = new Map();
+  for(const r of rows){
+    const p = digitsOnly(r?.order?.phone || "");
+    if(!p) continue;
+    map.set(p, (map.get(p)||0) + 1);
+  }
+  return map;
+}
+
+/* Delete safety */
+const pendingDeletes = new Map(); // id -> timestamp
+function markPendingDelete(id){
+  pendingDeletes.set(id, Date.now());
+}
+function canDeleteNow(id){
+  const t = pendingDeletes.get(id);
+  if(!t) return false;
+  if(Date.now() - t > 60_000) { pendingDeletes.delete(id); return false; }
+  return true;
+}
+
+/* HELP */
+function helpText(){
+  return [
+    "ADMIN BOT COMMANDS",
+    "",
+    "Orders (lists):",
+    "  UNFINISHED | NEW | PENDING | UNPAID | DONE | TODAY | WEEK | MONTH",
+    "  LAST <n> | RUSH | PRIORITY | OVERDUE <days>",
+    "",
+    "Orders (search):",
+    "  BYNAME <name> | BYPHONE <digits> | BYADDR <text>",
+    "  BYCUSTOMER <name> <phone> | FIND <any text>",
+    "",
+    "Workflow:",
+    "  NEXT | CLAIM <id> | MYQUEUE | UNCLAIM <id>",
+    "  NOTE <id> <text...> | NOTES <id> | CLEARNOTE <id>",
+    "",
+    "Status + shipping:",
+    "  SHOW <id> | STATUS <id> new|pending|unpaid|done|archived|cancelled|refunded",
+    "  PAID <id> (sets paidAt) | SHIPPED <id> (sets shippedAt + auto paidAt) | UNSHIP <id>",
+    "  TRACK <id> <code> | TRACKSHOW <id> | CLEARTRACK <id>",
+    "  SHIPINFO <id> | LABEL <id> | MESSAGE <id> | CONTACT <id>",
+    "",
+    "Safety:",
+    "  ARCHIVE <id>",
+    "  DELETE <id>  (then: DELETE <id> CONFIRM)",
+    "",
+    "Inventory:",
+    "  LOWSTOCK | OUTOFSTOCK",
+    "  LIST bracelets|cookies | FINDP bracelets|cookies <text>",
+    "  STOCK bracelets|cookies <docId>",
+    "  SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra",
+    "  PRICE <col> <id> 12.00 | RESTOCK <col> <id> +10 | DEDUCT <col> <id> -2",
+    "  SIZES <col> <id> 6,6.5,7 | ADDSIZE <col> <id> 8.5 | REMOVESIZE <col> <id> 6",
+    "  COLORS <col> <id> red,black | ADDCOLOR <col> <id> purple | REMOVECOLOR <col> <id> purple",
+    "",
+    "Stats:",
+    "  TOTALS TODAY|WEEK|MONTH | REVENUE TODAY|WEEK|MONTH | AVG MONTH",
+    "  TOPCUSTOMERS <n> | CUSTOMERSTATS <phone>",
+    "  DUPES PHONE | REPEAT <nameOrPhone>",
+    "",
+    "Other:",
+    "  REFRESH (reload caches) | HELP",
+  ].join("\n");
+}
+
+/* Stats */
+function statsForRange(rows, predicate){
+  const inRange = rows.filter(predicate);
+  const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
+  const count = inRange.length;
+  const doneCount = done.length;
+  const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
+  return { count, doneCount, revenue, inRange, done };
+}
+
+function avgMonthlyRevenue(rows){
+  // Based on DONE orders grouped by YYYY-MM
+  const done = rows.filter(r=>normalizeStatus(r.status)==="done");
+  const map = new Map();
+  for(const r of done){
+    const d = orderCreatedDate(r);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    map.set(key, (map.get(key)||0) + orderTotal(r));
+  }
+  const months = Array.from(map.keys()).sort();
+  const values = months.map(m=>map.get(m)||0);
+  const avg = values.length ? values.reduce((a,b)=>a+b,0)/values.length : 0;
+  return { months, values, avg };
+}
+
+/* Order-derived message templates */
+function shippingMessage(id, data){
+  const name = data?.order?.name || "there";
+  const tracking = data?.tracking ? `Tracking: ${data.tracking}\n` : "";
+  return `Message template:\nHey ${name}! Your order is shipped ✅\n${tracking}Thanks for supporting Tactics & Treats!`;
+}
+
+/* Main command handler */
+async function handleCommand(raw){
+  const text = clean(raw);
+  const U = upper(text);
+  if(!text) return;
+
+  // quick aliases (optional, doesn’t hurt)
+  const alias = {
+    "?":"HELP",
+    "U":"UNFINISHED",
+    "N":"NEXT"
   };
+  if(alias[U]) return handleCommand(alias[U]);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  if(U === "HELP") { addMsg(helpText(), "bot"); return; }
 
-  const table = document.getElementById("table");
-  const tableTitle = document.getElementById("tableTitle");
-  const todayCountEl = document.getElementById("todayCount");
-  const weekCountEl = document.getElementById("weekCount");
-  const revenueEl = document.getElementById("revenue");
-  const dashboardEl = document.getElementById("dashboard");
-  const searchBox = document.getElementById("searchBox");
-  const refreshBtn = document.getElementById("refreshBtn");
-  const addBtn = document.getElementById("addBtn");
-  const noteEl = document.getElementById("note");
+  setStatus("Working…");
 
-  let currentCollection = "tt_orders";
-  let unsub = null;
-  let lastRows = [];
+  // refresh
+  if(U === "REFRESH"){
+    await refreshOrders();
+    await refreshProducts();
+    setStatus("");
+    addMsg("✅ Refreshed caches.", "bot");
+    setChips(["NEXT","UNFINISHED","LOWSTOCK","TOTALS MONTH","HELP"]);
+    return;
+  }
 
-  const COLLECTION_CONFIG = {
-    tt_orders: {
-      title: "Chat Orders",
-      showDashboard: true,
-      note: "Swipe left/right on the table. Chat Orders: status + delete only.",
-      statusValues: ["new","pending","done","unpaid"],
-      editable: [],
-      columns: ["status","createdAt","name","phone","items","total","donation","coupon","shipping","address","photoBeforePay","id","delete"]
-    },
-    braceletOrders: {
-      title: "Bracelet Orders",
-      showDashboard: true,
-      note: "Bracelet Orders: click cells to edit. Status dropdown updates instantly.",
-      statusValues: ["new","pending","done","unpaid"],
-      editable: ["name","phone","type","size","color1","color2","qty","price","total","status"],
-      columns: ["status","createdAt","name","phone","type","size","color1","color2","qty","price","total","id","delete"]
-    },
-    cookieOrders: {
-      title: "Cookie Orders",
-      showDashboard: true,
-      note: "Cookie Orders: click cells to edit.",
-      statusValues: ["new","pending","done","unpaid","Pending","Completed"],
-      editable: ["name","phone","email","product","type","qty","total","status"],
-      columns: ["status","createdAt","name","phone","email","product","type","qty","total","id","delete"]
-    },
-    spiritOrders: {
-      title: "Spirit Wear",
-      showDashboard: true,
-      note: "Spirit Wear: click cells to edit.",
-      statusValues: ["new","pending","done","unpaid"],
-      editable: ["name","phone","email","item","size","qty","price","total","status"],
-      columns: ["status","createdAt","name","phone","email","item","size","qty","price","total","id","delete"]
-    },
-    products_bracelets: {
-      title: "Bracelet Products",
-      showDashboard: false,
-      note: "Products: edit fields directly.",
-      editable: ["type","sizeOptions","colorOptions","price"],
-      columns: ["type","sizeOptions","colorOptions","price","id","delete"]
-    },
-    products_cookies: {
-      title: "Cookie Products",
-      showDashboard: false,
-      note: "Products: edit fields directly.",
-      editable: ["name","price","stock"],
-      columns: ["name","price","stock","id","delete"]
-    },
+  const parts = text.split(" ");
+  const cmd = upper(parts[0]||"");
+  const a1 = parts[1];
+  const a2 = parts[2];
 
-    /* ✅ NEW: Chatbot FAQ (shared with chatbot) */
-    tt_faq: {
-      title: "Chatbot FAQ",
-      showDashboard: false,
-      note: "Edit triggers as comma-separated words. The chatbot matches if the question includes any trigger.",
-      editable: ["triggers","answer"],
-      columns: ["createdAt","triggers","answer","id","delete"]
-    },
+  // lists that don’t need args
+  const listCmds = ["UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","RUSH","PRIORITY"];
+  if(listCmds.includes(cmd)){
+    const rows = await ensureOrdersFresh();
 
-    /* ✅ NEW: Unanswered questions (logged by chatbot) */
-    tt_unanswered: {
-      title: "Unanswered Qs",
-      showDashboard: false,
-      note: "These are questions the chatbot couldn’t answer. Add an FAQ for common ones, then delete the row.",
-      editable: [],
-      columns: ["createdAt","text","id","delete"]
-    },
+    let out = rows.slice();
 
-    auditLog: {
-      title: "Audit Log",
-      showDashboard: false,
-      note: "Audit trail of edits/deletes.",
-      editable: [],
-      columns: ["at","type","collection","id","field","from","to"]
+    if(cmd === "UNFINISHED"){
+      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
     }
-  };
+    if(cmd === "NEW") out = out.filter(r=>normalizeStatus(r.status)==="new");
+    if(cmd === "PENDING") out = out.filter(r=>normalizeStatus(r.status)==="pending");
+    if(cmd === "UNPAID") out = out.filter(r=>normalizeStatus(r.status)==="unpaid");
+    if(cmd === "DONE") out = out.filter(r=>normalizeStatus(r.status)==="done");
+    if(cmd === "TODAY") out = out.filter(isToday);
+    if(cmd === "WEEK") out = out.filter(isThisWeek);
+    if(cmd === "MONTH") out = out.filter(isThisMonth);
+    if(cmd === "RUSH") out = out.filter(r=>!!(r.order && r.order.rush));
 
-  function safeDate(v){
-    if(!v) return null;
-    if(typeof v?.toDate === "function") return v.toDate();
-    if(typeof v?.seconds === "number") return new Date(v.seconds * 1000);
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  function formatDate(v){
-    const d = safeDate(v);
-    return d ? d.toLocaleString() : "";
-  }
-
-  function normalizeStatus(s){
-    if(!s) return "";
-    const lower = String(s).toLowerCase();
-    if(lower === "pending") return "pending";
-    if(lower === "new") return "new";
-    if(lower === "done" || lower === "completed") return "done";
-    if(lower === "unpaid") return "unpaid";
-    return String(s);
-  }
-  function colorRow(row,status){
-    row.classList.remove("newRow","doneRow","unpaidRow","pendingRow");
-    const s = normalizeStatus(status);
-    if(s==="new") row.classList.add("newRow");
-    if(s==="done") row.classList.add("doneRow");
-    if(s==="unpaid") row.classList.add("unpaidRow");
-    if(s==="pending") row.classList.add("pendingRow");
-  }
-
-  /* ✅ no raw JSON */
-  function stringifyCell(val){
-    if(val === null || val === undefined) return "";
-    if(Array.isArray(val)) return val.join(", ");
-    if(typeof val === "object"){
-      // show timestamp-ish values nicely
-      const d = safeDate(val);
-      if(d) return d.toLocaleString();
-      return "";
-    }
-    return String(val);
-  }
-
-  function applySearch(rows){
-    const q = searchBox.value.trim().toLowerCase();
-    if(!q) return rows;
-    return rows.filter(r=>{
-      const blob = Object.values(r).map(v=>stringifyCell(v).toLowerCase()).join(" | ");
-      return blob.includes(q);
-    });
-  }
-
-  // ✅ flatten chat orders
-  function summarizeItems(items){
-    if(!Array.isArray(items) || !items.length) return "";
-    return items.map((it, idx)=>{
-      const colors = Array.isArray(it.colors) ? it.colors.join("/") : "";
-      const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
-      return `${idx+1}) ${it.itemType || ""} • ${it.weave || ""} • ${it.inches || ""}" • ${it.fit || ""} • ${colors}${tag}`.trim();
-    }).join("  ||  ");
-  }
-
-  function flattenChatOrder(docRow){
-    const o = docRow.order || {};
-    const totals = docRow.totals || {};
-    const items = docRow.items || [];
-
-    return {
-      id: docRow.id,
-      status: docRow.status || "new",
-      createdAt: docRow.createdAt || null,
-      name: o.name || "",
-      phone: o.phone || "",
-      items: summarizeItems(items),
-      total: totals.total ?? "",
-      donation: (typeof o.donation === "number" ? o.donation : (totals.donation ?? 0)),
-      coupon: o.coupon || "",
-      shipping: o.shipping || "",
-      address: o.address || "",
-      photoBeforePay: o.photoBeforePay ? "yes" : "no"
-    };
-  }
-
-  function getRowAmount(r){
-    const total = parseFloat(r.total);
-    if(!isNaN(total)) return total;
-    const price = parseFloat(r.price);
-    const qty = parseFloat(r.qty);
-    if(!isNaN(price) && !isNaN(qty)) return price * qty;
-    return 0;
-  }
-
-  function updateDashboard(rows){
-    let today=0, week=0, revenue=0;
-    const now = new Date();
-
-    rows.forEach(r=>{
-      const d = safeDate(r.createdAt);
-      if(d){
-        const diffDays = (now - d) / 86400000;
-        if(diffDays < 1) today++;
-        if(diffDays < 7) week++;
-      }
-
-      const status = normalizeStatus(r.status);
-      const amount = getRowAmount(r);
-
-      if(status === "done") revenue += amount;
-      else if(status === "unpaid") revenue -= amount;
-    });
-
-    todayCountEl.textContent = today;
-    weekCountEl.textContent = week;
-    revenueEl.textContent = "$" + revenue.toFixed(2);
-  }
-
-  function getColumns(){
-    const cfg = COLLECTION_CONFIG[currentCollection];
-    return cfg?.columns?.length ? cfg.columns : ["id"];
-  }
-  function isEditable(col){
-    const cfg = COLLECTION_CONFIG[currentCollection] || {};
-    return (cfg.editable || []).includes(col);
-  }
-  function setTitleAndDashboard(){
-    const cfg = COLLECTION_CONFIG[currentCollection] || {};
-    tableTitle.textContent = cfg.title || currentCollection;
-    dashboardEl.style.display = cfg.showDashboard ? "grid" : "none";
-    noteEl.textContent = cfg.note || "";
-    addBtn.style.display = (currentCollection === "tt_faq") ? "inline-block" : "none";
-  }
-
-  async function logAudit(payload){
-    try{
-      await addDoc(collection(db, "auditLog"), { ...payload, at: new Date() });
-    }catch(e){
-      console.warn("Audit log failed:", e?.message || e);
-    }
-  }
-
-  function buildTable(rows){
-    table.innerHTML = "";
-    if(!rows.length){
-      table.innerHTML = "<tr><td style='padding:14px;'>No Data</td></tr>";
-      return;
-    }
-
-    const cols = getColumns();
-    const header = table.insertRow();
-    cols.forEach(c=>{
-      const th = document.createElement("th");
-      th.textContent = c;
-      header.appendChild(th);
-    });
-
-    rows.forEach(r=>{
-      const row = table.insertRow();
-
-      cols.forEach(col=>{
-        const cell = row.insertCell();
-
-        /* ✅ delete works everywhere */
-        if(col === "delete"){
-          const btn = document.createElement("button");
-          btn.textContent = "🗑 Delete";
-          btn.className = "deleteBtn";
-          btn.onclick = async () => {
-            if(!confirm("Delete this item forever?")) return;
-            await deleteDoc(doc(db, currentCollection, r.id));
-            await logAudit({ type:"delete", collection: currentCollection, id:r.id });
-          };
-          cell.appendChild(btn);
-          return;
-        }
-
-        if(col === "status"){
-          const cfg = COLLECTION_CONFIG[currentCollection] || {};
-          const allowed = cfg.statusValues || ["new","pending","done","unpaid"];
-          const sel = document.createElement("select");
-          sel.className = "statusSelect";
-
-          const current = r.status ?? "";
-          const normalized = normalizeStatus(current);
-          const options = [...new Set([normalized, ...allowed.map(normalizeStatus)])].filter(Boolean);
-
-          options.forEach(v=>{
-            const o = new Option(v, v);
-            if(normalizeStatus(current) === v) o.selected = true;
-            sel.add(o);
-          });
-
-          sel.onchange = async () => {
-            const old = r.status ?? null;
-            r.status = sel.value;
-
-            if(currentCollection === "tt_orders"){
-              await updateDoc(doc(db, currentCollection, r.id), { status: r.status });
-            }else{
-              await setDoc(doc(db, currentCollection, r.id), r);
-            }
-
-            await logAudit({ type:"status_change", collection: currentCollection, id: r.id, from: old, to: r.status });
-            colorRow(row, r.status);
-          };
-
-          cell.appendChild(sel);
-          return;
-        }
-
-        if(col === "createdAt" || col === "at"){
-          cell.textContent = formatDate(r[col]);
-          return;
-        }
-
-        if(col === "items" || col === "address" || col === "answer" || col === "text") cell.classList.add("wrapCell");
-
-        // ✅ triggers display as comma list
-        let displayVal = r[col];
-        if(col === "triggers" && Array.isArray(displayVal)){
-          displayVal = displayVal.join(", ");
-        }
-
-        cell.textContent = stringifyCell(displayVal ?? "");
-
-        if(col !== "id" && isEditable(col)){
-          cell.contentEditable = true;
-          cell.onblur = async () => {
-            const before = r[col];
-            let newVal = cell.textContent.trim();
-
-            // ✅ triggers stored as array for chatbot
-            if(col === "triggers"){
-              newVal = newVal
-                .split(",")
-                .map(x=>x.trim().toLowerCase())
-                .filter(Boolean);
-            }
-
-            r[col] = newVal;
-
-            // ✅ keep createdAt so it’s readable/sortable
-            if(!r.createdAt) r.createdAt = serverTimestamp();
-
-            await setDoc(doc(db, currentCollection, r.id), r);
-            await logAudit({ type:"edit", collection: currentCollection, id:r.id, field:col, from: before, to: r[col] });
-          };
-        } else {
-          cell.contentEditable = false;
-        }
+    if(cmd === "PRIORITY"){
+      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+      out.sort((a,b)=>{
+        const sa = priorityScore(a), sb = priorityScore(b);
+        if(sa !== sb) return sa - sb;
+        return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
       });
-
-      colorRow(row, r.status);
-    });
-  }
-
-  function subscribe(){
-    if(unsub) unsub();
-
-    setTitleAndDashboard();
-    table.innerHTML = "<tr><td style='padding:14px;'>Loading...</td></tr>";
-
-    const colRef = collection(db, currentCollection);
-
-    // ✅ no orderBy for tt_orders (avoid index/rules issues)
-    let qRef = colRef;
-    if(currentCollection !== "tt_orders"){
-      const wantsOrder = currentCollection.includes("Orders") || currentCollection === "auditLog" || currentCollection === "tt_unanswered" || currentCollection === "tt_faq";
-      if(wantsOrder){
-        const field = (currentCollection === "auditLog") ? "at" : "createdAt";
-        qRef = query(colRef, orderBy(field, "desc"));
-      }
+    }else{
+      // default newest first
+      out.sort((a,b)=>orderCreatedDate(b).getTime() - orderCreatedDate(a).getTime());
     }
 
-    unsub = onSnapshot(qRef, snap=>{
-      let rows = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    out = out.slice(0, 40);
 
-      if(currentCollection === "tt_orders"){
-        rows = rows.map(flattenChatOrder);
-      }
-
-      lastRows = rows;
-
-      const filtered = applySearch(lastRows);
-
-      if(COLLECTION_CONFIG[currentCollection]?.showDashboard){
-        updateDashboard(filtered);
-      }
-
-      buildTable(filtered);
-    }, err=>{
-      console.error(err);
-      table.innerHTML = "<tr><td style='padding:14px;'>Error loading data. Check console for permissions/rules.</td></tr>";
-    });
+    setStatus("");
+    addMsg(formatOrderList(out, cmd), "bot");
+    setChips(["NEXT","UNFINISHED","UNPAID","RUSH","TODAY","HELP"]);
+    return;
   }
 
-  // ✅ add FAQ button
-  addBtn.addEventListener("click", async ()=>{
-    if(currentCollection !== "tt_faq") return;
+  // LAST n
+  if(cmd === "LAST"){
+    const n = Math.max(1, Math.min(200, Number(a1||20)));
+    const rows = await ensureOrdersFresh();
+    const out = rows.slice().sort((a,b)=>orderCreatedDate(b).getTime()-orderCreatedDate(a).getTime()).slice(0,n);
+    setStatus("");
+    addMsg(formatOrderList(out, `LAST ${n}`), "bot");
+    return;
+  }
 
-    const triggersRaw = prompt('Triggers (comma-separated)\nExample: shipping, deliver, address');
-    if(triggersRaw === null) return;
+  // OVERDUE days
+  if(cmd === "OVERDUE"){
+    const days = Math.max(1, Math.min(60, Number(a1||3)));
+    const cutoff = daysAgo(days);
+    const rows = await ensureOrdersFresh();
+    const out = rows.filter(r=>{
+      const s = normalizeStatus(r.status);
+      if(!(s==="pending" || s==="unpaid")) return false;
+      return orderCreatedDate(r) < cutoff;
+    }).sort((a,b)=>orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime()).slice(0,50);
 
-    const answer = prompt("Answer text the chatbot should reply with:");
-    if(answer === null) return;
+    setStatus("");
+    addMsg(formatOrderList(out, `OVERDUE ${days}d`), "bot");
+    return;
+  }
 
-    const triggers = triggersRaw
-      .split(",")
-      .map(x=>x.trim().toLowerCase())
-      .filter(Boolean);
+  // NEXT
+  if(cmd === "NEXT"){
+    const rows = await ensureOrdersFresh();
+    const r = pickNext(rows);
+    setStatus("");
+    if(!r) { addMsg("NEXT: no unfinished orders found.", "bot"); return; }
+    addMsg(orderCard(r.id, r), "bot");
+    setChips([`SHOW ${r.id}`,`CLAIM ${r.id}`,`PAID ${r.id}`,`SHIPPED ${r.id}`, "MYQUEUE", "HELP"]);
+    return;
+  }
 
-    if(!triggers.length || !String(answer).trim()){
-      alert("Need at least 1 trigger and an answer.");
+  // SHOW
+  if(cmd === "SHOW"){
+    if(!a1) { setStatus(""); addMsg("Usage: SHOW <orderId>", "bot"); return; }
+    const data = await getOrder(a1);
+    setStatus("");
+    if(!data) { addMsg("Order not found.", "bot"); return; }
+    addMsg(orderCard(a1, data), "bot");
+    setChips([`PAID ${a1}`,`SHIPPED ${a1}`,`STATUS ${a1} pending`,`NOTE ${a1} `,`SHIPINFO ${a1}`,`LABEL ${a1}`]);
+    return;
+  }
+
+  // STATUS
+  if(cmd === "STATUS"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: STATUS <id> new|pending|unpaid|done|archived|cancelled|refunded", "bot"); return; }
+    const s = normalizeStatus(a2);
+    await patchOrder(a1, { status: s });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Status updated: ${a1} → ${s}`, "bot");
+    return;
+  }
+
+  // PAID
+  if(cmd === "PAID"){
+    if(!a1){ setStatus(""); addMsg("Usage: PAID <id>", "bot"); return; }
+    // paid typically moves to pending
+    await patchOrder(a1, { status: "pending", paidAt: serverTimestamp() });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Marked PAID (paidAt set): ${a1}`, "bot");
+    return;
+  }
+
+  // SHIPPED
+  if(cmd === "SHIPPED"){
+    if(!a1){ setStatus(""); addMsg("Usage: SHIPPED <id>", "bot"); return; }
+    const data = await getOrder(a1);
+    if(!data){ setStatus(""); addMsg("Order not found.", "bot"); return; }
+    const patch = { status: "done", shippedAt: serverTimestamp() };
+    if(!data.paidAt) patch.paidAt = serverTimestamp();
+    await patchOrder(a1, patch);
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Marked SHIPPED (shippedAt set, auto paidAt if missing): ${a1}`, "bot");
+    return;
+  }
+
+  // UNSHIP
+  if(cmd === "UNSHIP"){
+    if(!a1){ setStatus(""); addMsg("Usage: UNSHIP <id>", "bot"); return; }
+    await patchOrder(a1, { shippedAt: null });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Shipped timestamp cleared: ${a1}`, "bot");
+    return;
+  }
+
+  // TRACK / TRACKSHOW / CLEARTRACK
+  if(cmd === "TRACK"){
+    if(!a1){ setStatus(""); addMsg("Usage: TRACK <id> <code>", "bot"); return; }
+    const code = parts.slice(2).join(" ").trim();
+    if(!code){ setStatus(""); addMsg("Usage: TRACK <id> <code>", "bot"); return; }
+    await patchOrder(a1, { tracking: code });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Tracking saved: ${a1}\n${code}`, "bot");
+    return;
+  }
+  if(cmd === "TRACKSHOW"){
+    if(!a1){ setStatus(""); addMsg("Usage: TRACKSHOW <id>", "bot"); return; }
+    const data = await getOrder(a1);
+    setStatus("");
+    if(!data) return addMsg("Order not found.", "bot");
+    addMsg(`Tracking for ${a1}: ${data.tracking || "(none)"}`, "bot");
+    return;
+  }
+  if(cmd === "CLEARTRACK"){
+    if(!a1){ setStatus(""); addMsg("Usage: CLEARTRACK <id>", "bot"); return; }
+    await patchOrder(a1, { tracking: "" });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Tracking cleared: ${a1}`, "bot");
+    return;
+  }
+
+  // SHIPINFO / LABEL / MESSAGE / CONTACT
+  if(cmd === "SHIPINFO" || cmd === "LABEL" || cmd === "CONTACT" || cmd === "MESSAGE"){
+    if(!a1){ setStatus(""); addMsg(`Usage: ${cmd} <id>`, "bot"); return; }
+    const data = await getOrder(a1);
+    setStatus("");
+    if(!data){ addMsg("Order not found.", "bot"); return; }
+    const o = data.order || {};
+    if(cmd === "CONTACT"){
+      addMsg(`Contact for ${a1}:\nName: ${o.name||""}\nPhone: ${o.phone||""}`, "bot");
+      return;
+    }
+    if(cmd === "SHIPINFO"){
+      addMsg(`Ship info for ${a1}:\nName: ${o.name||""}\nPhone: ${o.phone||""}\nAddress: ${o.address||""}`, "bot");
+      return;
+    }
+    if(cmd === "LABEL"){
+      addMsg(
+`LABEL BLOCK (copy/paste)
+${o.name || ""}
+${o.address || ""}
+Phone: ${o.phone || ""}`,
+      "bot");
+      return;
+    }
+    if(cmd === "MESSAGE"){
+      addMsg(shippingMessage(a1, data), "bot");
+      return;
+    }
+  }
+
+  // CLAIM / MYQUEUE / UNCLAIM
+  if(cmd === "CLAIM"){
+    if(!a1){ setStatus(""); addMsg("Usage: CLAIM <id>", "bot"); return; }
+    await patchOrder(a1, { assignedTo: "Isaiah", claimedAt: serverTimestamp() });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Claimed: ${a1} (assignedTo=Isaiah)`, "bot");
+    return;
+  }
+  if(cmd === "UNCLAIM"){
+    if(!a1){ setStatus(""); addMsg("Usage: UNCLAIM <id>", "bot"); return; }
+    await patchOrder(a1, { assignedTo: "", claimedAt: null });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Unclaimed: ${a1}`, "bot");
+    return;
+  }
+  if(cmd === "MYQUEUE"){
+    const rows = await ensureOrdersFresh();
+    const out = rows.filter(r=>String(r.assignedTo||"").toLowerCase()==="isaiah")
+      .filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)))
+      .sort((a,b)=>orderCreatedDate(a).getTime()-orderCreatedDate(b).getTime())
+      .slice(0,60);
+    setStatus("");
+    addMsg(formatOrderList(out, "MYQUEUE"), "bot");
+    return;
+  }
+
+  // NOTE / NOTES / CLEARNOTE
+  if(cmd === "NOTE"){
+    if(!a1){ setStatus(""); addMsg("Usage: NOTE <id> <text...>", "bot"); return; }
+    const note = parts.slice(2).join(" ").trim();
+    if(!note){ setStatus(""); addMsg("Usage: NOTE <id> <text...>", "bot"); return; }
+    await patchOrder(a1, { adminNote: note, noteAt: serverTimestamp() });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Note saved on ${a1}`, "bot");
+    return;
+  }
+  if(cmd === "NOTES"){
+    if(!a1){ setStatus(""); addMsg("Usage: NOTES <id>", "bot"); return; }
+    const data = await getOrder(a1);
+    setStatus("");
+    if(!data) return addMsg("Order not found.", "bot");
+    addMsg(`Notes for ${a1}:\n${data.adminNote || "(none)"}`, "bot");
+    return;
+  }
+  if(cmd === "CLEARNOTE"){
+    if(!a1){ setStatus(""); addMsg("Usage: CLEARNOTE <id>", "bot"); return; }
+    await patchOrder(a1, { adminNote: "" });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Note cleared: ${a1}`, "bot");
+    return;
+  }
+
+  // ARCHIVE
+  if(cmd === "ARCHIVE"){
+    if(!a1){ setStatus(""); addMsg("Usage: ARCHIVE <id>", "bot"); return; }
+    await patchOrder(a1, { status: "archived" });
+    await refreshOrders();
+    setStatus("");
+    addMsg(`✅ Archived: ${a1}`, "bot");
+    return;
+  }
+
+  // DELETE safety
+  if(cmd === "DELETE"){
+    if(!a1){ setStatus(""); addMsg("Usage: DELETE <id>  (then: DELETE <id> CONFIRM)", "bot"); return; }
+    if(upper(a2) === "CONFIRM"){
+      if(!canDeleteNow(a1)){
+        setStatus("");
+        addMsg(`For safety: run DELETE ${a1} first, then DELETE ${a1} CONFIRM within 60 seconds.`, "bot");
+        return;
+      }
+      await delOrder(a1);
+      await refreshOrders();
+      setStatus("");
+      addMsg(`🗑 Deleted: ${a1}`, "bot");
+      return;
+    }else{
+      markPendingDelete(a1);
+      setStatus("");
+      addMsg(`Delete armed for 60 seconds.\nNow type: DELETE ${a1} CONFIRM`, "bot");
+      return;
+    }
+  }
+
+  // Search: BYNAME / BYPHONE / BYADDR / BYCUSTOMER / FIND
+  if(["BYNAME","BYPHONE","BYADDR","BYCUSTOMER","FIND"].includes(cmd)){
+    const rows = await ensureOrdersFresh();
+    let q = "";
+
+    if(cmd === "BYNAME"){
+      q = parts.slice(1).join(" ").trim().toLowerCase();
+      if(!q){ setStatus(""); addMsg("Usage: BYNAME <name>", "bot"); return; }
+      const out = rows.filter(r=>String(r?.order?.name||"").toLowerCase().includes(q))
+        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,80);
+      setStatus("");
+      addMsg(formatOrderList(out, `BYNAME "${q}"`), "bot");
       return;
     }
 
-    const ref = await addDoc(collection(db, "tt_faq"), {
-      triggers,
-      answer: String(answer).trim(),
-      createdAt: serverTimestamp()
+    if(cmd === "BYPHONE"){
+      const p = digitsOnly(parts.slice(1).join(" "));
+      if(!p){ setStatus(""); addMsg("Usage: BYPHONE <digits>", "bot"); return; }
+      const out = rows.filter(r=>digitsOnly(r?.order?.phone||"").includes(p))
+        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
+      setStatus("");
+      addMsg(formatOrderList(out, `BYPHONE "${p}"`), "bot");
+      return;
+    }
+
+    if(cmd === "BYADDR"){
+      q = parts.slice(1).join(" ").trim().toLowerCase();
+      if(!q){ setStatus(""); addMsg("Usage: BYADDR <text>", "bot"); return; }
+      const out = rows.filter(r=>String(r?.order?.address||"").toLowerCase().includes(q))
+        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,80);
+      setStatus("");
+      addMsg(formatOrderList(out, `BYADDR "${q}"`), "bot");
+      return;
+    }
+
+    if(cmd === "BYCUSTOMER"){
+      const name = (parts[1]||"").toLowerCase();
+      const phone = digitsOnly(parts[2]||"");
+      if(!name && !phone){ setStatus(""); addMsg("Usage: BYCUSTOMER <name> <phone>", "bot"); return; }
+      const out = rows.filter(r=>{
+        const okName = name ? String(r?.order?.name||"").toLowerCase().includes(name) : true;
+        const okPhone = phone ? digitsOnly(r?.order?.phone||"").includes(phone) : true;
+        return okName && okPhone;
+      }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
+      setStatus("");
+      addMsg(formatOrderList(out, `BYCUSTOMER "${name}" "${phone}"`), "bot");
+      return;
+    }
+
+    if(cmd === "FIND"){
+      q = parts.slice(1).join(" ").trim().toLowerCase();
+      if(!q){ setStatus(""); addMsg("Usage: FIND <any text>", "bot"); return; }
+      const out = rows.filter(r=>includesBlob(r, q))
+        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
+      setStatus("");
+      addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
+      return;
+    }
+  }
+
+  // Inventory: LOWSTOCK / OUTOFSTOCK
+  if(cmd === "LOWSTOCK" || cmd === "OUTOFSTOCK"){
+    const products = await ensureProductsFresh();
+    const all = [
+      ...products.bracelets.map(p=>({ ...p, __col:"bracelets" })),
+      ...products.cookies.map(p=>({ ...p, __col:"cookies" }))
+    ];
+
+    const out = all.filter(p=>{
+      const s = Number(p.stock);
+      if(!Number.isFinite(s)) return false;
+      if(cmd === "LOWSTOCK") return s <= 5;
+      return s <= 0;
+    }).sort((a,b)=>(Number(a.stock)||0) - (Number(b.stock)||0)).slice(0,120);
+
+    setStatus("");
+    if(!out.length){
+      addMsg(`${cmd}: none found.`, "bot");
+      return;
+    }
+    addMsg(
+      `${cmd}:\n` + out.map(p=>{
+        const label = p.name || p.type || "(unnamed)";
+        return `• ${p.__col} | ${p.id} | ${label} | stock=${p.stock} | price=${p.price ?? ""}`;
+      }).join("\n"),
+      "bot"
+    );
+    setChips(["LIST bracelets","LIST cookies","FINDP bracelets ","FINDP cookies ","HELP"]);
+    return;
+  }
+
+  // LIST / FINDP
+  if(cmd === "LIST"){
+    if(!a1){ setStatus(""); addMsg("Usage: LIST bracelets|cookies", "bot"); return; }
+    const rc = resolveProductCollection(a1);
+    if(!rc){ setStatus(""); addMsg("Use: LIST bracelets or LIST cookies", "bot"); return; }
+    const products = await ensureProductsFresh();
+    const arr = products[rc.key].slice().sort((a,b)=>{
+      const an = (a.name||a.type||"").toLowerCase();
+      const bn = (b.name||b.type||"").toLowerCase();
+      return an.localeCompare(bn);
+    }).slice(0,200);
+
+    setStatus("");
+    addMsg(
+      `LIST ${rc.key} (showing ${arr.length}):\n` +
+      arr.map(p=>{
+        const label = p.name || p.type || "(unnamed)";
+        return `• ${p.id} | ${label} | price=${p.price ?? ""} | stock=${p.stock ?? ""}`;
+      }).join("\n"),
+      "bot"
+    );
+    return;
+  }
+
+  if(cmd === "FINDP"){
+    if(!a1){ setStatus(""); addMsg("Usage: FINDP bracelets|cookies <text>", "bot"); return; }
+    const rc = resolveProductCollection(a1);
+    if(!rc){ setStatus(""); addMsg("Use: FINDP bracelets or FINDP cookies", "bot"); return; }
+    const q = parts.slice(2).join(" ").trim().toLowerCase();
+    if(!q){ setStatus(""); addMsg("Usage: FINDP bracelets|cookies <text>", "bot"); return; }
+    const products = await ensureProductsFresh();
+    const arr = products[rc.key].filter(p=>{
+      const blob = [
+        p.id, p.name, p.type,
+        Array.isArray(p.sizeOptions)?p.sizeOptions.join(" "):p.sizeOptions,
+        Array.isArray(p.colorOptions)?p.colorOptions.join(" "):p.colorOptions
+      ].map(x=>String(x||"").toLowerCase()).join(" | ");
+      return blob.includes(q);
+    }).slice(0,150);
+
+    setStatus("");
+    addMsg(
+      `FINDP ${rc.key} "${q}" (showing ${arr.length}):\n` +
+      (arr.length ? arr.map(p=>{
+        const label = p.name || p.type || "(unnamed)";
+        return `• ${p.id} | ${label} | price=${p.price ?? ""} | stock=${p.stock ?? ""}`;
+      }).join("\n") : "(none)"),
+      "bot"
+    );
+    return;
+  }
+
+  // STOCK
+  if(cmd === "STOCK"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: STOCK bracelets|cookies <docId>", "bot"); return; }
+    const p = await getProduct(a1, a2);
+    setStatus("");
+    if(!p) return addMsg("Product not found.", "bot");
+    addMsg(
+      `Product: ${p.id}\nCollection: ${p.__key}\nName/Type: ${p.name || p.type || ""}\nPrice: ${p.price ?? ""}\nStock: ${p.stock ?? ""}\nSizes: ${Array.isArray(p.sizeOptions)?p.sizeOptions.join(", "):(p.sizeOptions ?? "")}\nColors: ${Array.isArray(p.colorOptions)?p.colorOptions.join(", "):(p.colorOptions ?? "")}`,
+      "bot"
+    );
+    setChips([`SET ${p.__key} ${p.id} stock= price=`, `SIZES ${p.__key} ${p.id} `, `COLORS ${p.__key} ${p.id} `, `ADDCOLOR ${p.__key} ${p.id} `]);
+    return;
+  }
+
+  // PRICE <col> <id> <value>
+  if(cmd === "PRICE"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: PRICE <col> <id> 12.00", "bot"); return; }
+    const v = Number(parts[3]);
+    if(!Number.isFinite(v)){ setStatus(""); addMsg("Price must be a number.", "bot"); return; }
+    await patchProduct(a1, a2, { price: v });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Price updated: ${a1} ${a2} → ${v}`, "bot");
+    return;
+  }
+
+  // RESTOCK / DEDUCT
+  if(cmd === "RESTOCK" || cmd === "DEDUCT"){
+    if(!a1 || !a2){ setStatus(""); addMsg(`Usage: ${cmd} <col> <id> +10`, "bot"); return; }
+    const deltaRaw = parts[3];
+    const delta = Number(deltaRaw);
+    if(!Number.isFinite(delta)){ setStatus(""); addMsg("Delta must be a number like +10 or -2.", "bot"); return; }
+
+    const p = await getProduct(a1, a2);
+    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
+    const cur = Number(p.stock) || 0;
+    const next = Math.max(0, cur + delta);
+    await patchProduct(a1, a2, { stock: next });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Stock updated: ${a1} ${a2} ${cur} → ${next}`, "bot");
+    return;
+  }
+
+  // SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra
+  if(cmd === "SET"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra", "bot"); return; }
+    const rest = text.split(" ").slice(3).join(" ").trim();
+    if(!rest){ setStatus(""); addMsg("Usage: SET <col> <id> stock=12 price=10.00", "bot"); return; }
+
+    const patch = {};
+    rest.split(" ").forEach(pair=>{
+      const [kRaw, vRaw] = pair.split("=");
+      if(!kRaw || vRaw === undefined) return;
+      const k = kRaw.trim();
+      const v = vRaw.trim();
+
+      if(k === "stock"){
+        const n = Number(v);
+        if(Number.isFinite(n)) patch.stock = n;
+        return;
+      }
+      if(k === "price"){
+        const n = Number(v);
+        if(Number.isFinite(n)) patch.price = n;
+        return;
+      }
+      if(k === "name") patch.name = v;
+      if(k === "type") patch.type = v;
     });
 
-    await logAudit({ type:"create", collection:"tt_faq", id: ref.id });
+    if(!Object.keys(patch).length){ setStatus(""); addMsg("Nothing to set.", "bot"); return; }
+
+    await patchProduct(a1, a2, patch);
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Updated ${a1} ${a2}: ${JSON.stringify(patch)}`, "bot");
+    return;
+  }
+
+  // SIZES / ADDSIZE / REMOVESIZE
+  if(cmd === "SIZES"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: SIZES <col> <id> 6,6.5,7", "bot"); return; }
+    const rest = text.split(" ").slice(3).join(" ").trim();
+    if(!rest){ setStatus(""); addMsg("Give sizes like: 6,6.5,7,7.5", "bot"); return; }
+    const sizes = parseCSVList(rest);
+    await patchProduct(a1, a2, { sizeOptions: sizes });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Sizes updated: ${sizes.join(", ")}`, "bot");
+    return;
+  }
+  if(cmd === "ADDSIZE"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: ADDSIZE <col> <id> 8.5", "bot"); return; }
+    const size = String(parts[3]||"").trim();
+    if(!size){ setStatus(""); addMsg("Usage: ADDSIZE <col> <id> 8.5", "bot"); return; }
+    const p = await getProduct(a1, a2);
+    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
+    const cur = Array.isArray(p.sizeOptions) ? p.sizeOptions.map(String) : [];
+    const next = Array.from(new Set([...cur, size]));
+    await patchProduct(a1, a2, { sizeOptions: next });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Size added. Now: ${next.join(", ")}`, "bot");
+    return;
+  }
+  if(cmd === "REMOVESIZE"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: REMOVESIZE <col> <id> 6", "bot"); return; }
+    const size = String(parts[3]||"").trim();
+    if(!size){ setStatus(""); addMsg("Usage: REMOVESIZE <col> <id> 6", "bot"); return; }
+    const p = await getProduct(a1, a2);
+    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
+    const cur = Array.isArray(p.sizeOptions) ? p.sizeOptions.map(String) : [];
+    const next = cur.filter(x=>x !== size);
+    await patchProduct(a1, a2, { sizeOptions: next });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Size removed. Now: ${next.join(", ") || "(none)"}`, "bot");
+    return;
+  }
+
+  // COLORS / ADDCOLOR / REMOVECOLOR
+  if(cmd === "COLORS"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: COLORS <col> <id> red,black,white", "bot"); return; }
+    const rest = text.split(" ").slice(3).join(" ").trim();
+    if(!rest){ setStatus(""); addMsg("Give colors like: red, black, white", "bot"); return; }
+    const colors = parseCSVList(rest).map(c=>c.toLowerCase());
+    await patchProduct(a1, a2, { colorOptions: colors });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Colors updated: ${colors.join(", ")}`, "bot");
+    return;
+  }
+  if(cmd === "ADDCOLOR"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: ADDCOLOR <col> <id> purple", "bot"); return; }
+    const color = text.split(" ").slice(3).join(" ").trim().toLowerCase();
+    if(!color){ setStatus(""); addMsg("Usage: ADDCOLOR <col> <id> purple", "bot"); return; }
+    const p = await getProduct(a1, a2);
+    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
+    const cur = Array.isArray(p.colorOptions) ? p.colorOptions.map(x=>String(x).toLowerCase()) : [];
+    const next = Array.from(new Set([...cur, color])).filter(Boolean);
+    await patchProduct(a1, a2, { colorOptions: next });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Color added. Now: ${next.join(", ")}`, "bot");
+    return;
+  }
+  if(cmd === "REMOVECOLOR"){
+    if(!a1 || !a2){ setStatus(""); addMsg("Usage: REMOVECOLOR <col> <id> purple", "bot"); return; }
+    const color = text.split(" ").slice(3).join(" ").trim().toLowerCase();
+    if(!color){ setStatus(""); addMsg("Usage: REMOVECOLOR <col> <id> purple", "bot"); return; }
+    const p = await getProduct(a1, a2);
+    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
+    const cur = Array.isArray(p.colorOptions) ? p.colorOptions.map(x=>String(x).toLowerCase()) : [];
+    const next = cur.filter(x=>x !== color);
+    await patchProduct(a1, a2, { colorOptions: next });
+    await refreshProducts();
+    setStatus("");
+    addMsg(`✅ Color removed. Now: ${next.join(", ") || "(none)"}`, "bot");
+    return;
+  }
+
+  // STATS: TOTALS / REVENUE / AVG MONTH
+  if(cmd === "TOTALS" || cmd === "REVENUE"){
+    const range = upper(a1||"");
+    const rows = await ensureOrdersFresh();
+
+    let pred = ()=>true;
+    if(range === "TODAY") pred = isToday;
+    else if(range === "WEEK") pred = isThisWeek;
+    else if(range === "MONTH") pred = isThisMonth;
+    else { setStatus(""); addMsg("Usage: TOTALS TODAY|WEEK|MONTH", "bot"); return; }
+
+    const s = statsForRange(rows, pred);
+    setStatus("");
+    if(cmd === "TOTALS"){
+      addMsg(
+        `TOTALS ${range}\nOrders: ${s.count}\nDone: ${s.doneCount}\nRevenue (done only): ${money(s.revenue)}`,
+        "bot"
+      );
+    }else{
+      addMsg(`REVENUE ${range}: ${money(s.revenue)} (done only)`, "bot");
+    }
+    return;
+  }
+
+  if(cmd === "AVG" && upper(a1)==="MONTH"){
+    const rows = await ensureOrdersFresh();
+    const out = avgMonthlyRevenue(rows);
+    setStatus("");
+    addMsg(
+      `AVG MONTH revenue (done orders)\nMonths counted: ${out.months.length}\nAverage: ${money(out.avg)}\n\nBreakdown:\n` +
+      out.months.map((m,i)=>`${m}: ${money(out.values[i])}`).join("\n"),
+      "bot"
+    );
+    return;
+  }
+
+  // TOPCUSTOMERS n (by phone; uses DONE totals)
+  if(cmd === "TOPCUSTOMERS"){
+    const n = Math.max(1, Math.min(50, Number(a1||10)));
+    const rows = await ensureOrdersFresh();
+    const done = rows.filter(r=>normalizeStatus(r.status)==="done");
+
+    const map = new Map(); // phone -> {count, revenue, name}
+    for(const r of done){
+      const phone = digitsOnly(r?.order?.phone||"");
+      if(!phone) continue;
+      const cur = map.get(phone) || { count:0, revenue:0, name:(r?.order?.name||"") };
+      cur.count += 1;
+      cur.revenue += orderTotal(r);
+      if(!cur.name && r?.order?.name) cur.name = r.order.name;
+      map.set(phone, cur);
+    }
+
+    const ranked = Array.from(map.entries())
+      .map(([phone,val])=>({ phone, ...val }))
+      .sort((a,b)=>b.revenue - a.revenue)
+      .slice(0,n);
+
+    setStatus("");
+    if(!ranked.length){ addMsg("TOPCUSTOMERS: none found (need done orders with phone).", "bot"); return; }
+    addMsg(
+      `TOPCUSTOMERS ${n}\n` +
+      ranked.map((c,i)=>`${i+1}) ${c.name||""} | ${c.phone} | orders=${c.count} | spend=${money(c.revenue)}`).join("\n"),
+      "bot"
+    );
+    return;
+  }
+
+  // CUSTOMERSTATS phone
+  if(cmd === "CUSTOMERSTATS"){
+    const p = digitsOnly(parts.slice(1).join(" "));
+    if(!p){ setStatus(""); addMsg("Usage: CUSTOMERSTATS <phone>", "bot"); return; }
+
+    const rows = await ensureOrdersFresh();
+    const matching = rows.filter(r=>digitsOnly(r?.order?.phone||"").includes(p));
+    const done = matching.filter(r=>normalizeStatus(r.status)==="done");
+    const spend = done.reduce((s,r)=>s+orderTotal(r),0);
+
+    setStatus("");
+    addMsg(
+      `CUSTOMERSTATS ${p}\nTotal orders: ${matching.length}\nDone orders: ${done.length}\nTotal spend (done): ${money(spend)}\n\nLatest:\n` +
+      matching.sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,20).map(compactOrderLine).join("\n"),
+      "bot"
+    );
+    return;
+  }
+
+  // DUPES PHONE
+  if(cmd === "DUPES" && upper(a1)==="PHONE"){
+    const rows = await ensureOrdersFresh();
+    const map = groupByPhone(rows);
+    const dups = Array.from(map.entries())
+      .filter(([phone,count])=>count >= 2)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,80);
+
+    setStatus("");
+    if(!dups.length){ addMsg("DUPES PHONE: none found.", "bot"); return; }
+    addMsg(
+      "DUPES PHONE:\n" +
+      dups.map(([phone,count])=>`• ${phone} — ${count} orders`).join("\n"),
+      "bot"
+    );
+    return;
+  }
+
+  // REPEAT <nameOrPhone>
+  if(cmd === "REPEAT"){
+    const qv = parts.slice(1).join(" ").trim();
+    if(!qv){ setStatus(""); addMsg("Usage: REPEAT <nameOrPhone>", "bot"); return; }
+
+    const rows = await ensureOrdersFresh();
+    const p = digitsOnly(qv);
+    const qLower = qv.toLowerCase();
+    const matching = rows.filter(r=>{
+      if(p) return digitsOnly(r?.order?.phone||"").includes(p);
+      return String(r?.order?.name||"").toLowerCase().includes(qLower);
+    }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a));
+
+    setStatus("");
+    addMsg(formatOrderList(matching.slice(0,120), `REPEAT "${qv}"`), "bot");
+    return;
+  }
+
+  // If nothing matched
+  setStatus("");
+  addMsg("I didn’t recognize that. Type HELP.", "bot");
+  setChips(["HELP","NEXT","UNFINISHED","BYPHONE ","BYNAME ","LOWSTOCK","TOTALS MONTH"]);
+}
+
+/* Send */
+function send(){
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  addMsg(text, "user");
+  setChips([]);
+  setStatus("");
+
+  handleCommand(text).catch(err=>{
+    setStatus("");
+    addMsg("❌ Error: " + (err?.message || err), "bot");
+    setChips(["HELP","REFRESH","NEXT","UNFINISHED"]);
   });
+}
 
-  document.querySelectorAll(".tab").forEach(tab=>{
-    tab.addEventListener("click", e=>{
-      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-      e.currentTarget.classList.add("active");
-      currentCollection = e.currentTarget.dataset.col;
-      subscribe();
-    });
-  });
+/* Reset */
+function resetAll(){
+  chat.innerHTML = "";
+  setStatus("");
+  addMsg(
+`Admin Bot ready.
 
-  searchBox.addEventListener("input", ()=>{
-    const filtered = applySearch(lastRows);
-    if(COLLECTION_CONFIG[currentCollection]?.showDashboard) updateDashboard(filtered);
-    buildTable(filtered);
-  });
+Type HELP for commands.
+Try:
+• NEXT
+• UNFINISHED
+• BYPHONE 2083043821
+• LOWSTOCK
+• TOTALS MONTH`,
+  "bot");
+  setChips(["HELP","NEXT","UNFINISHED","UNPAID","RUSH","LOWSTOCK","TOTALS MONTH","REFRESH"]);
+}
 
-  refreshBtn.addEventListener("click", subscribe);
+document.getElementById("sendBtn").onclick = send;
+document.getElementById("resetBtn").onclick = resetAll;
+input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
 
-  subscribe();
+resetAll();
 </script>
-
 </body>
 </html>
