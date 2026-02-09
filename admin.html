@@ -3,256 +3,271 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Admin Bot</title>
+<title>Tactics & Treats – Conversational Admin Bot</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
-  --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
-  --line:#2a2a2a; --radius:16px;
-}
-*{box-sizing:border-box}
-body{
-  margin:0; padding:16px;
-  background:var(--bg); color:var(--text);
-  font-family:Poppins,system-ui;
-}
+body{margin:0;padding:16px;background:#0b0b0b;color:#fff;font-family:Poppins}
 .wrap{max-width:960px;margin:auto}
-h1{color:var(--accent);margin:0 0 10px}
-.card{
-  background:var(--panel);
-  border-radius:var(--radius);
-  padding:14px;
-  box-shadow:0 0 20px rgba(255,0,0,.2);
-}
-.chat{
-  height:60vh; min-height:360px;
-  background:#000; border-radius:14px;
-  padding:12px; overflow:auto;
-}
-.msg{
-  margin:8px 0; padding:10px 12px;
-  border-radius:12px; white-space:pre-line;
-}
+h1{color:#ff2a2a;margin-bottom:8px}
+.chat{height:60vh;background:#000;padding:12px;border-radius:14px;overflow:auto}
+.msg{margin:8px 0;padding:10px 12px;border-radius:12px;white-space:pre-line}
 .bot{background:#111;border:1px solid #2a2a2a}
 .user{background:#1c1c1c;border:1px solid #333;margin-left:auto}
 .bar{display:flex;gap:8px;margin-top:10px}
-input{
-  flex:1;padding:12px;border-radius:14px;
-  background:var(--panel2);color:#fff;border:1px solid var(--line)
-}
-button{
-  padding:12px 16px;border-radius:14px;
-  background:var(--accent);color:#fff;
-  font-weight:800;border:none;cursor:pointer
-}
-button.secondary{background:#333}
-#status{margin-top:6px;color:#ffb347;font-size:13px}
+input{flex:1;padding:12px;border-radius:14px;border:1px solid #2a2a2a;background:#111;color:#fff}
+button{padding:12px 16px;border-radius:14px;border:none;font-weight:800;background:#ff2a2a;color:#fff;cursor:pointer}
+#status{font-size:12px;color:#ffb347;margin-top:6px}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-<h1>Tactics & Treats – Admin Bot</h1>
-
-<div class="card">
+  <h1>Tactics & Treats – Admin Bot</h1>
   <div id="chat" class="chat"></div>
   <div id="status"></div>
-
   <div class="bar">
-    <input id="input" placeholder="Talk to me…" />
-    <button id="sendBtn">Send</button>
-    <button id="resetBtn" class="secondary">Reset</button>
+    <input id="input" placeholder="Talk to me like ChatGPT…" />
+    <button id="send">Send</button>
   </div>
 </div>
-</div>
 
-<!-- Firebase compat (NO MODULES) -->
+<!-- Firebase (compat, stable everywhere) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* =====================
-   🔥 FIREBASE CONFIG
-   (PASTE YOUR REAL ONE)
-===================== */
-const firebaseConfig = {
-  apiKey: "PASTE_YOURS",
-  authDomain: "PASTE_YOURS",
-  projectId: "PASTE_YOURS",
-  storageBucket: "PASTE_YOURS",
-  messagingSenderId: "PASTE_YOURS",
-  appId: "PASTE_YOURS"
-};
+/* ======================
+   FIREBASE (YOUR PROJECT)
+====================== */
+firebase.initializeApp({
+  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain: "bracelets-and-color.firebaseapp.com",
+  projectId: "bracelets-and-color",
+  storageBucket: "bracelets-and-color.appspot.com",
+  messagingSenderId: "382292570673",
+  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
-/* =====================
+/* ======================
    UI HELPERS
-===================== */
+====================== */
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const statusEl = document.getElementById("status");
 
-function addMsg(text, who="bot"){
+function add(text, who="bot"){
   const d=document.createElement("div");
   d.className="msg "+(who==="user"?"user":"bot");
   d.textContent=text;
   chat.appendChild(d);
   chat.scrollTop=chat.scrollHeight;
 }
-function setStatus(t){statusEl.textContent=t||""}
 function clean(s){return String(s||"").trim()}
 function digits(s){return String(s||"").replace(/\D/g,"")}
 
-/* =====================
-   CONVERSATION MEMORY
-===================== */
+/* ======================
+   MEMORY + STATE
+====================== */
 const convo={
-  lastOrderId:null,
-  pending:null
+  lastOrder:null,
+  awaitingConfirm:null,
+  awaitingAction:null
 };
 
-/* =====================
-   ORDER HELPERS
-===================== */
-async function getOrder(id){
-  const snap=await db.collection("tt_orders").doc(id).get();
-  return snap.exists? snap.data():null;
-}
-async function setOrder(id,patch){
-  await db.collection("tt_orders").doc(id).update(patch);
-}
+/* ======================
+   FAST ORDER CACHE
+====================== */
+let orderCache=[], cacheAt=0;
 async function getOrders(){
+  if(Date.now()-cacheAt<15000 && orderCache.length) return orderCache;
   const snap=await db.collection("tt_orders").limit(500).get();
-  return snap.docs.map(d=>({id:d.id,...d.data()}));
+  orderCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+  cacheAt=Date.now();
+  return orderCache;
 }
 
-/* =====================
-   INTENT DETECTION
-===================== */
-function extractId(text){
-  return text.split(/\s+/).find(t=>t.length>=4 && /\w/.test(t))||"";
+/* ======================
+   SKILLS (LEARNED COMMANDS)
+====================== */
+async function loadSkills(){
+  const s=await db.collection("tt_skills").get();
+  return s.docs.map(d=>d.data());
+}
+async function saveSkill(trigger,action){
+  await db.collection("tt_skills").add({trigger,action,createdAt:ts()});
 }
 
+/* ======================
+   TRANSLATE HUMAN → ACTION
+====================== */
+function translate(text){
+  text=text.toLowerCase();
+
+  if(text.includes("how much")||text.includes("gross")||text.includes("revenue")){
+    if(text.includes("month")) return "REVENUE_MONTH";
+    if(text.includes("week")) return "REVENUE_WEEK";
+    return "REVENUE_MONTH";
+  }
+
+  if(text.includes("fake order")||text.includes("test order")){
+    return "MAKE_FAKE";
+  }
+
+  return null;
+}
+
+/* ======================
+   UNDERSTAND (CHATGPT-LIKE)
+====================== */
 async function understand(text){
   const L=text.toLowerCase();
 
-  if(convo.pending){
-    const id=extractId(text);
-    if(id){
-      const act=convo.pending;
-      convo.pending=null;
-      return `${act} ${id}`;
+  /* Yes / No to learning */
+  if(convo.awaitingConfirm){
+    if(["yes","yeah","yep","ok","sure"].includes(L)){
+      convo.awaitingAction=convo.awaitingConfirm;
+      convo.awaitingConfirm=null;
+      return "__ASK_ACTION__";
     }
-    return "__ASK_ID__";
+    if(["no","nope","nah"].includes(L)){
+      convo.awaitingConfirm=null;
+      return "__CANCEL__";
+    }
   }
 
+  /* Learning action explanation */
+  if(convo.awaitingAction){
+    const action=translate(text);
+    if(action){
+      await saveSkill(convo.awaitingAction,action);
+      convo.awaitingAction=null;
+      return "__LEARNED__";
+    }
+    return "__ASK_ACTION__";
+  }
+
+  /* Learned skills */
+  const skills=await loadSkills();
+  for(const s of skills){
+    if(L.includes(s.trigger)) return s.action;
+  }
+
+  /* Built-in intents */
   if(L.includes("next")) return "NEXT";
-  if(L.includes("unpaid")) return "UNPAID";
-  if(L.includes("unfinished")||L.includes("open")) return "UNFINISHED";
+  if(L.includes("mark")&&L.includes("done")) return "DONE";
+  if(L.includes("fake")) return "MAKE_FAKE";
 
-  if(L.includes("mark")&&(L.includes("done")||L.includes("complete"))){
-    const id=extractId(text)||convo.lastOrderId;
-    if(id) return `DONE ${id}`;
-    convo.pending="DONE"; return "__ASK_ID__";
-  }
-
-  if(L.includes("ship")){
-    const id=extractId(text)||convo.lastOrderId;
-    if(id) return `SHIPPED ${id}`;
-    convo.pending="SHIPPED"; return "__ASK_ID__";
-  }
-
-  const phone=digits(text);
-  if(phone.length>=7) return `BYPHONE ${phone}`;
-
-  return `FIND ${text}`;
+  /* Unknown → ask to learn */
+  convo.awaitingConfirm=text;
+  return "__UNKNOWN__";
 }
 
-/* =====================
-   COMMAND EXECUTION
-===================== */
+/* ======================
+   EXECUTE
+====================== */
 async function run(cmd){
-  const parts=cmd.split(" ");
-  const c=parts[0];
-
-  if(cmd==="__ASK_ID__"){
-    addMsg("Which order?", "bot"); return;
+  if(cmd==="__UNKNOWN__"){
+    add(
+      `I don’t understand that 🤔\n\n`+
+      `Do you want me to learn it as a new command?\n`+
+      `"${convo.awaitingConfirm}"\n\n`+
+      `Reply yes or no.`
+    );
+    return;
   }
 
-  if(c==="NEXT"){
+  if(cmd==="__ASK_ACTION__"){
+    add(`What should I do when you say:\n"${convo.awaitingAction}"`);
+    return;
+  }
+
+  if(cmd==="__LEARNED__"){
+    add("✅ Learned and saved. I’ll remember that.");
+    return;
+  }
+
+  if(cmd==="__CANCEL__"){
+    add("Okay 👍 I won’t learn that.");
+    return;
+  }
+
+  if(cmd==="MAKE_FAKE"){
+    const id="TEST_"+Math.random().toString(36).slice(2,7);
+    await db.collection("tt_orders").doc(id).set({
+      fake:true,
+      status:"new",
+      createdAt:ts(),
+      totals:{total:25}
+    });
+    cacheAt=0;
+    add(`🧪 Fake order created: ${id}`);
+    return;
+  }
+
+  if(cmd==="NEXT"){
+    const o=(await getOrders()).find(o=>o.status!=="done");
+    if(!o){add("No orders left 🎉");return;}
+    convo.lastOrder=o.id;
+    add(`Next order:\n${o.id}`);
+    return;
+  }
+
+  if(cmd==="DONE"){
+    if(!convo.lastOrder){add("Which order?");return;}
+    await db.collection("tt_orders").doc(convo.lastOrder)
+      .update({status:"done",doneAt:ts()});
+    cacheAt=0;
+    add(`✅ Marked ${convo.lastOrder} done`);
+    return;
+  }
+
+  if(cmd==="REVENUE_MONTH"){
     const rows=await getOrders();
-    const r=rows.find(o=>o.status!=="done");
-    if(!r){addMsg("No orders left 🎉");return;}
-    convo.lastOrderId=r.id;
-    addMsg(`Next order:\n${r.id}`, "bot");
+    const sum=rows
+      .filter(r=>r.status==="done")
+      .reduce((a,b)=>a+(b.totals?.total||0),0);
+    add(`📊 Monthly gross: $${sum.toFixed(2)}`);
     return;
   }
 
-  if(c==="DONE"){
-    const id=parts[1];
-    await setOrder(id,{status:"done",doneAt:ts()});
-    convo.lastOrderId=id;
-    addMsg(`✅ Marked ${id} done`, "bot");
-    return;
-  }
-
-  if(c==="SHIPPED"){
-    const id=parts[1];
-    await setOrder(id,{shippedAt:ts()});
-    convo.lastOrderId=id;
-    addMsg(`📦 Marked ${id} shipped`, "bot");
-    return;
-  }
-
-  if(c==="BYPHONE"){
-    const rows=await getOrders();
-    const out=rows.filter(r=>digits(r.order?.phone)===parts[1]);
-    addMsg(out.map(o=>o.id).join("\n")||"None", "bot");
-    return;
-  }
-
-  if(c==="FIND"){
-    const rows=await getOrders();
-    const q=cmd.slice(5).toLowerCase();
-    const out=rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q));
-    addMsg(out.map(o=>o.id).join("\n")||"None", "bot");
-    return;
-  }
-
-  addMsg("I didn’t get that.", "bot");
+  add("I’m not sure what to do with that yet.");
 }
 
-/* =====================
+/* ======================
    SEND
-===================== */
+====================== */
 async function send(){
   const t=clean(input.value);
   if(!t) return;
   input.value="";
-  addMsg(t,"user");
+  add(t,"user");
   const cmd=await understand(t);
   await run(cmd);
 }
 
-document.getElementById("sendBtn").onclick=send;
+document.getElementById("send").onclick=send;
 input.onkeydown=e=>e.key==="Enter"&&send();
-document.getElementById("resetBtn").onclick=()=>{
-  chat.innerHTML="";
-  convo.lastOrderId=null;
-  convo.pending=null;
-  addMsg("Reset 👍","bot");
-};
 
-/* =====================
+/* ======================
    START
-===================== */
-addMsg("Howdy 🤠\nTalk to me like a person.\n\nExamples:\n• what’s next\n• mark it done\n• ship that order\n• orders from 2083043821","bot");
+====================== */
+add(
+`Howdy 🤠
+
+Talk to me like ChatGPT.
+
+Examples:
+• what's next
+• mark it done
+• make a fake order
+• monthly gross
+• make it so when I say monthly gross tell me how much I made that month`
+);
 </script>
 </body>
 </html>
