@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tactics & Treats – Chat Order</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
   :root{
     --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
@@ -11,28 +16,81 @@
     --line:#2a2a2a; --radius:16px;
   }
   *{ box-sizing:border-box; }
-  body{ margin:0; padding:18px; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  body{
+    margin:0; padding:18px;
+    background:var(--bg); color:var(--text);
+    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
   .wrap{ max-width:920px; margin:0 auto; }
-  header{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  header{
+    display:flex; gap:12px; flex-wrap:wrap;
+    align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
   h1{ margin:0; color:var(--accent); font-size:22px; }
-  .pill{ font-size:12px; padding:6px 10px; border-radius:999px; background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a; }
-  .card{ background:var(--panel); border:1px solid #262626; border-radius:var(--radius); padding:14px; box-shadow:0 0 18px rgba(255,0,0,.18); }
-  .chat{ height:580px; overflow:auto; padding:12px; border-radius:14px; background:#000; border:1px solid var(--line); }
-  .msg{ max-width:92%; padding:10px 12px; border-radius:14px; margin:10px 0; white-space:pre-line; line-height:1.35; }
-  .bot{ background:#101010; border:1px solid #2a2a2a; border-top-left-radius:6px; }
-  .user{ background:#1c1c1c; border:1px solid #333; margin-left:auto; border-top-right-radius:6px; }
+  .pill{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid #262626;
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 0 18px rgba(255,0,0,.18);
+  }
+  .chat{
+    height:580px; overflow:auto;
+    padding:12px; border-radius:14px;
+    background:#000; border:1px solid var(--line);
+  }
+  .msg{
+    max-width:92%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:10px 0;
+    white-space:pre-line;
+    line-height:1.35;
+    word-break:break-word;
+  }
+  .bot{
+    background:#101010;
+    border:1px solid #2a2a2a;
+    border-top-left-radius:6px;
+  }
+  .user{
+    background:#1c1c1c;
+    border:1px solid #333;
+    margin-left:auto;
+    border-top-right-radius:6px;
+  }
   .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .chip{ background:#191919; border:1px solid #2f2f2f; color:#fff; padding:8px 10px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:800; }
+  .chip{
+    background:#191919; border:1px solid #2f2f2f;
+    color:#fff; padding:8px 10px; border-radius:999px;
+    cursor:pointer; font-size:13px; font-weight:800;
+  }
   .chip:hover{ filter:brightness(1.08); }
   .bar{ display:flex; gap:10px; margin-top:10px; }
-  input{ flex:1; border:none; outline:none; border-radius:14px; padding:12px 12px; font-size:15px; color:#fff; background:var(--panel2); border:1px solid var(--line); }
-  button{ border:none; border-radius:14px; padding:12px 14px; font-weight:900; cursor:pointer; background:var(--accent); color:#fff; }
+  input{
+    flex:1; border:none; outline:none;
+    border-radius:14px; padding:12px 12px;
+    font-size:15px; color:#fff;
+    background:var(--panel2);
+    border:1px solid var(--line);
+  }
+  button{
+    border:none; border-radius:14px;
+    padding:12px 14px; font-weight:900;
+    cursor:pointer; background:var(--accent);
+    color:#fff;
+  }
   button:hover{ filter:brightness(1.08); }
   .secondary{ background:#242424; border:1px solid #343434; color:#fff; }
   .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
-  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; }
-  .small{ font-size:12px; color:var(--muted); margin-top:6px; }
+  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; white-space:pre-line; }
+  .small{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.35; }
+  .small b{ color:#fff; }
 </style>
 </head>
 
@@ -40,7 +98,7 @@
 <div class="wrap">
   <header>
     <h1>Tactics & Treats – Chat Order</h1>
-    <div class="pill">Auto-fill + upsells + donation + coupon + resume draft</div>
+    <div class="pill">Saves orders in tt_orders (Admin-compatible)</div>
   </header>
 
   <div class="card">
@@ -49,37 +107,43 @@
     <div id="status"></div>
     <div class="bar">
       <input id="input" placeholder="Type your answer…" autocomplete="off" />
-      <button id="sendBtn">Send</button>
-      <button id="resetBtn" class="secondary">Reset</button>
+      <button id="sendBtn" type="button">Send</button>
+      <button id="resetBtn" class="secondary" type="button">Reset</button>
     </div>
     <div class="meta">
       Commands: <b>BACK</b>, <b>RESTART</b>, <b>CONFIRM</b>
     </div>
     <div class="small">
-      Tip: Customers can type a whole request like “king cobra outside white middle black inside white, 8 inches, regular” and it will fill it in.
+      Tip: You can type a whole request like:<br/>
+      <b>“king cobra outside white middle black inside white, 8 inches, regular, bracelet, rush”</b>
     </div>
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<!-- Firebase compat (works on mobile + GitHub Pages) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
-/* ✅ YOUR FIREBASE CONFIG */
-const firebaseConfig = {
+<script>
+/* =========================
+   FIREBASE (your project)
+========================= */
+firebase.initializeApp({
   apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
   authDomain:"bracelets-and-color.firebaseapp.com",
   projectId:"bracelets-and-color",
   storageBucket:"bracelets-and-color.appspot.com",
   messagingSenderId:"382292570673",
   appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
-};
+});
+const db = firebase.firestore();
+const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
 const ORDERS_COLLECTION = "tt_orders";
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-/* ========= PRICING ========= */
+/* =========================
+   PRICING (edit anytime)
+========================= */
 const PRICE_PER_INCH = 1;
 const MIN_IN = 5;
 const MAX_IN = 40;
@@ -87,42 +151,33 @@ const MAX_IN = 40;
 const SHIPPING_IN = 6;
 const SHIPPING_OUT = 10;
 
-// add-ons
-const FEE_RUSH = 5;            // same-day priority
-const FEE_GIFT_NOTE = 2;       // printed note
-const FEE_DURABILITY = 3;      // thicker/tighter build
-const FEE_EXTRA_TAIL = 2;      // extra length/tail
-const FEE_CHARM = 3;           // charm add-on
-const FEE_RING = 2;            // keychain ring add-on
-const FEE_EXTRA_COLOR = 2;     // 4th accent color (king cobra only)
-const FEE_ENGRAVED_TAG = 8;    // dog collar tag
-const FEE_TRACKING = 3;        // tracking upgrade
-const FEE_PACKAGING = 2;       // box packaging
-const BUNDLE_SHIP_DISCOUNT = 2;// if 2 items, shipping cheaper
-const SET_DISCOUNT = 3;        // bracelet + dog collar set discount
+// order add-ons
+const FEE_RUSH = 5;
+const FEE_GIFT_NOTE = 2;
+const FEE_TRACKING = 3;
+const FEE_PACKAGING = 2;
 
-// Coupon
+// item add-ons
+const FEE_DURABILITY = 3;
+const FEE_EXTRA_TAIL = 2;
+const FEE_CHARM = 3;
+const FEE_RING = 2;
+const FEE_EXTRA_COLOR = 2;
+const FEE_ENGRAVED_TAG = 8;
+
+// discounts
+const BUNDLE_SHIP_DISCOUNT = 2;
+const SET_DISCOUNT = 3;
+
+// coupon
 const COUPON_CODE = "NORTHIDAHO";
-const COUPON_PCT = 10; // percent off subtotal (not shipping)
+const COUPON_PCT = 10;
 
-/* ========= SALES TEXT ========= */
-const POPULAR_PICK_LINE = "Most popular pick: King Cobra in red/black.";
-const LIMITED_SPOTS_LINE = "Heads up: I can do same-day, but I have limited spots today.";
 const PHONE = "208-304-3821";
-const SIGNATURE = "Tactics & Treats Team";
 
-const BRAND_STORY =
-`I started Tactics & Treats because I wanted to build something real with my hands and turn it into a positive business.
-
-Every bracelet and dog collar is handmade, and each order helps me grow this into something bigger — better tools, more designs, and faster turnaround.
-
-It’s not a big factory or a drop-ship store. It’s just honest work, custom pieces, and pride in what I make.
-
-When you order, you’re not just buying a bracelet — you’re helping support a small, growing brand.
-
-— Tactics & Treats Team`;
-
-/* ========= UI ========= */
+/* =========================
+   UI
+========================= */
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const chipsBox = document.getElementById("chips");
@@ -147,73 +202,58 @@ function setChips(options){
     chipsBox.appendChild(b);
   });
 }
-function clean(s){ return (s||"").toLowerCase(); }
+function clean(s){ return String(s||"").trim(); }
+function lower(s){ return clean(s).toLowerCase(); }
+function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 function money(n){
   const x = Number(n);
-  if(!isFinite(x)) return "$0";
+  if(!Number.isFinite(x)) return "$0";
   return "$" + x.toFixed(2).replace(/\.00$/,"");
 }
-function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 
-/* ========= DRAFT SAVE / RESUME ========= */
-const DRAFT_KEY = "tt_chat_order_draft_v1";
-function saveDraft(){
-  try{
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ mode, stepIndex, order, items }));
-  }catch{}
+/* =========================
+   DATA MODEL (Admin-compatible)
+========================= */
+function defaultItem(){
+  return {
+    itemType:"",
+    weave:"",
+    inches:0,
+    fit:"",
+    colors:[],
+    patternStyle:"",
+    extraColor:false,
+    durability:false,
+    extraTail:false,
+    charm:false,
+    keychainRing:false,
+    engravedTagText:""
+  };
 }
-function loadDraft(){
-  try{
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if(!raw) return null;
-    return JSON.parse(raw);
-  }catch{ return null; }
-}
-function clearDraft(){
-  try{ localStorage.removeItem(DRAFT_KEY); }catch{}
-}
-
-/* ========= ORDER DATA =========
-   We support 1 item OR a 2-item set (bracelet + dog collar).
-*/
-const defaultItem = ()=>({
-  itemType:"",     // bracelet / dog collar / keychain
-  weave:"",        // cobra / king cobra
-  inches:0,
-  fit:"",
-  colors:[],       // 2 for cobra, 3 for king cobra
-  patternStyle:"", // stripes / split / fade / chevron
-  extraColor:false,
-  durability:false,
-  extraTail:false,
-  charm:false,
-  keychainRing:false,
-  engravedTagText:"" // for dog collar only
-});
 
 let items = [defaultItem()];
 
 const order = {
-  isSet:false,             // bracelet + dog collar
+  // order-level
   rush:false,
   giftNote:false,
   giftNoteText:"",
   tracking:false,
   packaging:false,
-  photoBeforePay:false,
   donation:0,
   coupon:"",
-  shipping:"",             // in/out
+  shipping:"", // "in" | "out"
   address:"",
   name:"",
   phone:"",
   notes:""
 };
 
-/* ========= PRICING CALC ========= */
-function itemBase(i){
-  return (Number(i.inches)||0) * PRICE_PER_INCH;
-}
+/* =========================
+   TOTALS
+========================= */
+function itemBase(i){ return (Number(i.inches)||0) * PRICE_PER_INCH; }
 function itemAddons(i){
   let a = 0;
   if(i.durability) a += FEE_DURABILITY;
@@ -238,7 +278,6 @@ function shippingCost(){
   return ship;
 }
 function setDiscount(){
-  // set discount applies only if it’s specifically bracelet+dog collar
   if(items.length !== 2) return 0;
   const types = items.map(x=>x.itemType).sort().join("|");
   if(types === "bracelet|dog collar") return SET_DISCOUNT;
@@ -258,104 +297,26 @@ function calcTotals(){
   const ship = shippingCost();
   const donation = Number(order.donation)||0;
 
-  // subtotal eligible for coupon (everything except shipping + donation)
   const subtotal = Math.max(0, base + itemUpsells + orderUpsells - setDisc);
   const coup = couponDiscount(subtotal);
   const subtotalAfterCoupon = Math.max(0, subtotal - coup);
-
   const total = subtotalAfterCoupon + ship + donation;
 
-  return {
-    base, itemUpsells, orderUpsells, setDisc,
-    subtotal, coup, subtotalAfterCoupon,
-    ship, donation, total
-  };
+  return { base, itemUpsells, orderUpsells, setDisc, subtotal, coup, subtotalAfterCoupon, ship, donation, total };
 }
 function pricePreviewLine(){
   const t = calcTotals();
-  const bits = [];
-  bits.push(`Est. total: ${money(t.total)}`);
+  const bits = [`Est. total: ${money(t.total)}`];
   if(t.coup > 0) bits.push(`(coupon -${money(t.coup)})`);
   return bits.join(" ");
 }
 
-/* ========= SALES / FAQ ========= */
-function wantsToBuy(text){
-  const t = clean(text);
-
-  // strong
-  if(
-    t.includes("i want") || t.includes("i'll get") || t.includes("ill get") ||
-    t.includes("i'll take") || t.includes("ill take") ||
-    t.includes("order") || t.includes("buy") || t.includes("get one") ||
-    t.includes("i need one")
-  ) return true;
-
-  // soft intent inside a question + product clue
-  const soft = (t.includes("could i") || t.includes("can i") || t.includes("can you") || t.includes("if possible") || t.includes("is it possible"));
-  const clue = (t.includes("cobra") || t.includes("bracelet") || t.includes("collar") || t.includes("paracord") || t.includes("micro cord"));
-  return soft && clue;
-}
-
-function answerFAQ(text){
-  const t = clean(text);
-
-  if(
-    t.includes("why") || t.includes("your story") || t.includes("about you") ||
-    t.includes("why are you") || t.includes("why do you") || t.includes("your business")
-  ) return BRAND_STORY;
-
-  if(t.includes("price") || t.includes("cost") || t.includes("how much")){
-    return `Pricing is $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN}).\nWe can add upgrades like rush, gift note, durability, engraved tag (collars), charms, tracking, and more.\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
-  }
-  if(t.includes("size") || t.includes("how big") || t.includes("inch") || t.includes("measure") || t.includes("fit")){
-    return `Sizing:\n• Measure wrist or dog’s neck\n• Pick snug / regular / loose\n• Sizes run ${MIN_IN}-${MAX_IN} inches\n\n${POPULAR_PICK_LINE}`;
-  }
-  if(t.includes("color")){
-    return `Colors:\n• Any colors you want\n• Cobra = 2 colors\n• King Cobra = 3 colors\n• (Optional) add a 4th accent color upgrade\n\n${POPULAR_PICK_LINE}`;
-  }
-  if(t.includes("ship") || t.includes("shipping") || t.includes("address")){
-    return `Shipping:\n• $${SHIPPING_IN} in-state\n• $${SHIPPING_OUT} out-of-state\n• Bundle discount if you get 2 items\n\n${LIMITED_SPOTS_LINE}`;
-  }
-  if(t.includes("contact") || t.includes("phone") || t.includes("number")){
-    return `Contact: ${PHONE}\n\n${LIMITED_SPOTS_LINE}`;
-  }
-  if(t.includes("meet") || t.includes("pickup")){
-    return `No meetups — shipping only.\n\n${LIMITED_SPOTS_LINE}`;
-  }
-  if(t.includes("coupon") || t.includes("discount") || t.includes("code")){
-    return `You can enter a coupon code during checkout.\n(Example: ${COUPON_CODE} gives ${COUPON_PCT}% off eligible subtotal.)`;
-  }
-  if(t.includes("donate") || t.includes("donation") || t.includes("tip")){
-    return `You can add a donation during checkout — it gets added to the total, and it’s optional.`;
-  }
-  return `Ask me about price, sizing, colors, shipping, upgrades, coupons, or just say what you want and I’ll build the order.\n\n${POPULAR_PICK_LINE}\n${LIMITED_SPOTS_LINE}`;
-}
-
-let nudgeCount = 0;
-function gentlePush(){
-  nudgeCount++;
-  addMsg(
-`If you want, you can type what you want in one message and I’ll fill it in.
-Example: “king cobra outside white middle black inside white, 8 inches, regular, bracelet”
-
-${POPULAR_PICK_LINE}
-${LIMITED_SPOTS_LINE}`,
-  "bot"
-);
-  setChips(["I want one","king cobra outside white middle black inside white","Price","Sizing","Shipping","Upgrades"]);
-}
-
-/* ========= AUTO-FILL PARSER ========= */
+/* =========================
+   AUTOFILL PARSER (simple but useful)
+========================= */
 function extractHints(text){
-  const t = clean(text);
-  const h = {
-    weave:null,
-    colors:null,
-    inches:null,
-    fit:null,
-    itemType:null
-  };
+  const t = lower(text);
+  const h = { weave:null, colors:null, inches:null, fit:null, itemType:null, rush:null };
 
   if(t.includes("dog") && t.includes("collar")) h.itemType="dog collar";
   else if(t.includes("collar")) h.itemType="dog collar";
@@ -368,107 +329,110 @@ function extractHints(text){
   const mIn = t.match(/(\d+(\.\d+)?)/);
   if(mIn){
     const n = Number(mIn[1]);
-    if(isFinite(n) && n>=MIN_IN && n<=MAX_IN) h.inches=n;
+    if(Number.isFinite(n) && n>=MIN_IN && n<=MAX_IN) h.inches=n;
   }
 
   if(t.includes("snug")) h.fit="snug";
   else if(t.includes("regular")) h.fit="regular";
   else if(t.includes("loose")) h.fit="loose";
 
-  // outside/middle/inside = 3 colors (king cobra)
+  if(t.includes("rush")) h.rush = true;
+
+  // outside/middle/inside for king cobra
   const outside = t.match(/outside\s+([a-z]+)/);
   const middle  = t.match(/middle\s+(?:band\s+)?([a-z]+)/);
   const inside  = t.match(/inside\s+([a-z]+)/);
-  if(outside && middle && inside){
-    h.colors=[outside[1], middle[1], inside[1]];
-    return h;
-  }
-
-  // comma colors
-  if(text.includes(",")){
-    const parts = text.split(",").map(s=>s.trim()).filter(Boolean);
-    if(parts.length>=2 && parts.length<=3){
-      h.colors = parts.map(p=>p.split(" ")[0].toLowerCase());
-    }
-  }
+  if(outside && middle && inside) h.colors=[outside[1], middle[1], inside[1]];
 
   // red/black or red/black/gray
   const slash = t.match(/\b([a-z]+)\s*\/\s*([a-z]+)(?:\s*\/\s*([a-z]+))?\b/);
-  if(slash){
-    h.colors=[slash[1],slash[2],slash[3]].filter(Boolean);
+  if(!h.colors && slash) h.colors=[slash[1], slash[2], slash[3]].filter(Boolean);
+
+  // comma colors
+  if(!h.colors && text.includes(",")){
+    const parts = text.split(",").map(s=>s.trim()).filter(Boolean);
+    const cands = parts
+      .map(p=>p.split(" ")[0].toLowerCase())
+      .filter(x=>/^[a-z]+$/.test(x));
+    if(cands.length>=2 && cands.length<=3) h.colors=cands.slice(0,3);
   }
 
   return h;
 }
-function applyHintsToItem(h, item){
-  if(h.itemType && !item.itemType) item.itemType = h.itemType;
-  if(h.weave && !item.weave) item.weave = h.weave;
-  if(h.inches && !item.inches) item.inches = h.inches;
-  if(h.fit && !item.fit) item.fit = h.fit;
+function applyHints(h){
+  const it = items[0];
 
-  if(h.colors && h.colors.length){
-    // infer weave from color count if missing
-    if(!item.weave){
-      if(h.colors.length===3) item.weave="king cobra";
-      if(h.colors.length===2) item.weave="cobra";
+  if(h.itemType && !it.itemType) it.itemType = h.itemType;
+  if(h.weave && !it.weave) it.weave = h.weave;
+  if(h.inches && !it.inches) it.inches = h.inches;
+  if(h.fit && !it.fit) it.fit = h.fit;
+  if(h.rush) order.rush = true;
+
+  if(h.colors && Array.isArray(h.colors) && !it.colors.length){
+    if(!it.weave){
+      it.weave = (h.colors.length===3) ? "king cobra" : "cobra";
     }
-    const need = item.weave==="king cobra" ? 3 : (item.weave==="cobra" ? 2 : null);
-    if(need && h.colors.length===need && item.colors.length===0){
-      item.colors = h.colors.slice(0,need);
+    const need = (it.weave==="king cobra") ? 3 : 2;
+    if(h.colors.length >= need){
+      it.colors = h.colors.slice(0, need);
     }
   }
 }
 
-/* ========= FLOW (ask only missing) ========= */
-let mode = "sales"; // sales | order | review | done
+/* =========================
+   FLOW STEPS
+========================= */
+const steps = [
+  { key:"itemType", ask:"What are you ordering? (bracelet / dog collar / keychain)", chips:["bracelet","dog collar","keychain"] },
+  { key:"weave", ask:"What weave? (cobra / king cobra)", chips:["cobra","king cobra"] },
+  { key:"inches", ask:`How many inches? (${MIN_IN}-${MAX_IN})`, chips:["7","8","9","10","12"] },
+  { key:"fit", ask:"Fit? (snug / regular / loose)", chips:["snug","regular","loose"] },
+  { key:"colors", ask:"Colors?\nCobra = 2 colors\nKing Cobra = outside / middle / inside\n(Example: outside white middle black inside white)", chips:["red/black","black/white","outside white middle black inside white"] },
+  { key:"patternStyle", ask:"Pattern style? (stripes / split / fade / chevron)", chips:["stripes","split","fade","chevron"] },
+
+  { key:"upsells", ask:"Any upgrades?\n• rush (+$5)\n• durability (+$3)\n• extra tail (+$2)\n• charm (+$3)\n• ring (+$2)\n• 4th color (king cobra +$2)\nType what you want or say “none”.", chips:["rush","durability","extra tail","charm","ring","none"] },
+
+  { key:"orderUpsells", ask:"Order upgrades?\n• gift note (+$2)\n• tracking (+$3)\n• packaging (+$2)\nType what you want or say “none”.", chips:["gift note","tracking","packaging","none"] },
+
+  { key:"coupon", ask:`Coupon code? (or “none”)\nCode ${COUPON_CODE} = ${COUPON_PCT}% off subtotal`, chips:[COUPON_CODE,"none"] },
+  { key:"donation", ask:"Donation / tip? (number like 2 or 5, or “0”)", chips:["0","2","5","10"] },
+
+  { key:"shipping", ask:"Shipping: in-state or out-of-state?", chips:["in","out"] },
+  { key:"address", ask:"Shipping address (type it out).", chips:[] },
+  { key:"name", ask:"Your name?", chips:[] },
+  { key:"phone", ask:"Phone number?", chips:[] },
+  { key:"notes", ask:"Any extra notes? (or “none”)", chips:["none"] },
+];
+
 let stepIndex = 0;
 const backStack = [];
 
-function needColorsCount(item){
-  if(item.weave === "king cobra") return 3;
-  if(item.weave === "cobra") return 2;
+function needColorsCount(it){
+  if(it.weave === "king cobra") return 3;
+  if(it.weave === "cobra") return 2;
   return 0;
 }
 
-function stepSatisfied(stepKey){
-  const item = items[0]; // first item main (we collect set second item later)
-  switch(stepKey){
-    case "setAsk": return true; // always ask once
-    case "setBuild": return !order.isSet || items.length===2;
-    case "itemType": return !!item.itemType;
-    case "weave": return !!item.weave;
-    case "inches": return !!item.inches;
-    case "fit": return !!item.fit;
+function stepSatisfied(key){
+  const it = items[0];
+  switch(key){
+    case "itemType": return !!it.itemType;
+    case "weave": return !!it.weave;
+    case "inches": return !!it.inches;
+    case "fit": return !!it.fit;
     case "colors": {
-      const need = needColorsCount(item);
-      return need>0 && item.colors.length===need;
+      const need = needColorsCount(it);
+      return need>0 && it.colors.length===need;
     }
-    case "patternStyle": return !!item.patternStyle;
-    case "extraColorAsk": return item.weave!=="king cobra" ? true : true; // asked once, can be false
-    case "durabilityAsk": return true;
-    case "extraTailAsk": return true;
-    case "charmAsk": return true;
-    case "ringAsk": return true;
-    case "engravedTagAsk": return item.itemType==="dog collar" ? true : true;
-    case "engravedTagText": return item.itemType==="dog collar" ? (!!item.engravedTagText || item.engravedTagText==="") : true;
-
-    case "rushAsk": return true;
-    case "giftAsk": return true;
-    case "giftText": return order.giftNote ? (order.giftNoteText.length>0) : true;
-
-    case "trackingAsk": return true;
-    case "packagingAsk": return true;
-    case "couponAsk": return true;
-    case "couponCode": return order.coupon !== null; // always fine
-
-    case "donateAsk": return true;
-    case "donationAmt": return true;
-
+    case "patternStyle": return !!it.patternStyle;
+    case "upsells": return true;
+    case "orderUpsells": return true;
+    case "coupon": return true;
+    case "donation": return true;
     case "shipping": return !!order.shipping;
     case "address": return !!order.address;
     case "name": return !!order.name;
     case "phone": return !!order.phone;
-    case "photoAsk": return true;
     case "notes": return true;
     default: return false;
   }
@@ -476,58 +440,52 @@ function stepSatisfied(stepKey){
 
 function nextUnfilledIndex(start){
   let i = start;
-  while(i < steps.length && stepSatisfied(steps[i].key)){
-    i++;
-  }
+  while(i < steps.length && stepSatisfied(steps[i].key)) i++;
   return i;
 }
 
 function askStep(){
   stepIndex = nextUnfilledIndex(stepIndex);
   if(stepIndex >= steps.length){
-    mode = "review";
     addMsg(buildSummary(), "bot");
     setChips(["CONFIRM","BACK","RESTART"]);
-    saveDraft();
+    addMsg(pricePreviewLine(), "bot");
     return;
   }
   const s = steps[stepIndex];
   addMsg(s.ask, "bot");
   setChips(s.chips || []);
   addMsg(pricePreviewLine(), "bot");
-  saveDraft();
 }
 
 function buildSummary(){
+  const it = items[0];
   const t = calcTotals();
-  const main = items[0];
-  const setLine = (items.length===2) ? `\nSET item 2: ${items[1].itemType} • ${items[1].weave} • ${items[1].inches}"` : "";
+  const couponOk = String(order.coupon||"").trim().toUpperCase() === COUPON_CODE;
+
+  const itemUps = [];
+  if(it.durability) itemUps.push("durability");
+  if(it.extraTail) itemUps.push("extra tail");
+  if(it.charm) itemUps.push("charm");
+  if(it.keychainRing) itemUps.push("ring");
+  if(it.extraColor) itemUps.push("4th color");
+  if(it.itemType==="dog collar" && it.engravedTagText) itemUps.push(`engraved tag: "${it.engravedTagText}"`);
 
   const ups = [];
   if(order.rush) ups.push("rush");
   if(order.giftNote) ups.push("gift note");
   if(order.tracking) ups.push("tracking");
-  if(order.packaging) ups.push("protective packaging");
-
-  const itemUps = [];
-  if(main.durability) itemUps.push("durability");
-  if(main.extraTail) itemUps.push("extra tail");
-  if(main.charm) itemUps.push("charm");
-  if(main.keychainRing) itemUps.push("keychain ring");
-  if(main.extraColor) itemUps.push("4th accent color");
-  if(main.itemType==="dog collar" && main.engravedTagText) itemUps.push(`engraved tag: "${main.engravedTagText}"`);
-
-  const couponOk = (String(order.coupon||"").trim().toUpperCase() === COUPON_CODE);
+  if(order.packaging) ups.push("packaging");
 
   return (
 `Order Summary
-• Item: ${main.itemType}
-• Weave: ${main.weave}
-• Size: ${main.inches}"
-• Fit: ${main.fit}
-• Colors: ${main.colors.join(", ")}
-• Pattern: ${main.patternStyle}
-• Item upgrades: ${itemUps.length ? itemUps.join(", ") : "none"}${setLine}
+• Item: ${it.itemType}
+• Weave: ${it.weave}
+• Size: ${it.inches}"
+• Fit: ${it.fit}
+• Colors: ${it.colors.join(", ")}
+• Pattern: ${it.patternStyle}
+• Item upgrades: ${itemUps.length ? itemUps.join(", ") : "none"}
 
 • Order upgrades: ${ups.length ? ups.join(", ") : "none"}
 • Shipping: ${order.shipping === "in" ? "in-state" : "out-of-state"}
@@ -536,13 +494,400 @@ function buildSummary(){
 • Phone: ${order.phone}
 • Coupon: ${order.coupon ? (couponOk ? `${order.coupon} ✅` : `${order.coupon} (not valid)`) : "none"}
 • Donation: ${money(order.donation || 0)}
-• Photo before pay link: ${order.photoBeforePay ? "yes" : "no"}
-• Notes: ${order.notes ? order.notes : "none"}
+• Notes: ${order.notes || "none"}
 
-Price
+Price breakdown
 • Base: ${money(t.base)}
 • Item upsells: ${money(t.itemUpsells)}
 • Order upsells: ${money(t.orderUpsells)}
 • Set discount: -${money(t.setDisc)}
 • Subtotal: ${money(t.subtotal)}
-• Coupon discount: -${money(t.co
+• Coupon discount: -${money(t.coup)}
+• Shipping: ${money(t.ship)}
+• Donation: ${money(t.donation)}
+= Total: ${money(t.total)}
+
+Type CONFIRM to submit.`
+  );
+}
+
+/* =========================
+   APPLY ANSWERS
+========================= */
+function parseYesNo(t){
+  const s = lower(t);
+  if(["yes","y","yeah","yep","sure","ok"].includes(s)) return true;
+  if(["no","n","nope","nah"].includes(s)) return false;
+  return null;
+}
+
+function applyStepAnswer(stepKey, text){
+  const it = items[0];
+  const t = lower(text);
+
+  if(stepKey === "itemType"){
+    if(t.includes("dog")) it.itemType = "dog collar";
+    else if(t.includes("collar")) it.itemType = "dog collar";
+    else if(t.includes("keychain")) it.itemType = "keychain";
+    else it.itemType = "bracelet";
+    return true;
+  }
+
+  if(stepKey === "weave"){
+    if(t.includes("king")) it.weave = "king cobra";
+    else it.weave = "cobra";
+    return true;
+  }
+
+  if(stepKey === "inches"){
+    const m = t.match(/(\d+(\.\d+)?)/);
+    if(!m) return false;
+    const n = clamp(Number(m[1]), MIN_IN, MAX_IN);
+    it.inches = n;
+    return true;
+  }
+
+  if(stepKey === "fit"){
+    if(t.includes("snug")) it.fit = "snug";
+    else if(t.includes("loose")) it.fit = "loose";
+    else it.fit = "regular";
+    return true;
+  }
+
+  if(stepKey === "colors"){
+    const h = extractHints(text);
+    if(h.colors && h.colors.length){
+      if(!it.weave){
+        it.weave = (h.colors.length===3) ? "king cobra" : "cobra";
+      }
+      const need = needColorsCount(it);
+      if(need && h.colors.length >= need){
+        it.colors = h.colors.slice(0, need);
+        return true;
+      }
+    }
+    // allow manual simple: "red black" or "red,black"
+    const words = t.replace(/,/g," ").split(/\s+/).filter(Boolean).filter(w=>/^[a-z]+$/.test(w));
+    const need = needColorsCount(it);
+    if(need && words.length >= need){
+      it.colors = words.slice(0, need);
+      return true;
+    }
+    return false;
+  }
+
+  if(stepKey === "patternStyle"){
+    if(t.includes("split")) it.patternStyle="split";
+    else if(t.includes("fade")) it.patternStyle="fade";
+    else if(t.includes("chev")) it.patternStyle="chevron";
+    else it.patternStyle="stripes";
+    return true;
+  }
+
+  if(stepKey === "upsells"){
+    // allow "none"
+    if(t.includes("none")) return true;
+    if(t.includes("rush")) order.rush = true;
+    if(t.includes("durab")) it.durability = true;
+    if(t.includes("tail")) it.extraTail = true;
+    if(t.includes("charm")) it.charm = true;
+    if(t.includes("ring")) it.keychainRing = true;
+    if(t.includes("4th") || t.includes("fourth") || t.includes("extra color")) it.extraColor = true;
+    // dog collar tag
+    if(it.itemType==="dog collar" && (t.includes("tag") || t.includes("engrave"))){
+      // if they typed tag text like: tag: REX
+      const m = text.match(/tag\s*:\s*(.+)$/i);
+      if(m) it.engravedTagText = clean(m[1]).slice(0, 40);
+    }
+    return true;
+  }
+
+  if(stepKey === "orderUpsells"){
+    if(t.includes("none")) return true;
+    if(t.includes("gift")) order.giftNote = true;
+    if(t.includes("tracking")) order.tracking = true;
+    if(t.includes("pack")) order.packaging = true;
+
+    // if gift note text provided like: note: hi mom
+    const m = text.match(/note\s*:\s*(.+)$/i);
+    if(m){
+      order.giftNote = true;
+      order.giftNoteText = clean(m[1]).slice(0, 120);
+    }
+    return true;
+  }
+
+  if(stepKey === "coupon"){
+    if(t === "none") { order.coupon=""; return true; }
+    order.coupon = clean(text).toUpperCase().replace(/\s+/g,"");
+    return true;
+  }
+
+  if(stepKey === "donation"){
+    const m = t.match(/(\d+(\.\d+)?)/);
+    const n = m ? Number(m[1]) : 0;
+    order.donation = Number.isFinite(n) ? clamp(n, 0, 999) : 0;
+    return true;
+  }
+
+  if(stepKey === "shipping"){
+    order.shipping = t.includes("in") ? "in" : "out";
+    return true;
+  }
+
+  if(stepKey === "address"){
+    order.address = clean(text);
+    return order.address.length >= 6;
+  }
+
+  if(stepKey === "name"){
+    order.name = clean(text);
+    return order.name.length >= 2;
+  }
+
+  if(stepKey === "phone"){
+    order.phone = clean(text);
+    return digitsOnly(order.phone).length >= 7;
+  }
+
+  if(stepKey === "notes"){
+    if(t.includes("none")) order.notes = "";
+    else order.notes = clean(text).slice(0, 240);
+    return true;
+  }
+
+  return false;
+}
+
+/* =========================
+   ADMIN-COMPAT SAVE
+========================= */
+async function saveOrderToFirestore(){
+  const phoneDigits = digitsOnly(order.phone);
+
+  const t = calcTotals();
+  const cleanedItems = items.map(i => ({
+    itemType: i.itemType || "",
+    weave: i.weave || "",
+    inches: Number(i.inches) || 0,
+    fit: i.fit || "",
+    colors: Array.isArray(i.colors) ? i.colors.map(c=>String(c||"").toLowerCase()) : [],
+    patternStyle: i.patternStyle || "",
+    extraColor: !!i.extraColor,
+    durability: !!i.durability,
+    extraTail: !!i.extraTail,
+    charm: !!i.charm,
+    keychainRing: !!i.keychainRing,
+    engravedTagText: i.engravedTagText || ""
+  }));
+
+  const docData = {
+    status: "unpaid",            // best for admin queues
+    createdAt: ts(),
+
+    order: {
+      name: order.name || "",
+      phone: order.phone || "",
+      phoneDigits,
+      shipping: order.shipping || "", // "in" or "out"
+      address: order.address || "",
+      rush: !!order.rush
+    },
+
+    // admin fields
+    assignedTo: "",
+    adminNote: "",
+    tracking: "",
+    flagged: false,
+    problemNote: "",
+    paidAt: null,
+    shippedAt: null,
+    doneAt: null,
+
+    // customer extras (optional)
+    notes: order.notes || "",
+    giftNote: !!order.giftNote,
+    giftNoteText: order.giftNoteText || "",
+    trackingUpgrade: !!order.tracking,
+    packaging: !!order.packaging,
+    donation: Number(order.donation) || 0,
+    coupon: String(order.coupon || "").trim(),
+
+    items: cleanedItems,
+
+    totals: {
+      base: Number(t.base) || 0,
+      itemUpsells: Number(t.itemUpsells) || 0,
+      orderUpsells: Number(t.orderUpsells) || 0,
+      setDisc: Number(t.setDisc) || 0,
+      subtotal: Number(t.subtotal) || 0,
+      coup: Number(t.coup) || 0,
+      subtotalAfterCoupon: Number(t.subtotalAfterCoupon) || 0,
+      ship: Number(t.ship) || 0,
+      donation: Number(t.donation) || 0,
+      total: Number(t.total) || 0
+    }
+  };
+
+  const ref = await db.collection(ORDERS_COLLECTION).add(docData);
+  return ref.id;
+}
+
+/* =========================
+   COMMANDS + CHAT LOOP
+========================= */
+function resetAll(){
+  items = [defaultItem()];
+  order.rush=false; order.giftNote=false; order.giftNoteText="";
+  order.tracking=false; order.packaging=false;
+  order.donation=0; order.coupon="";
+  order.shipping=""; order.address=""; order.name=""; order.phone=""; order.notes="";
+  stepIndex = 0;
+  backStack.length = 0;
+  chat.innerHTML = "";
+  setStatus("");
+  boot();
+}
+
+function boot(){
+  addMsg(
+`Howdy 🤠
+Tell me what you want, and I’ll build the order.
+
+Examples:
+• king cobra outside white middle black inside white, 8 inches, regular, bracelet, rush
+• cobra red/black 7 regular bracelet
+• dog collar king cobra outside black middle red inside black 16 snug
+
+Commands:
+• BACK  • RESTART  • CONFIRM (after summary)`,
+  "bot"
+  );
+  setChips(["bracelet","dog collar","keychain","Price","Shipping","RESTART"]);
+  askStep();
+}
+
+function handleFAQ(text){
+  const t = lower(text);
+  if(t === "price" || t.includes("how much") || t.includes("cost")){
+    addMsg(
+`Pricing:
+• $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN})
+Shipping:
+• $${SHIPPING_IN} in-state
+• $${SHIPPING_OUT} out-of-state
+Upgrades:
+• rush +$${FEE_RUSH}, durability +$${FEE_DURABILITY}, charm +$${FEE_CHARM}, tracking +$${FEE_TRACKING}
+Coupon:
+• ${COUPON_CODE} = ${COUPON_PCT}% off subtotal`,
+    "bot"
+    );
+    return true;
+  }
+  if(t.includes("shipping")){
+    addMsg(`Shipping is $${SHIPPING_IN} in-state and $${SHIPPING_OUT} out-of-state.`, "bot");
+    return true;
+  }
+  return false;
+}
+
+async function handleInput(raw){
+  const text = clean(raw);
+  const U = text.toUpperCase();
+
+  if(!text) return;
+
+  if(U === "RESTART"){
+    resetAll();
+    return;
+  }
+
+  if(U === "BACK"){
+    if(backStack.length){
+      const prev = backStack.pop();
+      stepIndex = Math.max(0, prev);
+      addMsg("Okay — going back.", "bot");
+      askStep();
+    }else{
+      addMsg("You’re already at the start.", "bot");
+    }
+    return;
+  }
+
+  // if summary shown, CONFIRM submits
+  if(U === "CONFIRM" && stepIndex >= steps.length){
+    setStatus("Submitting order…");
+    try{
+      const id = await saveOrderToFirestore();
+      setStatus("");
+      addMsg(`✅ Order submitted!\nOrder ID: ${id}\n\nIf needed: ${PHONE}`, "bot");
+      setChips(["RESTART"]);
+    }catch(e){
+      setStatus("");
+      addMsg("⚠️ Could not submit the order. Try again.", "bot");
+      addMsg(String(e?.message || e), "bot");
+      setChips(["CONFIRM","RESTART"]);
+    }
+    return;
+  }
+
+  // FAQ quick
+  if(handleFAQ(text)) return;
+
+  // Apply autofill hints first (so one big message can fill multiple fields)
+  const hints = extractHints(text);
+  applyHints(hints);
+
+  // Try to answer the current step
+  stepIndex = nextUnfilledIndex(stepIndex);
+  const current = steps[stepIndex];
+  if(!current){
+    askStep();
+    return;
+  }
+
+  // record for BACK
+  backStack.push(stepIndex);
+
+  // step fill
+  const ok = applyStepAnswer(current.key, text);
+
+  // if not ok, undo backStack push and ask again
+  if(!ok){
+    backStack.pop();
+    addMsg("I didn’t catch that — try again.", "bot");
+    askStep();
+    return;
+  }
+
+  // If they typed a big message, keep progressing and auto-ask next
+  stepIndex++;
+  askStep();
+}
+
+async function send(){
+  const raw = input.value;
+  input.value = "";
+  if(!clean(raw)) return;
+
+  addMsg(raw, "user");
+  try{
+    await handleInput(raw);
+  }catch(err){
+    console.error(err);
+    setStatus("⚠️ " + (err?.message || String(err)));
+    addMsg("⚠️ Something broke. Try RESTART.", "bot");
+    setChips(["RESTART"]);
+  }
+}
+
+/* Buttons */
+document.getElementById("sendBtn").addEventListener("click", send);
+input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
+document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+/* Start */
+boot();
+</script>
+</body>
+</html>
