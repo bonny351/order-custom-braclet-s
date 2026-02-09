@@ -5,629 +5,254 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tactics & Treats – Admin Bot</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-  :root{
-    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
-    --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
-    --line:#2a2a2a; --radius:16px;
-  }
-  *{ box-sizing:border-box; }
-  body{
-    margin:0; padding:18px;
-    background:var(--bg); color:var(--text);
-    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  }
-  .wrap{ max-width:980px; margin:0 auto; }
-  header{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; flex-wrap:wrap; margin-bottom:14px;
-  }
-  h1{ margin:0; color:var(--accent); font-size:22px; }
-  .pill{
-    font-size:12px; padding:6px 10px; border-radius:999px;
-    background:#1f1f1f; border:1px solid #2a2a2a; color:var(--muted);
-  }
-  .card{
-    background:var(--panel);
-    border:1px solid #262626;
-    border-radius:var(--radius);
-    padding:14px;
-    box-shadow:0 0 18px rgba(255,0,0,.18);
-  }
-  .chat{
-    height:640px; overflow:auto;
-    padding:12px;
-    border-radius:14px;
-    background:#000;
-    border:1px solid var(--line);
-  }
-  .msg{
-    max-width:94%;
-    padding:10px 12px;
-    border-radius:14px;
-    margin:10px 0;
-    white-space:pre-line;
-    line-height:1.35;
-  }
-  .bot{
-    background:#101010;
-    border:1px solid #2a2a2a;
-    border-top-left-radius:6px;
-  }
-  .user{
-    background:#1c1c1c;
-    border:1px solid #333;
-    margin-left:auto;
-    border-top-right-radius:6px;
-  }
-  .chips{
-    display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
-  }
-  .chip{
-    background:#191919;
-    border:1px solid #2f2f2f;
-    color:#fff;
-    padding:8px 10px;
-    border-radius:999px;
-    cursor:pointer;
-    font-size:13px;
-    font-weight:800;
-    user-select:none;
-  }
-  .chip:hover{ filter:brightness(1.08); }
-  .bar{ display:flex; gap:10px; margin-top:10px; }
-  input{
-    flex:1;
-    border:none; outline:none;
-    border-radius:14px;
-    padding:12px 12px;
-    font-size:15px;
-    color:#fff;
-    background:var(--panel2);
-    border:1px solid var(--line);
-  }
-  button{
-    border:none;
-    border-radius:14px;
-    padding:12px 14px;
-    font-weight:900;
-    cursor:pointer;
-    background:var(--accent);
-    color:#fff;
-  }
-  button:hover{ filter:brightness(1.08); }
-  .secondary{
-    background:#242424;
-    border:1px solid #343434;
-    color:#fff;
-  }
-  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; }
-  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
+:root{
+  --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+  --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
+  --line:#2a2a2a; --radius:16px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:16px;
+  background:var(--bg); color:var(--text);
+  font-family:Poppins,system-ui;
+}
+.wrap{max-width:960px;margin:auto}
+h1{color:var(--accent);margin:0 0 10px}
+.card{
+  background:var(--panel);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:0 0 20px rgba(255,0,0,.2);
+}
+.chat{
+  height:60vh; min-height:360px;
+  background:#000; border-radius:14px;
+  padding:12px; overflow:auto;
+}
+.msg{
+  margin:8px 0; padding:10px 12px;
+  border-radius:12px; white-space:pre-line;
+}
+.bot{background:#111;border:1px solid #2a2a2a}
+.user{background:#1c1c1c;border:1px solid #333;margin-left:auto}
+.bar{display:flex;gap:8px;margin-top:10px}
+input{
+  flex:1;padding:12px;border-radius:14px;
+  background:var(--panel2);color:#fff;border:1px solid var(--line)
+}
+button{
+  padding:12px 16px;border-radius:14px;
+  background:var(--accent);color:#fff;
+  font-weight:800;border:none;cursor:pointer
+}
+button.secondary{background:#333}
+#status{margin-top:6px;color:#ffb347;font-size:13px}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <header>
-    <h1>Tactics & Treats – Admin Bot</h1>
-    <div class="pill">Commands • Orders + Inventory + Stats</div>
-  </header>
+<h1>Tactics & Treats – Admin Bot</h1>
 
-  <div class="card">
-    <div id="chat" class="chat"></div>
-    <div id="chips" class="chips"></div>
-    <div id="status"></div>
+<div class="card">
+  <div id="chat" class="chat"></div>
+  <div id="status"></div>
 
-    <div class="bar">
-      <input id="input" placeholder="Type a command…" autocomplete="off" />
-      <button id="sendBtn">Send</button>
-      <button id="resetBtn" class="secondary">Reset</button>
-    </div>
-
-    <div class="meta">
-      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNFINISHED</b>, <b>BYPHONE 2083043821</b>, <b>LOWSTOCK</b>, <b>TOTALS MONTH</b>
-      <br/>Natural: “show unpaid”, “what’s next”, “mark 8f3K2 done”, “orders from 2083043821”
-    </div>
+  <div class="bar">
+    <input id="input" placeholder="Talk to me…" />
+    <button id="sendBtn">Send</button>
+    <button id="resetBtn" class="secondary">Reset</button>
   </div>
 </div>
+</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import {
-  getFirestore,
-  collection, doc, getDoc, getDocs,
-  updateDoc, setDoc, deleteDoc,
-  serverTimestamp, limit, query
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<!-- Firebase compat (NO MODULES) -->
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
-/* 🔥 FIREBASE */
+<script>
+/* =====================
+   🔥 FIREBASE CONFIG
+   (PASTE YOUR REAL ONE)
+===================== */
 const firebaseConfig = {
-  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-  authDomain:"bracelets-and-color.firebaseapp.com",
-  projectId:"bracelets-and-color",
-  storageBucket:"bracelets-and-color.appspot.com",
-  messagingSenderId:"382292570673",
-  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-/* Collections */
-const ORDERS = "tt_orders";
-const PRODUCTS = {
-  bracelets: "products_bracelets",
-  cookies: "products_cookies",
+  apiKey: "PASTE_YOURS",
+  authDomain: "PASTE_YOURS",
+  projectId: "PASTE_YOURS",
+  storageBucket: "PASTE_YOURS",
+  messagingSenderId: "PASTE_YOURS",
+  appId: "PASTE_YOURS"
 };
 
-/* NOTE:
-   This bot fetches recent docs and filters client-side to avoid Firestore index headaches.
-   If you have more orders/products, bump these limits.
-*/
-const ORDER_FETCH_LIMIT = 900;
-const PRODUCT_FETCH_LIMIT = 900;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
-/* UI */
+/* =====================
+   UI HELPERS
+===================== */
 const chat = document.getElementById("chat");
 const input = document.getElementById("input");
-const chipsBox = document.getElementById("chips");
 const statusEl = document.getElementById("status");
-const sendBtn = document.getElementById("sendBtn");
-const resetBtn = document.getElementById("resetBtn");
 
-function setStatus(msg){ statusEl.textContent = msg || ""; }
 function addMsg(text, who="bot"){
-  const div = document.createElement("div");
-  div.className = "msg " + (who === "user" ? "user" : "bot");
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  const d=document.createElement("div");
+  d.className="msg "+(who==="user"?"user":"bot");
+  d.textContent=text;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
 }
-function setChips(options){
-  chipsBox.innerHTML = "";
-  (options || []).forEach(opt=>{
-    const b = document.createElement("div");
-    b.className = "chip";
-    b.textContent = opt;
-    b.onclick = ()=>{ input.value = opt; send(); };
-    chipsBox.appendChild(b);
-  });
-}
-function clean(s){ return String(s||"").trim(); }
-function upper(s){ return clean(s).toUpperCase(); }
-function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+function setStatus(t){statusEl.textContent=t||""}
+function clean(s){return String(s||"").trim()}
+function digits(s){return String(s||"").replace(/\D/g,"")}
 
-function safeToDate(v){
-  if(!v) return null;
-  if(typeof v?.toDate === "function") return v.toDate();
-  if(typeof v?.seconds === "number") return new Date(v.seconds*1000);
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? null : d;
-}
-function fmtDate(v){
-  const d = safeToDate(v);
-  return d ? d.toLocaleString() : "";
-}
+/* =====================
+   CONVERSATION MEMORY
+===================== */
+const convo={
+  lastOrderId:null,
+  pending:null
+};
 
-function money(v){
-  const n = Number(v);
-  if(!Number.isFinite(n)) return "";
-  return "$" + n.toFixed(2);
-}
-
-function normalizeStatus(s){
-  const t = String(s||"new").toLowerCase().trim();
-  if(["new","pending","unpaid","done","archived","cancelled","refunded","flagged"].includes(t)) return t;
-  if(t === "completed") return "done";
-  return t || "new";
-}
-
-function startOfToday(){
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  return d;
-}
-function startOfWeek(){
-  const d = startOfToday();
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
-  return d;
-}
-function startOfMonth(){
-  const d = startOfToday();
-  d.setDate(1);
-  return d;
-}
-function daysAgo(n){
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-function summarizeItems(items){
-  if(!Array.isArray(items) || !items.length) return "(none)";
-  return items.map((it, i)=>{
-    const colors = Array.isArray(it.colors) ? it.colors.join("/") : "";
-    const tag = it.engravedTagText ? ` tag:"${it.engravedTagText}"` : "";
-    const ups = [];
-    if(it.durability) ups.push("durability");
-    if(it.reflective) ups.push("reflective");
-    if(it.glow) ups.push("glow");
-    if(it.charm) ups.push("charm");
-    if(it.extraTail) ups.push("extra tail");
-    const upsTxt = ups.length ? ` • [${ups.join(", ")}]` : "";
-    return `${i+1}) ${it.itemType||""} • ${it.weave||""} • ${it.inches||""}" • ${it.fit||""} • ${colors}${tag}${upsTxt}`.trim();
-  }).join("\n");
-}
-
-function orderTotal(data){
-  const totals = data?.totals || {};
-  const t = totals.total;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function orderCard(id, data){
-  const o = data?.order || {};
-  const totals = data?.totals || {};
-  const items = data?.items || [];
-  const status = normalizeStatus(data?.status);
-
-  return [
-    `Order: ${id}`,
-    `Status: ${status}`,
-    `Created: ${fmtDate(data?.createdAt)}`,
-    `Name: ${o.name || ""}`,
-    `Phone: ${o.phone || ""}`,
-    `Shipping: ${o.shipping || ""}`,
-    `Address: ${o.address || ""}`,
-    `Rush: ${o.rush ? "yes" : "no"}`,
-    `AssignedTo: ${data?.assignedTo || ""}`,
-    `AdminNote: ${data?.adminNote || ""}`,
-    `Tracking: ${data?.tracking || ""}`,
-    `Flagged: ${data?.flagged ? "yes" : "no"}`,
-    `Problem: ${data?.problemNote || ""}`,
-    `PaidAt: ${fmtDate(data?.paidAt)}`,
-    `ShippedAt: ${fmtDate(data?.shippedAt)}`,
-    `DoneAt: ${fmtDate(data?.doneAt)}`,
-    `Total: ${typeof totals.total === "number" ? money(totals.total) : (totals.total ?? "")}`,
-    `Items:\n${summarizeItems(items)}`
-  ].join("\n");
-}
-
-function compactOrderLine(r){
-  const o = r.order || {};
-  const t = orderTotal(r);
-  return `• ${r.id} | ${normalizeStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(t)}`;
-}
-
-/* Cached fetches */
-let orderCache = [];
-let orderCacheAt = 0;
-
-let productCache = { bracelets: [], cookies: [] };
-let productCacheAt = 0;
-
-async function refreshOrders(){
-  const qRef = query(collection(db, ORDERS), limit(ORDER_FETCH_LIMIT));
-  const snap = await getDocs(qRef);
-  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  orderCacheAt = Date.now();
-  return orderCache;
-}
-async function refreshProducts(){
-  const out = {};
-  for(const k of ["bracelets","cookies"]){
-    const col = PRODUCTS[k];
-    const qRef = query(collection(db, col), limit(PRODUCT_FETCH_LIMIT));
-    const snap = await getDocs(qRef);
-    out[k] = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  }
-  productCache = out;
-  productCacheAt = Date.now();
-  return productCache;
-}
-async function ensureOrdersFresh(){
-  if(!orderCache.length || (Date.now() - orderCacheAt) > 20_000) await refreshOrders();
-  return orderCache;
-}
-async function ensureProductsFresh(){
-  if((!productCache.bracelets.length && !productCache.cookies.length) || (Date.now() - productCacheAt) > 20_000){
-    await refreshProducts();
-  }
-  return productCache;
-}
-
-/* Firestore ops */
+/* =====================
+   ORDER HELPERS
+===================== */
 async function getOrder(id){
-  const snap = await getDoc(doc(db, ORDERS, id));
-  return snap.exists() ? snap.data() : null;
+  const snap=await db.collection("tt_orders").doc(id).get();
+  return snap.exists? snap.data():null;
 }
-async function patchOrder(id, patch){
-  await updateDoc(doc(db, ORDERS, id), patch);
+async function setOrder(id,patch){
+  await db.collection("tt_orders").doc(id).update(patch);
 }
-async function setOrder(id, data){
-  await setDoc(doc(db, ORDERS, id), data, { merge:true });
-}
-async function delOrder(id){
-  await deleteDoc(doc(db, ORDERS, id));
+async function getOrders(){
+  const snap=await db.collection("tt_orders").limit(500).get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 
-function resolveProductCollection(key){
-  const k = String(key||"").toLowerCase().trim();
-  if(k === "bracelets" || k === "products_bracelets") return { key:"bracelets", col: PRODUCTS.bracelets };
-  if(k === "cookies" || k === "products_cookies") return { key:"cookies", col: PRODUCTS.cookies };
-  return null;
-}
-async function getProduct(colKey, id){
-  const rc = resolveProductCollection(colKey);
-  if(!rc) throw new Error("Unknown product collection. Use: bracelets or cookies.");
-  const snap = await getDoc(doc(db, rc.col, id));
-  return snap.exists() ? { id: snap.id, ...snap.data(), __col: rc.col, __key: rc.key } : null;
-}
-async function patchProduct(colKey, id, patch){
-  const rc = resolveProductCollection(colKey);
-  if(!rc) throw new Error("Unknown product collection. Use: bracelets or cookies.");
-  await updateDoc(doc(db, rc.col, id), patch);
+/* =====================
+   INTENT DETECTION
+===================== */
+function extractId(text){
+  return text.split(/\s+/).find(t=>t.length>=4 && /\w/.test(t))||"";
 }
 
-function parseCSVList(s){
-  return String(s||"")
-    .split(",")
-    .map(x=>x.trim())
-    .filter(Boolean);
-}
+async function understand(text){
+  const L=text.toLowerCase();
 
-/* Filtering helpers */
-function orderCreatedDate(r){ return safeToDate(r.createdAt) || new Date(0); }
-function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
-function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
-function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
-
-function includesBlob(r, q){
-  const o = r.order || {};
-  const items = r.items || [];
-  const itemText = Array.isArray(items) ? items.map(it=>{
-    const colors = Array.isArray(it.colors)? it.colors.join(" ") : "";
-    return `${it.itemType||""} ${it.weave||""} ${it.inches||""} ${it.fit||""} ${colors} ${it.engravedTagText||""}`.trim();
-  }).join(" | ") : "";
-  const blob = [
-    r.id,
-    normalizeStatus(r.status),
-    o.name, o.phone, o.address,
-    o.shipping, String(o.rush||""),
-    r.assignedTo, r.adminNote, r.tracking, r.problemNote,
-    itemText
-  ].map(x=>String(x||"").toLowerCase()).join(" | ");
-  return blob.includes(q);
-}
-
-function formatOrderList(rows, title){
-  if(!rows.length) return `${title}: none found.`;
-  return [
-    `${title} (showing ${rows.length}):`,
-    ...rows.map(compactOrderLine)
-  ].join("\n");
-}
-
-/* Priority / next */
-function priorityScore(r){
-  const s = normalizeStatus(r.status);
-  const rush = !!(r.order && r.order.rush);
-  if(s === "unpaid" && rush) return 1;
-  if(s === "unpaid") return 2;
-  if(s === "pending" && rush) return 3;
-  if(s === "pending") return 4;
-  if(s === "new" && rush) return 5;
-  if(s === "new") return 6;
-  return 99;
-}
-
-function pickNext(rows){
-  const unfinished = rows.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
-  unfinished.sort((a,b)=>{
-    const sa = priorityScore(a), sb = priorityScore(b);
-    if(sa !== sb) return sa - sb;
-    return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
-  });
-  return unfinished[0] || null;
-}
-
-/* Customer aggregations */
-function customerKey(r){
-  const phone = digitsOnly(r?.order?.phone || "");
-  const name = String(r?.order?.name || "").trim().toLowerCase();
-  return phone ? `p:${phone}` : (name ? `n:${name}` : "");
-}
-
-function groupByPhone(rows){
-  const map = new Map();
-  for(const r of rows){
-    const p = digitsOnly(r?.order?.phone || "");
-    if(!p) continue;
-    map.set(p, (map.get(p)||0) + 1);
+  if(convo.pending){
+    const id=extractId(text);
+    if(id){
+      const act=convo.pending;
+      convo.pending=null;
+      return `${act} ${id}`;
+    }
+    return "__ASK_ID__";
   }
-  return map;
-}
 
-/* Delete safety */
-const pendingDeletes = new Map(); // id -> timestamp
-function markPendingDelete(id){
-  pendingDeletes.set(id, Date.now());
-}
-function canDeleteNow(id){
-  const t = pendingDeletes.get(id);
-  if(!t) return false;
-  if(Date.now() - t > 60_000) { pendingDeletes.delete(id); return false; }
-  return true;
-}
+  if(L.includes("next")) return "NEXT";
+  if(L.includes("unpaid")) return "UNPAID";
+  if(L.includes("unfinished")||L.includes("open")) return "UNFINISHED";
 
-/* ✅ NATURAL LANGUAGE → COMMAND */
-function looksLikeId(s){
-  const t = clean(s);
-  return t && t.length >= 4 && !t.includes(" ") && /[a-z0-9]/i.test(t);
-}
-function extractFirstId(text){
-  const tokens = clean(text).split(/\s+/);
-  const skip = new Set(["order","orders","mark","set","as","to","the","a","an","please","pls","done","completed","complete"]);
-  for(const tok of tokens){
-    const t = tok.replace(/[^\w-]/g,"");
-    if(!t) continue;
-    if(skip.has(t.toLowerCase())) continue;
-    if(looksLikeId(t)) return t;
-  }
-  return "";
-}
-function interpretNaturalLanguage(raw){
-  const t = clean(raw);
-  if(!t) return "";
-
-  const L = t.toLowerCase();
-
-  // already a command? let it pass
-  const first = upper(t.split(/\s+/)[0] || "");
-  const known = new Set([
-    "HELP","REFRESH","NEXT","UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","RUSH","PRIORITY",
-    "LAST","OVERDUE","BYNAME","BYPHONE","BYADDR","BYCUSTOMER","FIND",
-    "CLAIM","MYQUEUE","UNCLAIM","NOTE","NOTES","CLEARNOTE",
-    "SHOW","STATUS","PAID","SHIPPED","UNSHIP","TRACK","TRACKSHOW","CLEARTRACK",
-    "SHIPINFO","LABEL","MESSAGE","CONTACT","ARCHIVE","DELETE",
-    "LOWSTOCK","OUTOFSTOCK","LIST","FINDP","STOCK","SET","PRICE","RESTOCK","DEDUCT",
-    "SIZES","ADDSIZE","REMOVESIZE","COLORS","ADDCOLOR","REMOVECOLOR",
-    "TOTALS","REVENUE","AVG","TOPCUSTOMERS","CUSTOMERSTATS","DUPES","REPEAT",
-    "MARKDONE","COMPLETE"
-  ]);
-  if(known.has(first)) return t;
-
-  // Mark as done
-  if(
-    (L.includes("mark") && (L.includes("done") || L.includes("complete") || L.includes("completed"))) ||
-    L.startsWith("done ") ||
-    L.startsWith("complete ") ||
-    (L.includes("set") && L.includes("done"))
-  ){
-    const id = extractFirstId(t);
+  if(L.includes("mark")&&(L.includes("done")||L.includes("complete"))){
+    const id=extractId(text)||convo.lastOrderId;
     if(id) return `DONE ${id}`;
+    convo.pending="DONE"; return "__ASK_ID__";
   }
 
-  // Next
-  if(L.includes("next") || L.includes("what should i do") || L.includes("what's next") || L.includes("whats next")){
-    return "NEXT";
+  if(L.includes("ship")){
+    const id=extractId(text)||convo.lastOrderId;
+    if(id) return `SHIPPED ${id}`;
+    convo.pending="SHIPPED"; return "__ASK_ID__";
   }
 
-  // Lists
-  if(L.includes("unfinished") || L.includes("not done") || L.includes("open orders") || L.includes("in progress")) return "UNFINISHED";
-  if(L.includes("unpaid") || L.includes("not paid") || L.includes("owing") || L.includes("need payment")) return "UNPAID";
-  if(L.includes("pending")) return "PENDING";
-  if(L.includes("new orders") || L === "new") return "NEW";
-  if(L.includes("completed orders") || (L.includes("done") && L.includes("orders"))) return "DONE";
+  const phone=digits(text);
+  if(phone.length>=7) return `BYPHONE ${phone}`;
 
-  // Dates
-  if(L.includes("today")) return "TODAY";
-  if(L.includes("this week") || L === "week") return "WEEK";
-  if(L.includes("this month") || L === "month") return "MONTH";
-
-  // Rush / priority
-  if(L.includes("rush")) return "RUSH";
-  if(L.includes("priority")) return "PRIORITY";
-
-  // Stock
-  if(L.includes("low stock") || L.includes("running low")) return "LOWSTOCK";
-  if(L.includes("out of stock") || L.includes("sold out")) return "OUTOFSTOCK";
-
-  // Totals / revenue / average
-  if(L.includes("totals")){
-    if(L.includes("today")) return "TOTALS TODAY";
-    if(L.includes("week")) return "TOTALS WEEK";
-    if(L.includes("month")) return "TOTALS MONTH";
-    return "TOTALS MONTH";
-  }
-  if(L.includes("revenue")){
-    if(L.includes("today")) return "REVENUE TODAY";
-    if(L.includes("week")) return "REVENUE WEEK";
-    if(L.includes("month")) return "REVENUE MONTH";
-    return "REVENUE MONTH";
-  }
-  if(L.includes("average") || L.includes("avg")) return "AVG MONTH";
-
-  // Phone detection
-  const digits = digitsOnly(t);
-  if(digits.length >= 7){
-    if(L.includes("phone") || digits.length >= 9) return `BYPHONE ${digits}`;
-  }
-
-  // Show order
-  if(L.includes("show") && L.includes("order")){
-    const id = extractFirstId(t);
-    if(id) return `SHOW ${id}`;
-  }
-
-  // fallback search
-  return `FIND ${t}`;
+  return `FIND ${text}`;
 }
 
-/* HELP */
-function helpText(){
-  return [
-    "ADMIN BOT COMMANDS",
-    "",
-    "Natural language works too:",
-    "  show unpaid | what's next | mark <id> done | orders from 2083043821",
-    "",
-    "Orders (lists):",
-    "  UNFINISHED | NEW | PENDING | UNPAID | DONE | TODAY | WEEK | MONTH",
-    "  LAST <n> | RUSH | PRIORITY | OVERDUE <days>",
-    "",
-    "Orders (search):",
-    "  BYNAME <name> | BYPHONE <digits> | BYADDR <text>",
-    "  BYCUSTOMER <name> <phone> | FIND <any text>",
-    "",
-    "Workflow:",
-    "  NEXT | CLAIM <id> | MYQUEUE | UNCLAIM <id>",
-    "  NOTE <id> <text...> | NOTES <id> | CLEARNOTE <id>",
-    "",
-    "Status + shipping:",
-    "  SHOW <id> | STATUS <id> new|pending|unpaid|done|archived|cancelled|refunded",
-    "  DONE <id> (mark order as done + sets doneAt)",
-    "  PAID <id> (sets paidAt) | SHIPPED <id> (sets shippedAt + auto paidAt) | UNSHIP <id>",
-    "  TRACK <id> <code> | TRACKSHOW <id> | CLEARTRACK <id>",
-    "  SHIPINFO <id> | LABEL <id> | MESSAGE <id> | CONTACT <id>",
-    "",
-    "Safety:",
-    "  ARCHIVE <id>",
-    "  DELETE <id>  (then: DELETE <id> CONFIRM)",
-    "",
-    "Inventory:",
-    "  LOWSTOCK | OUTOFSTOCK",
-    "  LIST bracelets|cookies | FINDP bracelets|cookies <text>",
-    "  STOCK bracelets|cookies <docId>",
-    "  SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra",
-    "  PRICE <col> <id> 12.00 | RESTOCK <col> <id> +10 | DEDUCT <col> <id> -2",
-    "  SIZES <col> <id> 6,6.5,7 | ADDSIZE <col> <id> 8.5 | REMOVESIZE <col> <id> 6",
-    "  COLORS <col> <id> red,black | ADDCOLOR <col> <id> purple | REMOVECOLOR <col> <id> purple",
-    "",
-    "Stats:",
-    "  TOTALS TODAY|WEEK|MONTH | REVENUE TODAY|WEEK|MONTH | AVG MONTH",
-    "  TOPCUSTOMERS <n> | CUSTOMERSTATS <phone>",
-    "  DUPES PHONE | REPEAT <nameOrPhone>",
-    "",
-    "Other:",
-    "  REFRESH (reload caches) | HELP",
-  ].join("\n");
+/* =====================
+   COMMAND EXECUTION
+===================== */
+async function run(cmd){
+  const parts=cmd.split(" ");
+  const c=parts[0];
+
+  if(cmd==="__ASK_ID__"){
+    addMsg("Which order?", "bot"); return;
+  }
+
+  if(c==="NEXT"){
+    const rows=await getOrders();
+    const r=rows.find(o=>o.status!=="done");
+    if(!r){addMsg("No orders left 🎉");return;}
+    convo.lastOrderId=r.id;
+    addMsg(`Next order:\n${r.id}`, "bot");
+    return;
+  }
+
+  if(c==="DONE"){
+    const id=parts[1];
+    await setOrder(id,{status:"done",doneAt:ts()});
+    convo.lastOrderId=id;
+    addMsg(`✅ Marked ${id} done`, "bot");
+    return;
+  }
+
+  if(c==="SHIPPED"){
+    const id=parts[1];
+    await setOrder(id,{shippedAt:ts()});
+    convo.lastOrderId=id;
+    addMsg(`📦 Marked ${id} shipped`, "bot");
+    return;
+  }
+
+  if(c==="BYPHONE"){
+    const rows=await getOrders();
+    const out=rows.filter(r=>digits(r.order?.phone)===parts[1]);
+    addMsg(out.map(o=>o.id).join("\n")||"None", "bot");
+    return;
+  }
+
+  if(c==="FIND"){
+    const rows=await getOrders();
+    const q=cmd.slice(5).toLowerCase();
+    const out=rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q));
+    addMsg(out.map(o=>o.id).join("\n")||"None", "bot");
+    return;
+  }
+
+  addMsg("I didn’t get that.", "bot");
 }
 
-/* Stats */
-function statsForRange(rows, predicate){
-  const inRange = rows.filter(predicate);
-  const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
-  const count = inRange.length;
-  const doneCount = done.length;
-  const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
-  return { count, doneCount, revenue, inRange, done };
+/* =====================
+   SEND
+===================== */
+async function send(){
+  const t=clean(input.value);
+  if(!t) return;
+  input.value="";
+  addMsg(t,"user");
+  const cmd=await understand(t);
+  await run(cmd);
 }
 
-function avgMonthlyRevenue(rows){
-  const d
+document.getElementById("sendBtn").onclick=send;
+input.onkeydown=e=>e.key==="Enter"&&send();
+document.getElementById("resetBtn").onclick=()=>{
+  chat.innerHTML="";
+  convo.lastOrderId=null;
+  convo.pending=null;
+  addMsg("Reset 👍","bot");
+};
+
+/* =====================
+   START
+===================== */
+addMsg("Howdy 🤠\nTalk to me like a person.\n\nExamples:\n• what’s next\n• mark it done\n• ship that order\n• orders from 2083043821","bot");
+</script>
+</body>
+</html>
