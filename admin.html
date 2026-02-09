@@ -3,271 +3,1196 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Conversational Admin Bot</title>
+<title>Tactics & Treats – Smart Admin Bot</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;padding:16px;background:#0b0b0b;color:#fff;font-family:Poppins}
-.wrap{max-width:960px;margin:auto}
-h1{color:#ff2a2a;margin-bottom:8px}
-.chat{height:60vh;background:#000;padding:12px;border-radius:14px;overflow:auto}
-.msg{margin:8px 0;padding:10px 12px;border-radius:12px;white-space:pre-line}
-.bot{background:#111;border:1px solid #2a2a2a}
-.user{background:#1c1c1c;border:1px solid #333;margin-left:auto}
-.bar{display:flex;gap:8px;margin-top:10px}
-input{flex:1;padding:12px;border-radius:14px;border:1px solid #2a2a2a;background:#111;color:#fff}
-button{padding:12px 16px;border-radius:14px;border:none;font-weight:800;background:#ff2a2a;color:#fff;cursor:pointer}
-#status{font-size:12px;color:#ffb347;margin-top:6px}
+  :root{
+    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+    --text:#fff; --muted:#c9c9c9; --accent:#ff2a2a;
+    --line:#2a2a2a; --radius:16px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:16px;
+    background:var(--bg); color:var(--text);
+    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  .wrap{ max-width:980px; margin:0 auto; }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap; margin-bottom:12px;
+  }
+  h1{ margin:0; color:var(--accent); font-size:20px; }
+  .pill{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:#1f1f1f; border:1px solid #2a2a2a; color:var(--muted);
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid #262626;
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 0 18px rgba(255,0,0,.16);
+  }
+  .chat{
+    height:60vh; min-height:360px; max-height:680px;
+    overflow:auto;
+    padding:12px;
+    border-radius:14px;
+    background:#000;
+    border:1px solid var(--line);
+  }
+  .msg{
+    max-width:94%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:10px 0;
+    white-space:pre-line;
+    line-height:1.35;
+    word-break:break-word;
+  }
+  .bot{
+    background:#101010;
+    border:1px solid #2a2a2a;
+    border-top-left-radius:6px;
+  }
+  .user{
+    background:#1c1c1c;
+    border:1px solid #333;
+    margin-left:auto;
+    border-top-right-radius:6px;
+  }
+  .chips{
+    display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;
+  }
+  .chip{
+    background:#191919;
+    border:1px solid #2f2f2f;
+    color:#fff;
+    padding:8px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:800;
+    user-select:none;
+  }
+  .chip:hover{ filter:brightness(1.08); }
+  .bar{ display:flex; gap:10px; margin-top:10px; }
+  input{
+    flex:1;
+    border:none; outline:none;
+    border-radius:14px;
+    padding:12px 12px;
+    font-size:15px;
+    color:#fff;
+    background:var(--panel2);
+    border:1px solid var(--line);
+  }
+  button{
+    border:none;
+    border-radius:14px;
+    padding:12px 14px;
+    font-weight:900;
+    cursor:pointer;
+    background:var(--accent);
+    color:#fff;
+  }
+  button:hover{ filter:brightness(1.08); }
+  .secondary{
+    background:#242424;
+    border:1px solid #343434;
+    color:#fff;
+  }
+  #status{
+    margin-top:10px;
+    color:#ffb347;
+    font-weight:800;
+    min-height:18px;
+    white-space:pre-line;
+  }
+  .meta{
+    font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35;
+  }
+  .meta b{ color:#fff; }
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <h1>Tactics & Treats – Admin Bot</h1>
-  <div id="chat" class="chat"></div>
-  <div id="status"></div>
-  <div class="bar">
-    <input id="input" placeholder="Talk to me like ChatGPT…" />
-    <button id="send">Send</button>
+  <header>
+    <h1>Tactics & Treats – Admin Bot</h1>
+    <div class="pill">Chat • Learn • DBSCAN • SCANFIX</div>
+  </header>
+
+  <div class="card">
+    <div id="chat" class="chat"></div>
+    <div id="chips" class="chips"></div>
+    <div id="status"></div>
+
+    <div class="bar">
+      <input id="input" placeholder="Talk to me… (example: “monthly gross”, “make a fake order”, “scanfix”)" autocomplete="off" />
+      <button id="sendBtn" type="button">Send</button>
+      <button id="resetBtn" class="secondary" type="button">Reset</button>
+    </div>
+
+    <div class="meta">
+      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNFINISHED</b>, <b>UNPAID</b>, <b>MONTHLY GROSS</b>, <b>DBSCAN</b>, <b>SCANFIX</b><br/>
+      Teach: “make it so when I say <b>monthly gross</b> tell me how much I made that month”
+    </div>
   </div>
 </div>
 
-<!-- Firebase (compat, stable everywhere) -->
+<!-- Firebase compat (works on GitHub Pages + mobile, no modules) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* ======================
-   FIREBASE (YOUR PROJECT)
-====================== */
+/* =========================
+   FIREBASE (your project)
+========================= */
 firebase.initializeApp({
-  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
-  authDomain: "bracelets-and-color.firebaseapp.com",
-  projectId: "bracelets-and-color",
-  storageBucket: "bracelets-and-color.appspot.com",
-  messagingSenderId: "382292570673",
-  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+  apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain:"bracelets-and-color.firebaseapp.com",
+  projectId:"bracelets-and-color",
+  storageBucket:"bracelets-and-color.appspot.com",
+  messagingSenderId:"382292570673",
+  appId:"1:382292570673:web:1c966e2e7e8fc2efa31b10"
 });
-
 const db = firebase.firestore();
 const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
-/* ======================
-   UI HELPERS
-====================== */
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const statusEl = document.getElementById("status");
-
-function add(text, who="bot"){
-  const d=document.createElement("div");
-  d.className="msg "+(who==="user"?"user":"bot");
-  d.textContent=text;
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
-}
-function clean(s){return String(s||"").trim()}
-function digits(s){return String(s||"").replace(/\D/g,"")}
-
-/* ======================
-   MEMORY + STATE
-====================== */
-const convo={
-  lastOrder:null,
-  awaitingConfirm:null,
-  awaitingAction:null
+/* =========================
+   COLLECTIONS
+========================= */
+const ORDERS = "tt_orders";
+const SKILLS = "tt_skills";
+const PRODUCTS = {
+  bracelets: "products_bracelets",
+  cookies: "products_cookies",
 };
 
-/* ======================
-   FAST ORDER CACHE
-====================== */
-let orderCache=[], cacheAt=0;
-async function getOrders(){
-  if(Date.now()-cacheAt<15000 && orderCache.length) return orderCache;
-  const snap=await db.collection("tt_orders").limit(500).get();
-  orderCache=snap.docs.map(d=>({id:d.id,...d.data()}));
-  cacheAt=Date.now();
+/* DB scan targets (client apps must know collection names) */
+const DB_COLLECTIONS = [
+  { key:"orders", name: ORDERS, limit: 500 },
+  { key:"skills", name: SKILLS, limit: 500 },
+  { key:"bracelets", name: PRODUCTS.bracelets, limit: 500 },
+  { key:"cookies", name: PRODUCTS.cookies, limit: 500 },
+];
+
+/* =========================
+   UI
+========================= */
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const chipsBox = document.getElementById("chips");
+const statusEl = document.getElementById("status");
+const sendBtn = document.getElementById("sendBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
+function addMsg(text, who="bot"){
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "user" ? "user" : "bot");
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+function setChips(options){
+  chipsBox.innerHTML = "";
+  (options || []).forEach(opt=>{
+    const b = document.createElement("div");
+    b.className = "chip";
+    b.textContent = opt;
+    b.onclick = ()=>{ input.value = opt; send(); };
+    chipsBox.appendChild(b);
+  });
+}
+function clean(s){ return String(s||"").trim(); }
+function lower(s){ return clean(s).toLowerCase(); }
+function upper(s){ return clean(s).toUpperCase(); }
+function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+function money(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? "$"+n.toFixed(2) : "$0.00";
+}
+function safeToDate(v){
+  if(!v) return null;
+  if(typeof v?.toDate === "function") return v.toDate();
+  if(typeof v?.seconds === "number") return new Date(v.seconds*1000);
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtDate(v){
+  const d = safeToDate(v);
+  return d ? d.toLocaleString() : "";
+}
+function normStatus(s){
+  const t = String(s||"new").toLowerCase().trim();
+  if(["new","pending","unpaid","done","archived","cancelled","refunded","flagged"].includes(t)) return t;
+  if(t === "completed") return "done";
+  return "new";
+}
+
+/* =========================
+   MEMORY / STATE
+========================= */
+const convo = {
+  lastOrderId: "",
+  awaitingLearnConfirm: null, // unknown phrase
+  awaitingLearnAction: null,  // trigger being taught
+  pendingFixPlan: null,       // SCANFIX plan
+};
+
+/* =========================
+   FAST CACHE
+========================= */
+let orderCache = [];
+let orderCacheAt = 0;
+const CACHE_TTL = 15000;
+const ORDER_FETCH_LIMIT = 700;
+
+async function getOrdersFast(){
+  if(orderCache.length && (Date.now() - orderCacheAt) < CACHE_TTL) return orderCache;
+  const snap = await db.collection(ORDERS).limit(ORDER_FETCH_LIMIT).get();
+  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  orderCacheAt = Date.now();
   return orderCache;
 }
+function bustOrdersCache(){ orderCacheAt = 0; }
 
-/* ======================
-   SKILLS (LEARNED COMMANDS)
-====================== */
-async function loadSkills(){
-  const s=await db.collection("tt_skills").get();
-  return s.docs.map(d=>d.data());
+/* =========================
+   SKILLS (learned commands)
+========================= */
+let skillsCache = [];
+let skillsCacheAt = 0;
+const SKILLS_TTL = 15000;
+
+async function loadSkillsFast(){
+  if(skillsCache.length && (Date.now() - skillsCacheAt) < SKILLS_TTL) return skillsCache;
+  const snap = await db.collection(SKILLS).limit(800).get();
+  skillsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  skillsCacheAt = Date.now();
+  return skillsCache;
 }
-async function saveSkill(trigger,action){
-  await db.collection("tt_skills").add({trigger,action,createdAt:ts()});
+function bustSkillsCache(){ skillsCacheAt = 0; }
+
+async function saveSkill(trigger, action){
+  await db.collection(SKILLS).add({
+    trigger: String(trigger||"").trim().toLowerCase(),
+    action: String(action||"").trim(),
+    createdAt: ts()
+  });
+  bustSkillsCache();
+}
+async function deleteSkillByTrigger(trigger){
+  const t = String(trigger||"").trim().toLowerCase();
+  const snap = await db.collection(SKILLS).where("trigger","==",t).limit(50).get();
+  const batch = db.batch();
+  snap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  bustSkillsCache();
 }
 
-/* ======================
-   TRANSLATE HUMAN → ACTION
-====================== */
-function translate(text){
-  text=text.toLowerCase();
+/* =========================
+   PRODUCT HELPERS
+========================= */
+function resolveProductCollection(key){
+  const k = String(key||"").toLowerCase().trim();
+  if(k === "bracelets") return PRODUCTS.bracelets;
+  if(k === "cookies") return PRODUCTS.cookies;
+  return null;
+}
 
-  if(text.includes("how much")||text.includes("gross")||text.includes("revenue")){
-    if(text.includes("month")) return "REVENUE_MONTH";
-    if(text.includes("week")) return "REVENUE_WEEK";
-    return "REVENUE_MONTH";
+/* =========================
+   FAKE ORDERS
+========================= */
+function randFrom(a){ return a[Math.floor(Math.random()*a.length)]; }
+async function makeFakeOrder(opts={}){
+  const names = ["John Doe","Jane Smith","Alex Carter","Sam Hill","Chris Fox","Taylor Ray"];
+  const phones = ["2085551122","2085553344","2085557788","2085559900","2085551212"];
+  const id = "TEST_" + Math.random().toString(36).slice(2,8).toUpperCase();
+
+  const status = normStatus(opts.status || "new");
+  const total = Number.isFinite(Number(opts.total)) ? Number(opts.total) : Number((Math.random()*45+10).toFixed(2));
+
+  const doc = {
+    fake: true,
+    status,
+    createdAt: ts(),
+    totals: { total },
+    order: {
+      name: opts.name || randFrom(names),
+      phone: opts.phone || randFrom(phones),
+      phoneDigits: digitsOnly(opts.phone || ""),
+      shipping: opts.shipping || "USPS",
+      rush: !!opts.rush,
+      address: opts.address || ""
+    },
+    items: opts.items || [],
+    adminNote: opts.adminNote || "test order"
+  };
+
+  await db.collection(ORDERS).doc(id).set(doc, { merge:true });
+  bustOrdersCache();
+  return id;
+}
+
+/* =========================
+   FIND / ID extraction
+========================= */
+function looksLikeId(tok){
+  const t = String(tok||"").trim();
+  if(!t) return false;
+  if(t.length < 4) return false;
+  if(t.includes(" ")) return false;
+  return /[a-z0-9]/i.test(t);
+}
+function extractFirstId(text){
+  const tokens = clean(text).split(/\s+/);
+  const skip = new Set(["order","orders","mark","set","as","to","the","a","an","please","pls","done","completed","complete","shipped","paid","show","scanfix","dbscan","confirm"]);
+  for(const tok0 of tokens){
+    const tok = tok0.replace(/[^\w-]/g,"");
+    if(!tok) continue;
+    if(skip.has(tok.toLowerCase())) continue;
+    if(looksLikeId(tok)) return tok;
+  }
+  return "";
+}
+
+/* =========================
+   DATE RANGES
+========================= */
+function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function startOfWeek(){ const d=startOfToday(); const day=d.getDay(); d.setDate(d.getDate()-day); return d; }
+function startOfMonth(){ const d=startOfToday(); d.setDate(1); return d; }
+function orderCreatedDate(r){ return safeToDate(r.createdAt) || new Date(0); }
+function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
+function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
+function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
+
+/* =========================
+   ORDER SUMMARY
+========================= */
+function orderTotal(r){
+  const n = Number(r?.totals?.total);
+  return Number.isFinite(n) ? n : 0;
+}
+function compactOrderLine(r){
+  const o = r.order || {};
+  return `• ${r.id} | ${normStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(orderTotal(r))}`;
+}
+function formatOrderList(rows, title){
+  if(!rows.length) return `${title}: none found.`;
+  return [ `${title} (showing ${rows.length}):`, ...rows.map(compactOrderLine) ].join("\n");
+}
+function orderCard(id, data){
+  const o = data?.order || {};
+  return [
+    `Order: ${id}`,
+    `Status: ${normStatus(data?.status)}`,
+    `Created: ${fmtDate(data?.createdAt)}`,
+    `Name: ${o.name || ""}`,
+    `Phone: ${o.phone || ""}`,
+    `Shipping: ${o.shipping || ""}`,
+    `Address: ${o.address || ""}`,
+    `Rush: ${o.rush ? "yes" : "no"}`,
+    `Tracking: ${data?.tracking || ""}`,
+    `PaidAt: ${fmtDate(data?.paidAt)}`,
+    `ShippedAt: ${fmtDate(data?.shippedAt)}`,
+    `DoneAt: ${fmtDate(data?.doneAt)}`,
+    `Total: ${money(orderTotal(data))}`,
+  ].join("\n");
+}
+
+/* =========================
+   STATS
+========================= */
+function statsForRange(rows, predicate){
+  const inRange = rows.filter(predicate);
+  const done = inRange.filter(r=>normStatus(r.status)==="done");
+  const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
+  return { count: inRange.length, doneCount: done.length, revenue };
+}
+
+/* =========================
+   DBSCAN (schema-ish)
+========================= */
+function typeOfValue(v){
+  if(v === null) return "null";
+  if(Array.isArray(v)) return "array";
+  if(typeof v?.toDate === "function") return "timestamp";
+  const t = typeof v;
+  if(t === "object") return "object";
+  return t;
+}
+function mergeType(map, key, t){
+  if(!map[key]) map[key] = new Set();
+  map[key].add(t);
+}
+function walkSchema(obj, prefix, map){
+  if(!obj || typeof obj !== "object") return;
+  for(const k of Object.keys(obj)){
+    const path = prefix ? `${prefix}.${k}` : k;
+    const v = obj[k];
+    const t = typeOfValue(v);
+    mergeType(map, path, t);
+    if(t === "object") walkSchema(v, path, map);
+  }
+}
+function schemaReport(docs){
+  const map = {};
+  for(const d of docs) walkSchema(d, "", map);
+  const keys = Object.keys(map).sort();
+  if(!keys.length) return "(no fields)";
+  return keys.map(k=>`• ${k}: ${Array.from(map[k]).sort().join(" | ")}`).join("\n");
+}
+async function scanCollection(colName, lim){
+  const snap = await db.collection(colName).limit(lim).get();
+  return snap.docs.map(d=>({ id:d.id, ...d.data() }));
+}
+function summarizeOrders(docs){
+  const statusCount = {};
+  let doneRevenue = 0;
+  for(const o of docs){
+    const s = normStatus(o.status);
+    statusCount[s] = (statusCount[s]||0)+1;
+    if(s==="done") doneRevenue += orderTotal(o);
+  }
+  const lines = Object.keys(statusCount).sort().map(k=>`• ${k}: ${statusCount[k]}`);
+  const sample = docs.slice(0,8).map(o=>`• ${o.id}`).join("\n") || "(none)";
+  return [
+    `Orders scanned: ${docs.length}`,
+    `Done revenue (scanned): ${money(doneRevenue)}`,
+    `Status breakdown:\n${lines.join("\n") || "(none)"}`,
+    `Sample IDs:\n${sample}`
+  ].join("\n");
+}
+function summarizeProducts(docs){
+  let low=0,out=0;
+  for(const p of docs){
+    const stock = Number(p.stock);
+    if(Number.isFinite(stock)){
+      if(stock<=0) out++;
+      else if(stock<=3) low++;
+    }
+  }
+  const sample = docs.slice(0,8).map(p=>`• ${p.id} (stock: ${p.stock ?? "?"})`).join("\n") || "(none)";
+  return [
+    `Products scanned: ${docs.length}`,
+    `Out of stock: ${out}`,
+    `Low stock (<=3): ${low}`,
+    `Sample:\n${sample}`
+  ].join("\n");
+}
+function summarizeSkills(docs){
+  const sample = docs.slice(0,12).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n") || "(none)";
+  return [
+    `Skills scanned: ${docs.length}`,
+    `Sample learned commands:\n${sample}`
+  ].join("\n");
+}
+async function dbScanAll(){
+  const blocks = [];
+  for(const c of DB_COLLECTIONS){
+    const docs = await scanCollection(c.name, c.limit);
+    let summary = "";
+    if(c.name === ORDERS) summary = summarizeOrders(docs);
+    else if(c.name === SKILLS) summary = summarizeSkills(docs);
+    else summary = summarizeProducts(docs);
+
+    blocks.push(
+      `=== ${c.name} ===\n` +
+      summary + "\n\n" +
+      `Schema (inferred from scanned docs):\n` +
+      schemaReport(docs.slice(0, 80))
+    );
+  }
+  return blocks.join("\n\n");
+}
+
+/* =========================
+   SCANFIX (plan + confirm)
+========================= */
+const FIX_RULES = {
+  ensureOrderStatus: true,
+  ensureCreatedAt: true,
+  normalizePhoneDigits: true,
+  ensureTotalsNumber: true,
+  normalizeSkillTrigger: true,
+  normalizeSkillAction: true,
+  ensureProductStockNumber: true
+};
+
+function isTimestamp(v){ return v && typeof v.toDate === "function"; }
+
+async function scanCollectionWithRefs(col, lim){
+  const snap = await db.collection(col).limit(lim).get();
+  return snap.docs.map(d => ({ __id: d.id, __ref: d.ref, ...d.data() }));
+}
+function addFix(plan, ref, id, patch, reason){
+  if(!patch || !Object.keys(patch).length) return;
+  plan.fixes.push({ ref, id, patch, reason });
+}
+async function buildFixPlan(){
+  const plan = { createdAt: new Date().toISOString(), fixes: [], summary: [] };
+
+  // ORDERS
+  {
+    const orders = await scanCollectionWithRefs(ORDERS, 500);
+    let missingStatus=0, normedStatus=0, missingCreated=0, phoneFixed=0, totalsFixed=0;
+
+    for(const o of orders){
+      const patch = {};
+
+      if(FIX_RULES.ensureOrderStatus){
+        if(o.status == null){
+          patch.status = "new"; missingStatus++;
+        }else{
+          const ns = normStatus(o.status);
+          if(ns !== o.status){ patch.status = ns; normedStatus++; }
+        }
+      }
+
+      if(FIX_RULES.ensureCreatedAt){
+        const ok = o.createdAt && (isTimestamp(o.createdAt) || typeof o.createdAt === "string" || typeof o.createdAt === "number");
+        if(!ok){ patch.createdAt = ts(); missingCreated++; }
+      }
+
+      if(FIX_RULES.normalizePhoneDigits){
+        const p = o?.order?.phone || "";
+        const digs = digitsOnly(p);
+        if(digs && o?.order?.phoneDigits !== digs){
+          patch["order.phoneDigits"] = digs;
+          phoneFixed++;
+        }
+      }
+
+      if(FIX_RULES.ensureTotalsNumber){
+        const t = o?.totals?.total;
+        if(t != null && typeof t !== "number"){
+          const n = Number(t);
+          if(Number.isFinite(n)){ patch["totals.total"] = n; totalsFixed++; }
+        }
+      }
+
+      addFix(plan, o.__ref, o.__id, patch, "orders normalize fields");
+    }
+
+    plan.summary.push(
+      `Orders scanned: ${orders.length}`,
+      `• Missing status set: ${missingStatus}`,
+      `• Status normalized: ${normedStatus}`,
+      `• Missing createdAt set: ${missingCreated}`,
+      `• order.phoneDigits updated: ${phoneFixed}`,
+      `• totals.total converted to number: ${totalsFixed}`
+    );
   }
 
-  if(text.includes("fake order")||text.includes("test order")){
-    return "MAKE_FAKE";
+  // SKILLS
+  {
+    const skills = await scanCollectionWithRefs(SKILLS, 500);
+    let trig=0, act=0;
+
+    for(const s of skills){
+      const patch = {};
+      if(FIX_RULES.normalizeSkillTrigger && typeof s.trigger === "string"){
+        const nt = s.trigger.trim().toLowerCase();
+        if(nt !== s.trigger){ patch.trigger = nt; trig++; }
+      }
+      if(FIX_RULES.normalizeSkillAction && typeof s.action === "string"){
+        const na = s.action.trim();
+        if(na !== s.action){ patch.action = na; act++; }
+      }
+      addFix(plan, s.__ref, s.__id, patch, "skills normalize trigger/action");
+    }
+
+    plan.summary.push(
+      `Skills scanned: ${skills.length}`,
+      `• Triggers normalized: ${trig}`,
+      `• Actions trimmed: ${act}`
+    );
   }
+
+  // PRODUCTS
+  for(const col of [PRODUCTS.bracelets, PRODUCTS.cookies]){
+    const prods = await scanCollectionWithRefs(col, 500);
+    let stockFixed=0;
+
+    for(const p of prods){
+      const patch = {};
+      if(FIX_RULES.ensureProductStockNumber && p.stock != null && typeof p.stock !== "number"){
+        const n = Number(p.stock);
+        if(Number.isFinite(n)){ patch.stock = n; stockFixed++; }
+      }
+      addFix(plan, p.__ref, p.__id, patch, `${col} normalize stock`);
+    }
+
+    plan.summary.push(
+      `${col} scanned: ${prods.length}`,
+      `• stock converted to number: ${stockFixed}`
+    );
+  }
+
+  return plan;
+}
+async function applyFixPlan(plan){
+  const MAX_WRITES = 250; // safety cap
+  const fixes = plan.fixes.slice(0, MAX_WRITES);
+
+  let ok=0, fail=0;
+
+  // batch commit (limit 500 ops)
+  const BATCH = 400;
+  for(let i=0;i<fixes.length;i+=BATCH){
+    const batch = db.batch();
+    const chunk = fixes.slice(i, i+BATCH);
+    for(const f of chunk) batch.update(f.ref, f.patch);
+
+    try{
+      await batch.commit();
+      ok += chunk.length;
+    }catch(e){
+      // fallback per-doc
+      for(const f of chunk){
+        try{ await f.ref.update(f.patch); ok++; }
+        catch(err){ fail++; }
+      }
+    }
+  }
+
+  return { ok, fail, total: fixes.length };
+}
+
+/* =========================
+   TRANSLATE "teach me" meaning -> action
+========================= */
+function translateHumanAction(text){
+  const t = String(text||"").toLowerCase();
+
+  // revenue / gross
+  if(t.includes("gross") || t.includes("revenue") || t.includes("how much i made") || t.includes("how much i earned")){
+    if(t.includes("today")) return "REVENUE TODAY";
+    if(t.includes("week")) return "REVENUE WEEK";
+    if(t.includes("month")) return "REVENUE MONTH";
+    return "REVENUE MONTH";
+  }
+
+  // totals / count
+  if(t.includes("how many orders") || t.includes("order count") || t.includes("orders total") || t.includes("totals")){
+    if(t.includes("today")) return "TOTALS TODAY";
+    if(t.includes("week")) return "TOTALS WEEK";
+    if(t.includes("month")) return "TOTALS MONTH";
+    return "TOTALS MONTH";
+  }
+
+  // workflow
+  if(t.includes("what's next") || t.includes("whats next") || t.includes("next order")) return "NEXT";
+  if(t.includes("unfinished") || t.includes("open orders") || t.includes("not done")) return "UNFINISHED";
+  if(t.includes("unpaid") || t.includes("not paid")) return "UNPAID";
+
+  // db tools
+  if(t.includes("scan") && t.includes("fix")) return "SCANFIX";
+  if(t.includes("scan") && (t.includes("database") || t.includes("firebase"))) return "DBSCAN";
+
+  // fake/test
+  if(t.includes("fake order") || t.includes("test order")) return "MAKEFAKE 1";
 
   return null;
 }
 
-/* ======================
-   UNDERSTAND (CHATGPT-LIKE)
-====================== */
-async function understand(text){
-  const L=text.toLowerCase();
+/* =========================
+   NATURAL LANGUAGE -> COMMAND
+========================= */
+function interpretNatural(raw){
+  const text = clean(raw);
+  const L = text.toLowerCase();
+  const U = upper(text);
 
-  /* Yes / No to learning */
-  if(convo.awaitingConfirm){
-    if(["yes","yeah","yep","ok","sure"].includes(L)){
-      convo.awaitingAction=convo.awaitingConfirm;
-      convo.awaitingConfirm=null;
-      return "__ASK_ACTION__";
+  // If waiting for learn confirm
+  if(convo.awaitingLearnConfirm){
+    if(["yes","yeah","yep","ok","sure","y"].includes(L)){
+      convo.awaitingLearnAction = String(convo.awaitingLearnConfirm).trim().toLowerCase();
+      convo.awaitingLearnConfirm = null;
+      return "__ASK_LEARN_ACTION__";
     }
-    if(["no","nope","nah"].includes(L)){
-      convo.awaitingConfirm=null;
-      return "__CANCEL__";
+    if(["no","nope","nah","n"].includes(L)){
+      convo.awaitingLearnConfirm = null;
+      return "__LEARN_CANCEL__";
     }
   }
 
-  /* Learning action explanation */
-  if(convo.awaitingAction){
-    const action=translate(text);
+  // If waiting for learn action explanation
+  if(convo.awaitingLearnAction){
+    const action = translateHumanAction(text);
     if(action){
-      await saveSkill(convo.awaitingAction,action);
-      convo.awaitingAction=null;
-      return "__LEARNED__";
+      convo._learn = { trigger: convo.awaitingLearnAction, action };
+      convo.awaitingLearnAction = null;
+      return "__SAVE_SKILL__";
     }
-    return "__ASK_ACTION__";
+    return "__ASK_LEARN_ACTION__"; // ask again
   }
 
-  /* Learned skills */
-  const skills=await loadSkills();
-  for(const s of skills){
-    if(L.includes(s.trigger)) return s.action;
+  // Teach sentence: "make it so when i say <trigger> <meaning>"
+  if(L.startsWith("make it so when i say")){
+    // rough parse: "make it so when i say TRIGGER tell me/do ... MEANING"
+    const m = text.match(/make it so when i say\s+(.+?)\s+(tell me|do|it should|it will)\s+(.+)/i);
+    if(m){
+      const trigger = String(m[1]||"").trim().toLowerCase();
+      const meaning = String(m[3]||"").trim();
+      const action = translateHumanAction(meaning);
+      if(action){
+        convo._learn = { trigger, action };
+        return "__SAVE_SKILL__";
+      }
+      // couldn't translate -> ask action
+      convo.awaitingLearnAction = trigger;
+      return "__ASK_LEARN_ACTION__";
+    }
   }
 
-  /* Built-in intents */
-  if(L.includes("next")) return "NEXT";
-  if(L.includes("mark")&&L.includes("done")) return "DONE";
-  if(L.includes("fake")) return "MAKE_FAKE";
+  // Known command words
+  const first = upper(text.split(/\s+/)[0]||"");
+  const known = new Set([
+    "HELP","NEXT","UNFINISHED","UNPAID","DONE","SHIPPED","PAID","SHOW",
+    "BYPHONE","FIND",
+    "TOTALS","REVENUE",
+    "MAKEFAKE","DBSCAN","SCANFIX","CONFIRM","LISTSKILLS","FORGET"
+  ]);
+  if(known.has(first)) return text;
 
-  /* Unknown → ask to learn */
-  convo.awaitingConfirm=text;
-  return "__UNKNOWN__";
+  // Learned skills first
+  // (we check triggers in handleChat so we can await skills)
+  // Here: quick convenience
+  if(L === "monthly gross" || L === "month gross") return "REVENUE MONTH";
+  if(L === "weekly gross") return "REVENUE WEEK";
+  if(L === "today gross") return "REVENUE TODAY";
+
+  // Workflow phrases
+  if(L.includes("what's next") || L.includes("whats next") || L === "next") return "NEXT";
+  if(L.includes("unfinished") || L.includes("open orders") || L.includes("not done")) return "UNFINISHED";
+  if(L.includes("unpaid") || L.includes("not paid")) return "UNPAID";
+
+  // Mark done / shipped / paid (use id or last)
+  if(L.includes("mark") && (L.includes("done") || L.includes("complete"))){
+    const id = extractFirstId(text) || convo.lastOrderId;
+    if(id) return `DONE ${id}`;
+    convo.awaitingLearnConfirm = text; // we'll ask to learn if unknown, but here missing id
+    return "__ASK_NEED_ORDER__";
+  }
+  if(L.includes("ship") || L.includes("shipped")){
+    const id = extractFirstId(text) || convo.lastOrderId;
+    if(id) return `SHIPPED ${id}`;
+    return "__ASK_NEED_ORDER__";
+  }
+  if(L.includes("paid")){
+    const id = extractFirstId(text) || convo.lastOrderId;
+    if(id) return `PAID ${id}`;
+    return "__ASK_NEED_ORDER__";
+  }
+  if(L.startsWith("show") || L.includes("show order")){
+    const id = extractFirstId(text) || convo.lastOrderId;
+    if(id) return `SHOW ${id}`;
+    return "__ASK_NEED_ORDER__";
+  }
+
+  // Fake orders
+  if(L.includes("fake order") || L.includes("test order")){
+    const n = (L.match(/\b(\d+)\b/)||[])[1];
+    return `MAKEFAKE ${n || 1}`;
+  }
+
+  // DB tools
+  if(L.includes("dbscan") || (L.includes("scan") && (L.includes("firebase") || L.includes("database")))) return "DBSCAN";
+  if(L.includes("scanfix") || (L.includes("scan") && L.includes("fix"))){
+    if(L.includes("confirm")) return "SCANFIX CONFIRM";
+    return "SCANFIX";
+  }
+
+  // Phone search
+  const digs = digitsOnly(text);
+  if(digs.length >= 7) return `BYPHONE ${digs}`;
+
+  // Fallback: search
+  return `FIND ${text}`;
 }
 
-/* ======================
-   EXECUTE
-====================== */
-async function run(cmd){
-  if(cmd==="__UNKNOWN__"){
-    add(
-      `I don’t understand that 🤔\n\n`+
-      `Do you want me to learn it as a new command?\n`+
-      `"${convo.awaitingConfirm}"\n\n`+
-      `Reply yes or no.`
-    );
-    return;
-  }
-
-  if(cmd==="__ASK_ACTION__"){
-    add(`What should I do when you say:\n"${convo.awaitingAction}"`);
-    return;
-  }
-
-  if(cmd==="__LEARNED__"){
-    add("✅ Learned and saved. I’ll remember that.");
-    return;
-  }
-
-  if(cmd==="__CANCEL__"){
-    add("Okay 👍 I won’t learn that.");
-    return;
-  }
-
-  if(cmd==="MAKE_FAKE"){
-    const id="TEST_"+Math.random().toString(36).slice(2,7);
-    await db.collection("tt_orders").doc(id).set({
-      fake:true,
-      status:"new",
-      createdAt:ts(),
-      totals:{total:25}
-    });
-    cacheAt=0;
-    add(`🧪 Fake order created: ${id}`);
-    return;
-  }
-
-  if(cmd==="NEXT"){
-    const o=(await getOrders()).find(o=>o.status!=="done");
-    if(!o){add("No orders left 🎉");return;}
-    convo.lastOrder=o.id;
-    add(`Next order:\n${o.id}`);
-    return;
-  }
-
-  if(cmd==="DONE"){
-    if(!convo.lastOrder){add("Which order?");return;}
-    await db.collection("tt_orders").doc(convo.lastOrder)
-      .update({status:"done",doneAt:ts()});
-    cacheAt=0;
-    add(`✅ Marked ${convo.lastOrder} done`);
-    return;
-  }
-
-  if(cmd==="REVENUE_MONTH"){
-    const rows=await getOrders();
-    const sum=rows
-      .filter(r=>r.status==="done")
-      .reduce((a,b)=>a+(b.totals?.total||0),0);
-    add(`📊 Monthly gross: $${sum.toFixed(2)}`);
-    return;
-  }
-
-  add("I’m not sure what to do with that yet.");
+/* =========================
+   HELP
+========================= */
+function helpText(){
+  return [
+    "SMART ADMIN BOT – HELP",
+    "",
+    "Talk normally (recommended):",
+    "  monthly gross | what's next | mark it done | make 3 fake orders | scanfix",
+    "",
+    "Teach it:",
+    "  make it so when I say monthly gross tell me how much I made that month",
+    "  (If I don’t understand, I’ll ask if you want me to learn it.)",
+    "",
+    "Core commands:",
+    "  NEXT | UNFINISHED | UNPAID",
+    "  SHOW <id> | DONE <id> | SHIPPED <id> | PAID <id>",
+    "  BYPHONE <digits> | FIND <text>",
+    "  REVENUE TODAY|WEEK|MONTH | TOTALS TODAY|WEEK|MONTH",
+    "  MAKEFAKE <n>",
+    "  LISTSKILLS | FORGET <trigger phrase>",
+    "",
+    "Database tools:",
+    "  DBSCAN",
+    "  SCANFIX  (plan)  →  SCANFIX CONFIRM (apply fixes safely)",
+  ].join("\n");
 }
 
-/* ======================
+/* =========================
+   COMMAND EXECUTOR
+========================= */
+async function handleCommand(raw){
+  const text = clean(raw);
+  const U = upper(text);
+  if(!text) return;
+
+  setStatus("Working…");
+
+  // Handle special prompts
+  if(U === "__ASK_NEED_ORDER__"){
+    setStatus("");
+    addMsg("Which order? Send the order ID (or say “the last one”).", "bot");
+    return;
+  }
+  if(U === "__ASK_LEARN_ACTION__"){
+    setStatus("");
+    addMsg(`Okay. What should I do when you say:\n"${convo.awaitingLearnAction}"\n\nExamples:\n• “tell me how much I made this month”\n• “show unpaid orders”\n• “scan and fix the database”`, "bot");
+    return;
+  }
+  if(U === "__LEARN_CANCEL__"){
+    setStatus("");
+    addMsg("Okay — I won’t learn that.", "bot");
+    return;
+  }
+  if(U === "__SAVE_SKILL__"){
+    const t = convo?._learn?.trigger;
+    const a = convo?._learn?.action;
+    if(t && a){
+      await saveSkill(t, a);
+      convo._learn = null;
+      setStatus("");
+      addMsg(`✅ Learned:\n"${t}" → ${a}`, "bot");
+      setChips([t, "LISTSKILLS", "HELP"]);
+      return;
+    }
+    setStatus("");
+    addMsg("I couldn’t save that (missing trigger/action). Try again.", "bot");
+    return;
+  }
+
+  // HELP
+  if(U === "HELP"){
+    setStatus("");
+    addMsg(helpText(), "bot");
+    setChips(["NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX","LISTSKILLS"]);
+    return;
+  }
+
+  // LISTSKILLS
+  if(U === "LISTSKILLS"){
+    const skills = await loadSkillsFast();
+    setStatus("");
+    if(!skills.length){ addMsg("No learned commands yet.", "bot"); return; }
+    const lines = skills
+      .slice(0, 80)
+      .map(s=>`• "${s.trigger}" → ${s.action}`)
+      .join("\n");
+    addMsg(`Learned commands (showing ${Math.min(80,skills.length)}):\n${lines}`, "bot");
+    setChips(["HELP","DBSCAN","SCANFIX"]);
+    return;
+  }
+
+  // FORGET <trigger...>
+  if(U.startsWith("FORGET ")){
+    const trig = clean(text.slice(7));
+    if(!trig){ setStatus(""); addMsg("Usage: FORGET <trigger phrase>", "bot"); return; }
+    await deleteSkillByTrigger(trig);
+    setStatus("");
+    addMsg(`🧽 Forgot trigger: "${trig}"`, "bot");
+    setChips(["LISTSKILLS","HELP"]);
+    return;
+  }
+
+  // DBSCAN
+  if(U === "DBSCAN"){
+    setStatus("Scanning database…");
+    try{
+      const report = await dbScanAll();
+      setStatus("");
+      addMsg(report, "bot");
+      setChips(["SCANFIX","HELP","LISTSKILLS"]);
+    }catch(e){
+      setStatus("");
+      addMsg("DBSCAN failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+
+  // SCANFIX / SCANFIX CONFIRM
+  if(U === "SCANFIX"){
+    setStatus("Scanning + building fix plan…");
+    try{
+      const plan = await buildFixPlan();
+      convo.pendingFixPlan = plan;
+      setStatus("");
+      addMsg(
+        "SCANFIX REPORT\n" +
+        plan.summary.join("\n") + "\n\n" +
+        `Fixes queued: ${plan.fixes.length}\n` +
+        (plan.fixes.length ? "Type: SCANFIX CONFIRM to apply (safe capped)." : "No fixes needed 🎉"),
+        "bot"
+      );
+      setChips(["SCANFIX CONFIRM","DBSCAN","HELP"]);
+    }catch(e){
+      setStatus("");
+      addMsg("SCANFIX failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+  if(U === "SCANFIX CONFIRM"){
+    if(!convo.pendingFixPlan || !convo.pendingFixPlan.fixes.length){
+      setStatus("");
+      addMsg("No pending fix plan. Run SCANFIX first.", "bot");
+      return;
+    }
+    setStatus("Applying fixes…");
+    try{
+      const res = await applyFixPlan(convo.pendingFixPlan);
+      convo.pendingFixPlan = null;
+      bustOrdersCache();
+      bustSkillsCache();
+      setStatus("");
+      addMsg(`✅ Applied fixes: ${res.ok}/${res.total}\nFailed: ${res.fail}`, "bot");
+      setChips(["DBSCAN","HELP"]);
+    }catch(e){
+      setStatus("");
+      addMsg("Apply failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+
+  const parts = text.split(/\s+/);
+  const cmd = upper(parts[0]||"");
+  const a1 = parts[1];
+
+  // MAKEFAKE <n>
+  if(cmd === "MAKEFAKE"){
+    const n = Math.max(1, Math.min(50, Number(a1||1)));
+    const made = [];
+    for(let i=0;i<n;i++) made.push(await makeFakeOrder({}));
+    setStatus("");
+    addMsg(`🧪 Created ${n} fake order(s):\n${made.map(x=>"• "+x).join("\n")}`, "bot");
+    setChips(["NEXT","UNFINISHED","DBSCAN","SCANFIX"]);
+    return;
+  }
+
+  // Fetch cached orders for most commands
+  const rows = await getOrdersFast();
+
+  // NEXT
+  if(cmd === "NEXT"){
+    const unfinished = rows
+      .filter(r=>!["done","archived","cancelled","refunded"].includes(normStatus(r.status)))
+      .sort((a,b)=>orderCreatedDate(a) - orderCreatedDate(b));
+    const next = unfinished[0];
+    setStatus("");
+    if(!next){ addMsg("NEXT: none found 🎉", "bot"); return; }
+    convo.lastOrderId = next.id;
+    addMsg(orderCard(next.id, next), "bot");
+    setChips([`DONE ${next.id}`,`SHIPPED ${next.id}`,`SHOW ${next.id}`,"UNPAID","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // UNFINISHED / UNPAID
+  if(cmd === "UNFINISHED" || cmd === "UNPAID"){
+    let out = rows.slice();
+    if(cmd === "UNFINISHED"){
+      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normStatus(r.status)));
+    }else{
+      out = out.filter(r=>normStatus(r.status)==="unpaid");
+    }
+    out.sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a));
+    out = out.slice(0, 50);
+    setStatus("");
+    addMsg(formatOrderList(out, cmd), "bot");
+    setChips(["NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","HELP"]);
+    return;
+  }
+
+  // SHOW <id>
+  if(cmd === "SHOW"){
+    const id = clean(a1 || convo.lastOrderId);
+    if(!id){ setStatus(""); addMsg("SHOW needs an id.", "bot"); return; }
+    const snap = await db.collection(ORDERS).doc(id).get();
+    setStatus("");
+    if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
+    const data = snap.data();
+    convo.lastOrderId = id;
+    addMsg(orderCard(id, data), "bot");
+    setChips([`DONE ${id}`,`SHIPPED ${id}`,`PAID ${id}`,"NEXT","HELP"]);
+    return;
+  }
+
+  // DONE/SHIPPED/PAID <id>
+  if(cmd === "DONE" || cmd === "SHIPPED" || cmd === "PAID"){
+    const id = clean(a1 || convo.lastOrderId);
+    if(!id){ setStatus(""); addMsg(`${cmd} needs an id (or say NEXT first).`, "bot"); return; }
+
+    const patch = {};
+    if(cmd === "DONE"){ patch.status="done"; patch.doneAt=ts(); }
+    if(cmd === "SHIPPED"){ patch.shippedAt=ts(); }
+    if(cmd === "PAID"){ patch.paidAt=ts(); }
+
+    await db.collection(ORDERS).doc(id).set(patch, { merge:true });
+    bustOrdersCache();
+    setStatus("");
+    convo.lastOrderId = id;
+    addMsg(`✅ ${cmd} set for ${id}`, "bot");
+    setChips([`SHOW ${id}`,"NEXT","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // BYPHONE <digits>
+  if(cmd === "BYPHONE"){
+    const digs = digitsOnly(a1||"");
+    const out = rows
+      .filter(r=>digitsOnly(r?.order?.phoneDigits || r?.order?.phone || "") === digs)
+      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
+      .slice(0, 80);
+    setStatus("");
+    addMsg(formatOrderList(out, `BYPHONE ${digs}`), "bot");
+    setChips(["NEXT","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // FIND <text...>
+  if(cmd === "FIND"){
+    const q = lower(parts.slice(1).join(" "));
+    const out = rows
+      .filter(r=>JSON.stringify(r).toLowerCase().includes(q))
+      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
+      .slice(0, 80);
+    setStatus("");
+    addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
+    setChips(["NEXT","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // REVENUE / TOTALS
+  if(cmd === "REVENUE" || cmd === "TOTALS"){
+    const range = upper(parts[1]||"MONTH");
+    const pred = (range==="TODAY") ? isToday : (range==="WEEK" ? isThisWeek : isThisMonth);
+    const st = statsForRange(rows, pred);
+    setStatus("");
+    if(cmd === "REVENUE"){
+      addMsg(`REVENUE ${range}\n${money(st.revenue)} (done orders only)`, "bot");
+    }else{
+      addMsg(`TOTALS ${range}\nOrders: ${st.count}\nDone: ${st.doneCount}\nRevenue (done only): ${money(st.revenue)}`, "bot");
+    }
+    setChips(["REVENUE MONTH","REVENUE WEEK","TOTALS MONTH","HELP"]);
+    return;
+  }
+
+  // shortcuts: "MONTHLY GROSS" etc handled by interpretNatural -> REVENUE MONTH
+  setStatus("");
+  addMsg("I didn’t recognize that.\nIf you want, I can learn it — just say it again and I’ll ask.", "bot");
+
+  // trigger learn prompt
+  convo.awaitingLearnConfirm = text;
+  addMsg(`Do you want me to learn this as a new command?\n"${text}"\nReply yes or no.`, "bot");
+}
+
+/* =========================
+   CHAT WRAPPER: learned skills first
+========================= */
+async function handleChat(raw){
+  const text = clean(raw);
+  const L = text.toLowerCase();
+  if(!text) return;
+
+  // Check learned triggers before guessing
+  try{
+    const skills = await loadSkillsFast();
+    for(const s of skills){
+      const trig = String(s.trigger||"").toLowerCase();
+      if(trig && L.includes(trig)){
+        // If action is a command, run it
+        await handleCommand(String(s.action||""));
+        return;
+      }
+    }
+  }catch(e){
+    // ignore; fall back to normal
+  }
+
+  const interpreted = interpretNatural(text);
+  await handleCommand(interpreted);
+}
+
+/* =========================
    SEND
-====================== */
+========================= */
 async function send(){
-  const t=clean(input.value);
-  if(!t) return;
-  input.value="";
-  add(t,"user");
-  const cmd=await understand(t);
-  await run(cmd);
+  const raw = input.value;
+  input.value = "";
+  if(!clean(raw)) return;
+
+  addMsg(raw, "user");
+
+  try{
+    await handleChat(raw);
+    setStatus("");
+  }catch(err){
+    console.error(err);
+    setStatus("⚠️ " + (err?.message || String(err)));
+    addMsg("⚠️ Something broke. Check the status line.", "bot");
+    setChips(["HELP","DBSCAN","SCANFIX"]);
+  }
 }
 
-document.getElementById("send").onclick=send;
-input.onkeydown=e=>e.key==="Enter"&&send();
+/* Events */
+sendBtn.addEventListener("click", send);
+input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") send(); });
+resetBtn.addEventListener("click", ()=>{
+  chat.innerHTML = "";
+  setStatus("");
+  convo.lastOrderId = "";
+  convo.awaitingLearnConfirm = null;
+  convo.awaitingLearnAction = null;
+  convo.pendingFixPlan = null;
+  setChips(["HELP","NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX"]);
+  addMsg("Reset ✅\nTry: “monthly gross”, “what’s next”, “scanfix”.", "bot");
+});
 
-/* ======================
-   START
-====================== */
-add(
+/* Boot */
+(function init(){
+  setChips(["HELP","NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX","LISTSKILLS"]);
+  addMsg(
 `Howdy 🤠
+Talk to me like a person.
 
-Talk to me like ChatGPT.
-
-Examples:
-• what's next
-• mark it done
-• make a fake order
+Try:
 • monthly gross
-• make it so when I say monthly gross tell me how much I made that month`
-);
+• what's next
+• make 2 fake orders
+• scanfix
+• dbscan
+
+Teach me:
+• make it so when I say monthly gross tell me how much I made that month`,
+  "bot");
+  setStatus("✅ Ready");
+})();
 </script>
 </body>
 </html>
