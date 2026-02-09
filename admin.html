@@ -130,6 +130,7 @@
 
     <div class="meta">
       Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNFINISHED</b>, <b>BYPHONE 2083043821</b>, <b>LOWSTOCK</b>, <b>TOTALS MONTH</b>
+      <br/>Natural: “show unpaid”, “what’s next”, “mark 8f3K2 done”, “orders from 2083043821”
     </div>
   </div>
 </div>
@@ -174,6 +175,8 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const chipsBox = document.getElementById("chips");
 const statusEl = document.getElementById("status");
+const sendBtn = document.getElementById("sendBtn");
+const resetBtn = document.getElementById("resetBtn");
 
 function setStatus(msg){ statusEl.textContent = msg || ""; }
 function addMsg(text, who="bot"){
@@ -289,6 +292,7 @@ function orderCard(id, data){
     `Problem: ${data?.problemNote || ""}`,
     `PaidAt: ${fmtDate(data?.paidAt)}`,
     `ShippedAt: ${fmtDate(data?.shippedAt)}`,
+    `DoneAt: ${fmtDate(data?.doneAt)}`,
     `Total: ${typeof totals.total === "number" ? money(totals.total) : (totals.total ?? "")}`,
     `Items:\n${summarizeItems(items)}`
   ].join("\n");
@@ -427,7 +431,6 @@ function pickNext(rows){
   unfinished.sort((a,b)=>{
     const sa = priorityScore(a), sb = priorityScore(b);
     if(sa !== sb) return sa - sb;
-    // oldest first within same priority
     return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
   });
   return unfinished[0] || null;
@@ -462,10 +465,117 @@ function canDeleteNow(id){
   return true;
 }
 
+/* ✅ NATURAL LANGUAGE → COMMAND */
+function looksLikeId(s){
+  const t = clean(s);
+  return t && t.length >= 4 && !t.includes(" ") && /[a-z0-9]/i.test(t);
+}
+function extractFirstId(text){
+  const tokens = clean(text).split(/\s+/);
+  const skip = new Set(["order","orders","mark","set","as","to","the","a","an","please","pls","done","completed","complete"]);
+  for(const tok of tokens){
+    const t = tok.replace(/[^\w-]/g,"");
+    if(!t) continue;
+    if(skip.has(t.toLowerCase())) continue;
+    if(looksLikeId(t)) return t;
+  }
+  return "";
+}
+function interpretNaturalLanguage(raw){
+  const t = clean(raw);
+  if(!t) return "";
+
+  const L = t.toLowerCase();
+
+  // already a command? let it pass
+  const first = upper(t.split(/\s+/)[0] || "");
+  const known = new Set([
+    "HELP","REFRESH","NEXT","UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","RUSH","PRIORITY",
+    "LAST","OVERDUE","BYNAME","BYPHONE","BYADDR","BYCUSTOMER","FIND",
+    "CLAIM","MYQUEUE","UNCLAIM","NOTE","NOTES","CLEARNOTE",
+    "SHOW","STATUS","PAID","SHIPPED","UNSHIP","TRACK","TRACKSHOW","CLEARTRACK",
+    "SHIPINFO","LABEL","MESSAGE","CONTACT","ARCHIVE","DELETE",
+    "LOWSTOCK","OUTOFSTOCK","LIST","FINDP","STOCK","SET","PRICE","RESTOCK","DEDUCT",
+    "SIZES","ADDSIZE","REMOVESIZE","COLORS","ADDCOLOR","REMOVECOLOR",
+    "TOTALS","REVENUE","AVG","TOPCUSTOMERS","CUSTOMERSTATS","DUPES","REPEAT",
+    "MARKDONE","COMPLETE"
+  ]);
+  if(known.has(first)) return t;
+
+  // Mark as done
+  if(
+    (L.includes("mark") && (L.includes("done") || L.includes("complete") || L.includes("completed"))) ||
+    L.startsWith("done ") ||
+    L.startsWith("complete ") ||
+    (L.includes("set") && L.includes("done"))
+  ){
+    const id = extractFirstId(t);
+    if(id) return `DONE ${id}`;
+  }
+
+  // Next
+  if(L.includes("next") || L.includes("what should i do") || L.includes("what's next") || L.includes("whats next")){
+    return "NEXT";
+  }
+
+  // Lists
+  if(L.includes("unfinished") || L.includes("not done") || L.includes("open orders") || L.includes("in progress")) return "UNFINISHED";
+  if(L.includes("unpaid") || L.includes("not paid") || L.includes("owing") || L.includes("need payment")) return "UNPAID";
+  if(L.includes("pending")) return "PENDING";
+  if(L.includes("new orders") || L === "new") return "NEW";
+  if(L.includes("completed orders") || (L.includes("done") && L.includes("orders"))) return "DONE";
+
+  // Dates
+  if(L.includes("today")) return "TODAY";
+  if(L.includes("this week") || L === "week") return "WEEK";
+  if(L.includes("this month") || L === "month") return "MONTH";
+
+  // Rush / priority
+  if(L.includes("rush")) return "RUSH";
+  if(L.includes("priority")) return "PRIORITY";
+
+  // Stock
+  if(L.includes("low stock") || L.includes("running low")) return "LOWSTOCK";
+  if(L.includes("out of stock") || L.includes("sold out")) return "OUTOFSTOCK";
+
+  // Totals / revenue / average
+  if(L.includes("totals")){
+    if(L.includes("today")) return "TOTALS TODAY";
+    if(L.includes("week")) return "TOTALS WEEK";
+    if(L.includes("month")) return "TOTALS MONTH";
+    return "TOTALS MONTH";
+  }
+  if(L.includes("revenue")){
+    if(L.includes("today")) return "REVENUE TODAY";
+    if(L.includes("week")) return "REVENUE WEEK";
+    if(L.includes("month")) return "REVENUE MONTH";
+    return "REVENUE MONTH";
+  }
+  if(L.includes("average") || L.includes("avg")) return "AVG MONTH";
+
+  // Phone detection
+  const digits = digitsOnly(t);
+  if(digits.length >= 7){
+    if(L.includes("phone") || digits.length >= 9) return `BYPHONE ${digits}`;
+  }
+
+  // Show order
+  if(L.includes("show") && L.includes("order")){
+    const id = extractFirstId(t);
+    if(id) return `SHOW ${id}`;
+  }
+
+  // fallback search
+  return `FIND ${t}`;
+}
+
 /* HELP */
 function helpText(){
   return [
     "ADMIN BOT COMMANDS",
+    "",
+    "Natural language works too:",
+    "  show unpaid | what's next | mark <id> done | orders from 2083043821",
     "",
     "Orders (lists):",
     "  UNFINISHED | NEW | PENDING | UNPAID | DONE | TODAY | WEEK | MONTH",
@@ -481,6 +591,7 @@ function helpText(){
     "",
     "Status + shipping:",
     "  SHOW <id> | STATUS <id> new|pending|unpaid|done|archived|cancelled|refunded",
+    "  DONE <id> (mark order as done + sets doneAt)",
     "  PAID <id> (sets paidAt) | SHIPPED <id> (sets shippedAt + auto paidAt) | UNSHIP <id>",
     "  TRACK <id> <code> | TRACKSHOW <id> | CLEARTRACK <id>",
     "  SHIPINFO <id> | LABEL <id> | MESSAGE <id> | CONTACT <id>",
@@ -519,813 +630,4 @@ function statsForRange(rows, predicate){
 }
 
 function avgMonthlyRevenue(rows){
-  // Based on DONE orders grouped by YYYY-MM
-  const done = rows.filter(r=>normalizeStatus(r.status)==="done");
-  const map = new Map();
-  for(const r of done){
-    const d = orderCreatedDate(r);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-    map.set(key, (map.get(key)||0) + orderTotal(r));
-  }
-  const months = Array.from(map.keys()).sort();
-  const values = months.map(m=>map.get(m)||0);
-  const avg = values.length ? values.reduce((a,b)=>a+b,0)/values.length : 0;
-  return { months, values, avg };
-}
-
-/* Order-derived message templates */
-function shippingMessage(id, data){
-  const name = data?.order?.name || "there";
-  const tracking = data?.tracking ? `Tracking: ${data.tracking}\n` : "";
-  return `Message template:\nHey ${name}! Your order is shipped ✅\n${tracking}Thanks for supporting Tactics & Treats!`;
-}
-
-/* Main command handler */
-async function handleCommand(raw){
-  const text = clean(raw);
-  const U = upper(text);
-  if(!text) return;
-
-  // quick aliases (optional, doesn’t hurt)
-  const alias = {
-    "?":"HELP",
-    "U":"UNFINISHED",
-    "N":"NEXT"
-  };
-  if(alias[U]) return handleCommand(alias[U]);
-
-  if(U === "HELP") { addMsg(helpText(), "bot"); return; }
-
-  setStatus("Working…");
-
-  // refresh
-  if(U === "REFRESH"){
-    await refreshOrders();
-    await refreshProducts();
-    setStatus("");
-    addMsg("✅ Refreshed caches.", "bot");
-    setChips(["NEXT","UNFINISHED","LOWSTOCK","TOTALS MONTH","HELP"]);
-    return;
-  }
-
-  const parts = text.split(" ");
-  const cmd = upper(parts[0]||"");
-  const a1 = parts[1];
-  const a2 = parts[2];
-
-  // lists that don’t need args
-  const listCmds = ["UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","RUSH","PRIORITY"];
-  if(listCmds.includes(cmd)){
-    const rows = await ensureOrdersFresh();
-
-    let out = rows.slice();
-
-    if(cmd === "UNFINISHED"){
-      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
-    }
-    if(cmd === "NEW") out = out.filter(r=>normalizeStatus(r.status)==="new");
-    if(cmd === "PENDING") out = out.filter(r=>normalizeStatus(r.status)==="pending");
-    if(cmd === "UNPAID") out = out.filter(r=>normalizeStatus(r.status)==="unpaid");
-    if(cmd === "DONE") out = out.filter(r=>normalizeStatus(r.status)==="done");
-    if(cmd === "TODAY") out = out.filter(isToday);
-    if(cmd === "WEEK") out = out.filter(isThisWeek);
-    if(cmd === "MONTH") out = out.filter(isThisMonth);
-    if(cmd === "RUSH") out = out.filter(r=>!!(r.order && r.order.rush));
-
-    if(cmd === "PRIORITY"){
-      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
-      out.sort((a,b)=>{
-        const sa = priorityScore(a), sb = priorityScore(b);
-        if(sa !== sb) return sa - sb;
-        return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
-      });
-    }else{
-      // default newest first
-      out.sort((a,b)=>orderCreatedDate(b).getTime() - orderCreatedDate(a).getTime());
-    }
-
-    out = out.slice(0, 40);
-
-    setStatus("");
-    addMsg(formatOrderList(out, cmd), "bot");
-    setChips(["NEXT","UNFINISHED","UNPAID","RUSH","TODAY","HELP"]);
-    return;
-  }
-
-  // LAST n
-  if(cmd === "LAST"){
-    const n = Math.max(1, Math.min(200, Number(a1||20)));
-    const rows = await ensureOrdersFresh();
-    const out = rows.slice().sort((a,b)=>orderCreatedDate(b).getTime()-orderCreatedDate(a).getTime()).slice(0,n);
-    setStatus("");
-    addMsg(formatOrderList(out, `LAST ${n}`), "bot");
-    return;
-  }
-
-  // OVERDUE days
-  if(cmd === "OVERDUE"){
-    const days = Math.max(1, Math.min(60, Number(a1||3)));
-    const cutoff = daysAgo(days);
-    const rows = await ensureOrdersFresh();
-    const out = rows.filter(r=>{
-      const s = normalizeStatus(r.status);
-      if(!(s==="pending" || s==="unpaid")) return false;
-      return orderCreatedDate(r) < cutoff;
-    }).sort((a,b)=>orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime()).slice(0,50);
-
-    setStatus("");
-    addMsg(formatOrderList(out, `OVERDUE ${days}d`), "bot");
-    return;
-  }
-
-  // NEXT
-  if(cmd === "NEXT"){
-    const rows = await ensureOrdersFresh();
-    const r = pickNext(rows);
-    setStatus("");
-    if(!r) { addMsg("NEXT: no unfinished orders found.", "bot"); return; }
-    addMsg(orderCard(r.id, r), "bot");
-    setChips([`SHOW ${r.id}`,`CLAIM ${r.id}`,`PAID ${r.id}`,`SHIPPED ${r.id}`, "MYQUEUE", "HELP"]);
-    return;
-  }
-
-  // SHOW
-  if(cmd === "SHOW"){
-    if(!a1) { setStatus(""); addMsg("Usage: SHOW <orderId>", "bot"); return; }
-    const data = await getOrder(a1);
-    setStatus("");
-    if(!data) { addMsg("Order not found.", "bot"); return; }
-    addMsg(orderCard(a1, data), "bot");
-    setChips([`PAID ${a1}`,`SHIPPED ${a1}`,`STATUS ${a1} pending`,`NOTE ${a1} `,`SHIPINFO ${a1}`,`LABEL ${a1}`]);
-    return;
-  }
-
-  // STATUS
-  if(cmd === "STATUS"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: STATUS <id> new|pending|unpaid|done|archived|cancelled|refunded", "bot"); return; }
-    const s = normalizeStatus(a2);
-    await patchOrder(a1, { status: s });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Status updated: ${a1} → ${s}`, "bot");
-    return;
-  }
-
-  // PAID
-  if(cmd === "PAID"){
-    if(!a1){ setStatus(""); addMsg("Usage: PAID <id>", "bot"); return; }
-    // paid typically moves to pending
-    await patchOrder(a1, { status: "pending", paidAt: serverTimestamp() });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Marked PAID (paidAt set): ${a1}`, "bot");
-    return;
-  }
-
-  // SHIPPED
-  if(cmd === "SHIPPED"){
-    if(!a1){ setStatus(""); addMsg("Usage: SHIPPED <id>", "bot"); return; }
-    const data = await getOrder(a1);
-    if(!data){ setStatus(""); addMsg("Order not found.", "bot"); return; }
-    const patch = { status: "done", shippedAt: serverTimestamp() };
-    if(!data.paidAt) patch.paidAt = serverTimestamp();
-    await patchOrder(a1, patch);
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Marked SHIPPED (shippedAt set, auto paidAt if missing): ${a1}`, "bot");
-    return;
-  }
-
-  // UNSHIP
-  if(cmd === "UNSHIP"){
-    if(!a1){ setStatus(""); addMsg("Usage: UNSHIP <id>", "bot"); return; }
-    await patchOrder(a1, { shippedAt: null });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Shipped timestamp cleared: ${a1}`, "bot");
-    return;
-  }
-
-  // TRACK / TRACKSHOW / CLEARTRACK
-  if(cmd === "TRACK"){
-    if(!a1){ setStatus(""); addMsg("Usage: TRACK <id> <code>", "bot"); return; }
-    const code = parts.slice(2).join(" ").trim();
-    if(!code){ setStatus(""); addMsg("Usage: TRACK <id> <code>", "bot"); return; }
-    await patchOrder(a1, { tracking: code });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Tracking saved: ${a1}\n${code}`, "bot");
-    return;
-  }
-  if(cmd === "TRACKSHOW"){
-    if(!a1){ setStatus(""); addMsg("Usage: TRACKSHOW <id>", "bot"); return; }
-    const data = await getOrder(a1);
-    setStatus("");
-    if(!data) return addMsg("Order not found.", "bot");
-    addMsg(`Tracking for ${a1}: ${data.tracking || "(none)"}`, "bot");
-    return;
-  }
-  if(cmd === "CLEARTRACK"){
-    if(!a1){ setStatus(""); addMsg("Usage: CLEARTRACK <id>", "bot"); return; }
-    await patchOrder(a1, { tracking: "" });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Tracking cleared: ${a1}`, "bot");
-    return;
-  }
-
-  // SHIPINFO / LABEL / MESSAGE / CONTACT
-  if(cmd === "SHIPINFO" || cmd === "LABEL" || cmd === "CONTACT" || cmd === "MESSAGE"){
-    if(!a1){ setStatus(""); addMsg(`Usage: ${cmd} <id>`, "bot"); return; }
-    const data = await getOrder(a1);
-    setStatus("");
-    if(!data){ addMsg("Order not found.", "bot"); return; }
-    const o = data.order || {};
-    if(cmd === "CONTACT"){
-      addMsg(`Contact for ${a1}:\nName: ${o.name||""}\nPhone: ${o.phone||""}`, "bot");
-      return;
-    }
-    if(cmd === "SHIPINFO"){
-      addMsg(`Ship info for ${a1}:\nName: ${o.name||""}\nPhone: ${o.phone||""}\nAddress: ${o.address||""}`, "bot");
-      return;
-    }
-    if(cmd === "LABEL"){
-      addMsg(
-`LABEL BLOCK (copy/paste)
-${o.name || ""}
-${o.address || ""}
-Phone: ${o.phone || ""}`,
-      "bot");
-      return;
-    }
-    if(cmd === "MESSAGE"){
-      addMsg(shippingMessage(a1, data), "bot");
-      return;
-    }
-  }
-
-  // CLAIM / MYQUEUE / UNCLAIM
-  if(cmd === "CLAIM"){
-    if(!a1){ setStatus(""); addMsg("Usage: CLAIM <id>", "bot"); return; }
-    await patchOrder(a1, { assignedTo: "Isaiah", claimedAt: serverTimestamp() });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Claimed: ${a1} (assignedTo=Isaiah)`, "bot");
-    return;
-  }
-  if(cmd === "UNCLAIM"){
-    if(!a1){ setStatus(""); addMsg("Usage: UNCLAIM <id>", "bot"); return; }
-    await patchOrder(a1, { assignedTo: "", claimedAt: null });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Unclaimed: ${a1}`, "bot");
-    return;
-  }
-  if(cmd === "MYQUEUE"){
-    const rows = await ensureOrdersFresh();
-    const out = rows.filter(r=>String(r.assignedTo||"").toLowerCase()==="isaiah")
-      .filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)))
-      .sort((a,b)=>orderCreatedDate(a).getTime()-orderCreatedDate(b).getTime())
-      .slice(0,60);
-    setStatus("");
-    addMsg(formatOrderList(out, "MYQUEUE"), "bot");
-    return;
-  }
-
-  // NOTE / NOTES / CLEARNOTE
-  if(cmd === "NOTE"){
-    if(!a1){ setStatus(""); addMsg("Usage: NOTE <id> <text...>", "bot"); return; }
-    const note = parts.slice(2).join(" ").trim();
-    if(!note){ setStatus(""); addMsg("Usage: NOTE <id> <text...>", "bot"); return; }
-    await patchOrder(a1, { adminNote: note, noteAt: serverTimestamp() });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Note saved on ${a1}`, "bot");
-    return;
-  }
-  if(cmd === "NOTES"){
-    if(!a1){ setStatus(""); addMsg("Usage: NOTES <id>", "bot"); return; }
-    const data = await getOrder(a1);
-    setStatus("");
-    if(!data) return addMsg("Order not found.", "bot");
-    addMsg(`Notes for ${a1}:\n${data.adminNote || "(none)"}`, "bot");
-    return;
-  }
-  if(cmd === "CLEARNOTE"){
-    if(!a1){ setStatus(""); addMsg("Usage: CLEARNOTE <id>", "bot"); return; }
-    await patchOrder(a1, { adminNote: "" });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Note cleared: ${a1}`, "bot");
-    return;
-  }
-
-  // ARCHIVE
-  if(cmd === "ARCHIVE"){
-    if(!a1){ setStatus(""); addMsg("Usage: ARCHIVE <id>", "bot"); return; }
-    await patchOrder(a1, { status: "archived" });
-    await refreshOrders();
-    setStatus("");
-    addMsg(`✅ Archived: ${a1}`, "bot");
-    return;
-  }
-
-  // DELETE safety
-  if(cmd === "DELETE"){
-    if(!a1){ setStatus(""); addMsg("Usage: DELETE <id>  (then: DELETE <id> CONFIRM)", "bot"); return; }
-    if(upper(a2) === "CONFIRM"){
-      if(!canDeleteNow(a1)){
-        setStatus("");
-        addMsg(`For safety: run DELETE ${a1} first, then DELETE ${a1} CONFIRM within 60 seconds.`, "bot");
-        return;
-      }
-      await delOrder(a1);
-      await refreshOrders();
-      setStatus("");
-      addMsg(`🗑 Deleted: ${a1}`, "bot");
-      return;
-    }else{
-      markPendingDelete(a1);
-      setStatus("");
-      addMsg(`Delete armed for 60 seconds.\nNow type: DELETE ${a1} CONFIRM`, "bot");
-      return;
-    }
-  }
-
-  // Search: BYNAME / BYPHONE / BYADDR / BYCUSTOMER / FIND
-  if(["BYNAME","BYPHONE","BYADDR","BYCUSTOMER","FIND"].includes(cmd)){
-    const rows = await ensureOrdersFresh();
-    let q = "";
-
-    if(cmd === "BYNAME"){
-      q = parts.slice(1).join(" ").trim().toLowerCase();
-      if(!q){ setStatus(""); addMsg("Usage: BYNAME <name>", "bot"); return; }
-      const out = rows.filter(r=>String(r?.order?.name||"").toLowerCase().includes(q))
-        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,80);
-      setStatus("");
-      addMsg(formatOrderList(out, `BYNAME "${q}"`), "bot");
-      return;
-    }
-
-    if(cmd === "BYPHONE"){
-      const p = digitsOnly(parts.slice(1).join(" "));
-      if(!p){ setStatus(""); addMsg("Usage: BYPHONE <digits>", "bot"); return; }
-      const out = rows.filter(r=>digitsOnly(r?.order?.phone||"").includes(p))
-        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
-      setStatus("");
-      addMsg(formatOrderList(out, `BYPHONE "${p}"`), "bot");
-      return;
-    }
-
-    if(cmd === "BYADDR"){
-      q = parts.slice(1).join(" ").trim().toLowerCase();
-      if(!q){ setStatus(""); addMsg("Usage: BYADDR <text>", "bot"); return; }
-      const out = rows.filter(r=>String(r?.order?.address||"").toLowerCase().includes(q))
-        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,80);
-      setStatus("");
-      addMsg(formatOrderList(out, `BYADDR "${q}"`), "bot");
-      return;
-    }
-
-    if(cmd === "BYCUSTOMER"){
-      const name = (parts[1]||"").toLowerCase();
-      const phone = digitsOnly(parts[2]||"");
-      if(!name && !phone){ setStatus(""); addMsg("Usage: BYCUSTOMER <name> <phone>", "bot"); return; }
-      const out = rows.filter(r=>{
-        const okName = name ? String(r?.order?.name||"").toLowerCase().includes(name) : true;
-        const okPhone = phone ? digitsOnly(r?.order?.phone||"").includes(phone) : true;
-        return okName && okPhone;
-      }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
-      setStatus("");
-      addMsg(formatOrderList(out, `BYCUSTOMER "${name}" "${phone}"`), "bot");
-      return;
-    }
-
-    if(cmd === "FIND"){
-      q = parts.slice(1).join(" ").trim().toLowerCase();
-      if(!q){ setStatus(""); addMsg("Usage: FIND <any text>", "bot"); return; }
-      const out = rows.filter(r=>includesBlob(r, q))
-        .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
-      setStatus("");
-      addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
-      return;
-    }
-  }
-
-  // Inventory: LOWSTOCK / OUTOFSTOCK
-  if(cmd === "LOWSTOCK" || cmd === "OUTOFSTOCK"){
-    const products = await ensureProductsFresh();
-    const all = [
-      ...products.bracelets.map(p=>({ ...p, __col:"bracelets" })),
-      ...products.cookies.map(p=>({ ...p, __col:"cookies" }))
-    ];
-
-    const out = all.filter(p=>{
-      const s = Number(p.stock);
-      if(!Number.isFinite(s)) return false;
-      if(cmd === "LOWSTOCK") return s <= 5;
-      return s <= 0;
-    }).sort((a,b)=>(Number(a.stock)||0) - (Number(b.stock)||0)).slice(0,120);
-
-    setStatus("");
-    if(!out.length){
-      addMsg(`${cmd}: none found.`, "bot");
-      return;
-    }
-    addMsg(
-      `${cmd}:\n` + out.map(p=>{
-        const label = p.name || p.type || "(unnamed)";
-        return `• ${p.__col} | ${p.id} | ${label} | stock=${p.stock} | price=${p.price ?? ""}`;
-      }).join("\n"),
-      "bot"
-    );
-    setChips(["LIST bracelets","LIST cookies","FINDP bracelets ","FINDP cookies ","HELP"]);
-    return;
-  }
-
-  // LIST / FINDP
-  if(cmd === "LIST"){
-    if(!a1){ setStatus(""); addMsg("Usage: LIST bracelets|cookies", "bot"); return; }
-    const rc = resolveProductCollection(a1);
-    if(!rc){ setStatus(""); addMsg("Use: LIST bracelets or LIST cookies", "bot"); return; }
-    const products = await ensureProductsFresh();
-    const arr = products[rc.key].slice().sort((a,b)=>{
-      const an = (a.name||a.type||"").toLowerCase();
-      const bn = (b.name||b.type||"").toLowerCase();
-      return an.localeCompare(bn);
-    }).slice(0,200);
-
-    setStatus("");
-    addMsg(
-      `LIST ${rc.key} (showing ${arr.length}):\n` +
-      arr.map(p=>{
-        const label = p.name || p.type || "(unnamed)";
-        return `• ${p.id} | ${label} | price=${p.price ?? ""} | stock=${p.stock ?? ""}`;
-      }).join("\n"),
-      "bot"
-    );
-    return;
-  }
-
-  if(cmd === "FINDP"){
-    if(!a1){ setStatus(""); addMsg("Usage: FINDP bracelets|cookies <text>", "bot"); return; }
-    const rc = resolveProductCollection(a1);
-    if(!rc){ setStatus(""); addMsg("Use: FINDP bracelets or FINDP cookies", "bot"); return; }
-    const q = parts.slice(2).join(" ").trim().toLowerCase();
-    if(!q){ setStatus(""); addMsg("Usage: FINDP bracelets|cookies <text>", "bot"); return; }
-    const products = await ensureProductsFresh();
-    const arr = products[rc.key].filter(p=>{
-      const blob = [
-        p.id, p.name, p.type,
-        Array.isArray(p.sizeOptions)?p.sizeOptions.join(" "):p.sizeOptions,
-        Array.isArray(p.colorOptions)?p.colorOptions.join(" "):p.colorOptions
-      ].map(x=>String(x||"").toLowerCase()).join(" | ");
-      return blob.includes(q);
-    }).slice(0,150);
-
-    setStatus("");
-    addMsg(
-      `FINDP ${rc.key} "${q}" (showing ${arr.length}):\n` +
-      (arr.length ? arr.map(p=>{
-        const label = p.name || p.type || "(unnamed)";
-        return `• ${p.id} | ${label} | price=${p.price ?? ""} | stock=${p.stock ?? ""}`;
-      }).join("\n") : "(none)"),
-      "bot"
-    );
-    return;
-  }
-
-  // STOCK
-  if(cmd === "STOCK"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: STOCK bracelets|cookies <docId>", "bot"); return; }
-    const p = await getProduct(a1, a2);
-    setStatus("");
-    if(!p) return addMsg("Product not found.", "bot");
-    addMsg(
-      `Product: ${p.id}\nCollection: ${p.__key}\nName/Type: ${p.name || p.type || ""}\nPrice: ${p.price ?? ""}\nStock: ${p.stock ?? ""}\nSizes: ${Array.isArray(p.sizeOptions)?p.sizeOptions.join(", "):(p.sizeOptions ?? "")}\nColors: ${Array.isArray(p.colorOptions)?p.colorOptions.join(", "):(p.colorOptions ?? "")}`,
-      "bot"
-    );
-    setChips([`SET ${p.__key} ${p.id} stock= price=`, `SIZES ${p.__key} ${p.id} `, `COLORS ${p.__key} ${p.id} `, `ADDCOLOR ${p.__key} ${p.id} `]);
-    return;
-  }
-
-  // PRICE <col> <id> <value>
-  if(cmd === "PRICE"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: PRICE <col> <id> 12.00", "bot"); return; }
-    const v = Number(parts[3]);
-    if(!Number.isFinite(v)){ setStatus(""); addMsg("Price must be a number.", "bot"); return; }
-    await patchProduct(a1, a2, { price: v });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Price updated: ${a1} ${a2} → ${v}`, "bot");
-    return;
-  }
-
-  // RESTOCK / DEDUCT
-  if(cmd === "RESTOCK" || cmd === "DEDUCT"){
-    if(!a1 || !a2){ setStatus(""); addMsg(`Usage: ${cmd} <col> <id> +10`, "bot"); return; }
-    const deltaRaw = parts[3];
-    const delta = Number(deltaRaw);
-    if(!Number.isFinite(delta)){ setStatus(""); addMsg("Delta must be a number like +10 or -2.", "bot"); return; }
-
-    const p = await getProduct(a1, a2);
-    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
-    const cur = Number(p.stock) || 0;
-    const next = Math.max(0, cur + delta);
-    await patchProduct(a1, a2, { stock: next });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Stock updated: ${a1} ${a2} ${cur} → ${next}`, "bot");
-    return;
-  }
-
-  // SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra
-  if(cmd === "SET"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: SET <col> <id> stock=12 price=10.00 name=Thing type=Cobra", "bot"); return; }
-    const rest = text.split(" ").slice(3).join(" ").trim();
-    if(!rest){ setStatus(""); addMsg("Usage: SET <col> <id> stock=12 price=10.00", "bot"); return; }
-
-    const patch = {};
-    rest.split(" ").forEach(pair=>{
-      const [kRaw, vRaw] = pair.split("=");
-      if(!kRaw || vRaw === undefined) return;
-      const k = kRaw.trim();
-      const v = vRaw.trim();
-
-      if(k === "stock"){
-        const n = Number(v);
-        if(Number.isFinite(n)) patch.stock = n;
-        return;
-      }
-      if(k === "price"){
-        const n = Number(v);
-        if(Number.isFinite(n)) patch.price = n;
-        return;
-      }
-      if(k === "name") patch.name = v;
-      if(k === "type") patch.type = v;
-    });
-
-    if(!Object.keys(patch).length){ setStatus(""); addMsg("Nothing to set.", "bot"); return; }
-
-    await patchProduct(a1, a2, patch);
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Updated ${a1} ${a2}: ${JSON.stringify(patch)}`, "bot");
-    return;
-  }
-
-  // SIZES / ADDSIZE / REMOVESIZE
-  if(cmd === "SIZES"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: SIZES <col> <id> 6,6.5,7", "bot"); return; }
-    const rest = text.split(" ").slice(3).join(" ").trim();
-    if(!rest){ setStatus(""); addMsg("Give sizes like: 6,6.5,7,7.5", "bot"); return; }
-    const sizes = parseCSVList(rest);
-    await patchProduct(a1, a2, { sizeOptions: sizes });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Sizes updated: ${sizes.join(", ")}`, "bot");
-    return;
-  }
-  if(cmd === "ADDSIZE"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: ADDSIZE <col> <id> 8.5", "bot"); return; }
-    const size = String(parts[3]||"").trim();
-    if(!size){ setStatus(""); addMsg("Usage: ADDSIZE <col> <id> 8.5", "bot"); return; }
-    const p = await getProduct(a1, a2);
-    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
-    const cur = Array.isArray(p.sizeOptions) ? p.sizeOptions.map(String) : [];
-    const next = Array.from(new Set([...cur, size]));
-    await patchProduct(a1, a2, { sizeOptions: next });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Size added. Now: ${next.join(", ")}`, "bot");
-    return;
-  }
-  if(cmd === "REMOVESIZE"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: REMOVESIZE <col> <id> 6", "bot"); return; }
-    const size = String(parts[3]||"").trim();
-    if(!size){ setStatus(""); addMsg("Usage: REMOVESIZE <col> <id> 6", "bot"); return; }
-    const p = await getProduct(a1, a2);
-    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
-    const cur = Array.isArray(p.sizeOptions) ? p.sizeOptions.map(String) : [];
-    const next = cur.filter(x=>x !== size);
-    await patchProduct(a1, a2, { sizeOptions: next });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Size removed. Now: ${next.join(", ") || "(none)"}`, "bot");
-    return;
-  }
-
-  // COLORS / ADDCOLOR / REMOVECOLOR
-  if(cmd === "COLORS"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: COLORS <col> <id> red,black,white", "bot"); return; }
-    const rest = text.split(" ").slice(3).join(" ").trim();
-    if(!rest){ setStatus(""); addMsg("Give colors like: red, black, white", "bot"); return; }
-    const colors = parseCSVList(rest).map(c=>c.toLowerCase());
-    await patchProduct(a1, a2, { colorOptions: colors });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Colors updated: ${colors.join(", ")}`, "bot");
-    return;
-  }
-  if(cmd === "ADDCOLOR"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: ADDCOLOR <col> <id> purple", "bot"); return; }
-    const color = text.split(" ").slice(3).join(" ").trim().toLowerCase();
-    if(!color){ setStatus(""); addMsg("Usage: ADDCOLOR <col> <id> purple", "bot"); return; }
-    const p = await getProduct(a1, a2);
-    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
-    const cur = Array.isArray(p.colorOptions) ? p.colorOptions.map(x=>String(x).toLowerCase()) : [];
-    const next = Array.from(new Set([...cur, color])).filter(Boolean);
-    await patchProduct(a1, a2, { colorOptions: next });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Color added. Now: ${next.join(", ")}`, "bot");
-    return;
-  }
-  if(cmd === "REMOVECOLOR"){
-    if(!a1 || !a2){ setStatus(""); addMsg("Usage: REMOVECOLOR <col> <id> purple", "bot"); return; }
-    const color = text.split(" ").slice(3).join(" ").trim().toLowerCase();
-    if(!color){ setStatus(""); addMsg("Usage: REMOVECOLOR <col> <id> purple", "bot"); return; }
-    const p = await getProduct(a1, a2);
-    if(!p){ setStatus(""); addMsg("Product not found.", "bot"); return; }
-    const cur = Array.isArray(p.colorOptions) ? p.colorOptions.map(x=>String(x).toLowerCase()) : [];
-    const next = cur.filter(x=>x !== color);
-    await patchProduct(a1, a2, { colorOptions: next });
-    await refreshProducts();
-    setStatus("");
-    addMsg(`✅ Color removed. Now: ${next.join(", ") || "(none)"}`, "bot");
-    return;
-  }
-
-  // STATS: TOTALS / REVENUE / AVG MONTH
-  if(cmd === "TOTALS" || cmd === "REVENUE"){
-    const range = upper(a1||"");
-    const rows = await ensureOrdersFresh();
-
-    let pred = ()=>true;
-    if(range === "TODAY") pred = isToday;
-    else if(range === "WEEK") pred = isThisWeek;
-    else if(range === "MONTH") pred = isThisMonth;
-    else { setStatus(""); addMsg("Usage: TOTALS TODAY|WEEK|MONTH", "bot"); return; }
-
-    const s = statsForRange(rows, pred);
-    setStatus("");
-    if(cmd === "TOTALS"){
-      addMsg(
-        `TOTALS ${range}\nOrders: ${s.count}\nDone: ${s.doneCount}\nRevenue (done only): ${money(s.revenue)}`,
-        "bot"
-      );
-    }else{
-      addMsg(`REVENUE ${range}: ${money(s.revenue)} (done only)`, "bot");
-    }
-    return;
-  }
-
-  if(cmd === "AVG" && upper(a1)==="MONTH"){
-    const rows = await ensureOrdersFresh();
-    const out = avgMonthlyRevenue(rows);
-    setStatus("");
-    addMsg(
-      `AVG MONTH revenue (done orders)\nMonths counted: ${out.months.length}\nAverage: ${money(out.avg)}\n\nBreakdown:\n` +
-      out.months.map((m,i)=>`${m}: ${money(out.values[i])}`).join("\n"),
-      "bot"
-    );
-    return;
-  }
-
-  // TOPCUSTOMERS n (by phone; uses DONE totals)
-  if(cmd === "TOPCUSTOMERS"){
-    const n = Math.max(1, Math.min(50, Number(a1||10)));
-    const rows = await ensureOrdersFresh();
-    const done = rows.filter(r=>normalizeStatus(r.status)==="done");
-
-    const map = new Map(); // phone -> {count, revenue, name}
-    for(const r of done){
-      const phone = digitsOnly(r?.order?.phone||"");
-      if(!phone) continue;
-      const cur = map.get(phone) || { count:0, revenue:0, name:(r?.order?.name||"") };
-      cur.count += 1;
-      cur.revenue += orderTotal(r);
-      if(!cur.name && r?.order?.name) cur.name = r.order.name;
-      map.set(phone, cur);
-    }
-
-    const ranked = Array.from(map.entries())
-      .map(([phone,val])=>({ phone, ...val }))
-      .sort((a,b)=>b.revenue - a.revenue)
-      .slice(0,n);
-
-    setStatus("");
-    if(!ranked.length){ addMsg("TOPCUSTOMERS: none found (need done orders with phone).", "bot"); return; }
-    addMsg(
-      `TOPCUSTOMERS ${n}\n` +
-      ranked.map((c,i)=>`${i+1}) ${c.name||""} | ${c.phone} | orders=${c.count} | spend=${money(c.revenue)}`).join("\n"),
-      "bot"
-    );
-    return;
-  }
-
-  // CUSTOMERSTATS phone
-  if(cmd === "CUSTOMERSTATS"){
-    const p = digitsOnly(parts.slice(1).join(" "));
-    if(!p){ setStatus(""); addMsg("Usage: CUSTOMERSTATS <phone>", "bot"); return; }
-
-    const rows = await ensureOrdersFresh();
-    const matching = rows.filter(r=>digitsOnly(r?.order?.phone||"").includes(p));
-    const done = matching.filter(r=>normalizeStatus(r.status)==="done");
-    const spend = done.reduce((s,r)=>s+orderTotal(r),0);
-
-    setStatus("");
-    addMsg(
-      `CUSTOMERSTATS ${p}\nTotal orders: ${matching.length}\nDone orders: ${done.length}\nTotal spend (done): ${money(spend)}\n\nLatest:\n` +
-      matching.sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,20).map(compactOrderLine).join("\n"),
-      "bot"
-    );
-    return;
-  }
-
-  // DUPES PHONE
-  if(cmd === "DUPES" && upper(a1)==="PHONE"){
-    const rows = await ensureOrdersFresh();
-    const map = groupByPhone(rows);
-    const dups = Array.from(map.entries())
-      .filter(([phone,count])=>count >= 2)
-      .sort((a,b)=>b[1]-a[1])
-      .slice(0,80);
-
-    setStatus("");
-    if(!dups.length){ addMsg("DUPES PHONE: none found.", "bot"); return; }
-    addMsg(
-      "DUPES PHONE:\n" +
-      dups.map(([phone,count])=>`• ${phone} — ${count} orders`).join("\n"),
-      "bot"
-    );
-    return;
-  }
-
-  // REPEAT <nameOrPhone>
-  if(cmd === "REPEAT"){
-    const qv = parts.slice(1).join(" ").trim();
-    if(!qv){ setStatus(""); addMsg("Usage: REPEAT <nameOrPhone>", "bot"); return; }
-
-    const rows = await ensureOrdersFresh();
-    const p = digitsOnly(qv);
-    const qLower = qv.toLowerCase();
-    const matching = rows.filter(r=>{
-      if(p) return digitsOnly(r?.order?.phone||"").includes(p);
-      return String(r?.order?.name||"").toLowerCase().includes(qLower);
-    }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a));
-
-    setStatus("");
-    addMsg(formatOrderList(matching.slice(0,120), `REPEAT "${qv}"`), "bot");
-    return;
-  }
-
-  // If nothing matched
-  setStatus("");
-  addMsg("I didn’t recognize that. Type HELP.", "bot");
-  setChips(["HELP","NEXT","UNFINISHED","BYPHONE ","BYNAME ","LOWSTOCK","TOTALS MONTH"]);
-}
-
-/* Send */
-function send(){
-  const text = input.value.trim();
-  if(!text) return;
-  input.value = "";
-  addMsg(text, "user");
-  setChips([]);
-  setStatus("");
-
-  handleCommand(text).catch(err=>{
-    setStatus("");
-    addMsg("❌ Error: " + (err?.message || err), "bot");
-    setChips(["HELP","REFRESH","NEXT","UNFINISHED"]);
-  });
-}
-
-/* Reset */
-function resetAll(){
-  chat.innerHTML = "";
-  setStatus("");
-  addMsg(
-`Admin Bot ready.
-
-Type HELP for commands.
-Try:
-• NEXT
-• UNFINISHED
-• BYPHONE 2083043821
-• LOWSTOCK
-• TOTALS MONTH`,
-  "bot");
-  setChips(["HELP","NEXT","UNFINISHED","UNPAID","RUSH","LOWSTOCK","TOTALS MONTH","REFRESH"]);
-}
-
-document.getElementById("sendBtn").onclick = send;
-document.getElementById("resetBtn").onclick = resetAll;
-input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
-
-resetAll();
-</script>
-</body>
-</html>
+  const d
