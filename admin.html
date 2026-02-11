@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Multi-Business Admin (Full)</title>
+<title>Tactics & Treats – Multi-Business Admin Bot (Full)</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,7 +126,7 @@
 <div class="wrap">
   <header>
     <h1>Multi-Business Admin Bot</h1>
-    <div class="pill">Auto 5-digit business code • Owner/Manager/Staff • Orders</div>
+    <div class="pill">Auto 5-digit business code • Owner/Manager/Staff • Assign + Notes + Rules + Checklist</div>
   </header>
 
   <div class="card">
@@ -140,7 +141,7 @@
     </div>
 
     <div class="meta">
-      Quick: <b>HELP</b>, <b>WHOAMI</b>, <b>NEWBIZ</b>, <b>LOGIN</b>, <b>LISTUSERS</b>, <b>NEXT</b>, <b>UNPAID</b>, <b>UNFINISHED</b>, <b>SHOWALL</b>, <b>DONE</b>
+      Quick: <b>HELP</b>, <b>WHOAMI</b>, <b>NEWBIZ</b>, <b>LOGIN</b>, <b>LISTUSERS</b>, <b>NEXT</b>, <b>UNPAID</b>, <b>UNFINISHED</b>, <b>SHOWALL</b>, <b>ASSIGN</b>, <b>CHECKLIST</b>, <b>DONE</b>
     </div>
   </div>
 </div>
@@ -150,11 +151,13 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* =========================
-   NOTE (Chromebook local file)
-========================= */
+/* =========================================================
+   IMPORTANT NOTE
+   If you open this as file:// on Chromebook, Firebase often fails.
+   Best: run a tiny local server (Live Server, or python http.server).
+========================================================= */
 if (location.protocol === "file:") {
-  console.warn("Opened as file:// — Firebase may fail. Use Live Server or python http.server.");
+  console.warn("Opened as file:// — Firebase may fail. Use a local server.");
 }
 
 /* =========================
@@ -228,7 +231,6 @@ function startOfMonth(){ const d=startOfToday(); d.setDate(1); return d; }
 
 /* =========================
    MULTI-BUSINESS
-   business code = 5 digits, auto assigned, never changeable
 ========================= */
 const BUSINESSES = "tt_businesses";
 
@@ -242,10 +244,8 @@ async function makeUniqueBizCode5(){
     const snap = await db.collection(BUSINESSES).doc(code).get();
     if(!snap.exists) return code;
   }
-  // super rare fallback
   return String(Math.floor(Math.random()*100000)).padStart(5,"0");
 }
-
 async function sha256Hex(text){
   const enc = new TextEncoder().encode(String(text));
   const buf = await crypto.subtle.digest("SHA-256", enc);
@@ -263,7 +263,6 @@ const session = {
   role: "",
   loggedIn: false
 };
-
 function requireLogin(){
   if(!session.loggedIn) throw new Error("Not logged in. Use: LOGIN <bizCode> <username> <password>");
 }
@@ -280,17 +279,16 @@ function requireRole(minRole){
   }
 }
 
-/* Scoped collections (everything stays inside your business) */
+/* Scoped collections */
 function bizDoc(){ requireLogin(); return db.collection(BUSINESSES).doc(session.biz); }
 function usersCol(){ return bizDoc().collection("users"); }
 function ordersCol(){ return bizDoc().collection("orders"); }
-function productsCol(){ return bizDoc().collection("products"); }
 function skillsCol(){ return bizDoc().collection("skills"); }
 function aliasesCol(){ return bizDoc().collection("aliases"); }
 function logsCol(){ return bizDoc().collection("logs"); }
 
 /* =========================
-   LOGGING (optional but nice)
+   Logging
 ========================= */
 async function logAction(action, meta){
   try{
@@ -307,7 +305,7 @@ async function logAction(action, meta){
 }
 
 /* =========================
-   ALIASES (nicknames per business)
+   Aliases (order nicknames)
 ========================= */
 function normAlias(s){
   return String(s||"")
@@ -346,7 +344,7 @@ async function resolveOrderId(token){
 }
 
 /* =========================
-   SKILLS (learned triggers per business)
+   Skills (learned triggers)
 ========================= */
 async function saveSkill(trigger, action){
   await skillsCol().add({
@@ -368,7 +366,7 @@ async function forgetSkill(trigger){
 }
 
 /* =========================
-   ORDERS helpers
+   Orders cache
 ========================= */
 const ORDER_FETCH_LIMIT = 900;
 let orderCache = [];
@@ -405,8 +403,50 @@ function formatOrderList(rows, title){
   if(!rows.length) return `${title}: none found.`;
   return [`${title} (showing ${rows.length}):`, ...rows.map(compactOrderLine)].join("\n");
 }
+
+/* =========================
+   Priority / Next
+========================= */
+function priorityScore(r){
+  const s = normalizeStatus(r.status);
+  const rush = !!(r.order && r.order.rush);
+  if(s === "unpaid" && rush) return 1;
+  if(s === "unpaid") return 2;
+  if(s === "pending" && rush) return 3;
+  if(s === "pending") return 4;
+  if(s === "new" && rush) return 5;
+  if(s === "new") return 6;
+  return 99;
+}
+function pickNext(rows){
+  const unfinished = rows.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+  unfinished.sort((a,b)=>{
+    const sa = priorityScore(a), sb = priorityScore(b);
+    if(sa !== sb) return sa - sb;
+    return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
+  });
+  return unfinished[0] || null;
+}
+
+/* =========================
+   Safe delete
+========================= */
+const pendingDeletes = new Map();
+function armDelete(id){ pendingDeletes.set(id, Date.now()); }
+function canConfirmDelete(id){
+  const t = pendingDeletes.get(id);
+  if(!t) return false;
+  if(Date.now() - t > 60000){ pendingDeletes.delete(id); return false; }
+  return true;
+}
+
+/* =========================
+   Order details (SHOWALL)
+   Shows EVERYTHING including extras, rules, checklist, history
+========================= */
 function summarizeItems(items){
   if(!Array.isArray(items) || !items.length) return "(none)";
+
   const pickExtras = (it)=>{
     const extras = [];
     for(const [k,v] of Object.entries(it || {})){
@@ -434,13 +474,19 @@ function summarizeItems(items){
     ].join("\n");
   }).join("\n\n");
 }
+
 function orderCard(id, data){
   const o = data?.order || {};
   const totals = data?.totals || {};
+  const items = data?.items || [];
+
   const knownTop = new Set([
     "status","createdAt","order","items","totals",
-    "assignedTo","adminNote","tracking","flagged","problemNote",
-    "paidAt","shippedAt","doneAt","claimedBy","claimedAt"
+    "assignedTo","assignedAt","assignedBy","assignedNote",
+    "adminNote","tracking","flagged","problemNote",
+    "paidAt","shippedAt","doneAt","doneBy",
+    "claimedBy","claimedAt","rules","checklist","history",
+    "adminNoteBy","adminNoteAt"
   ]);
 
   const extraTop = [];
@@ -467,6 +513,29 @@ function orderCard(id, data){
     totalsLines.push(`  • ${k}: ${typeof v === "number" ? money(v) : String(v)}`);
   }
 
+  const rulesTxt = (Array.isArray(data?.rules) && data.rules.length)
+    ? ("• " + data.rules.map(r=>String(r)).join("\n• "))
+    : "(none)";
+
+  const checklistTxt = (Array.isArray(data?.checklist) && data.checklist.length)
+    ? data.checklist.map((s,i)=>{
+        const done = s.done ? "✅" : "⬜";
+        const who = s.doneBy ? ` (by ${s.doneBy})` : "";
+        const when = s.doneAt ? ` @ ${fmtDate(s.doneAt)}` : "";
+        return `${i+1}) ${done} ${s.text || ""}${who}${when}`;
+      }).join("\n")
+    : "(none)";
+
+  const historyTxt = (Array.isArray(data?.history) && data.history.length)
+    ? data.history.slice(0, 18).map(h=>{
+        const at = fmtDate(h.at) || h.atIso || "";
+        const by = h.by || "";
+        const act = h.action || "";
+        const extra = h.note ? ` | ${h.note}` : "";
+        return `• ${act} by ${by} @ ${at}${extra}`;
+      }).join("\n")
+    : "(none)";
+
   return [
     `ORDER FULL DETAILS`,
     `Business: ${session.biz}`,
@@ -477,78 +546,86 @@ function orderCard(id, data){
     `Customer / Shipping (order object):`,
     orderLines.length ? orderLines.join("\n") : "  (none)",
     ``,
-    `Admin fields:`,
+    `Admin + Assignment:`,
     `  • assignedTo: ${data?.assignedTo || ""}`,
+    `  • assignedBy: ${data?.assignedBy || ""}`,
+    `  • assignedAt: ${fmtDate(data?.assignedAt)}`,
+    `  • assignedNote: ${data?.assignedNote || ""}`,
     `  • claimedBy: ${data?.claimedBy || ""}`,
     `  • claimedAt: ${fmtDate(data?.claimedAt)}`,
     `  • adminNote: ${data?.adminNote || ""}`,
+    `  • adminNoteBy: ${data?.adminNoteBy || ""}`,
+    `  • adminNoteAt: ${fmtDate(data?.adminNoteAt)}`,
     `  • tracking: ${data?.tracking || ""}`,
     `  • flagged: ${data?.flagged ? "yes" : "no"}`,
     `  • problemNote: ${data?.problemNote || ""}`,
     `  • paidAt: ${fmtDate(data?.paidAt)}`,
     `  • shippedAt: ${fmtDate(data?.shippedAt)}`,
     `  • doneAt: ${fmtDate(data?.doneAt)}`,
+    `  • doneBy: ${data?.doneBy || ""}`,
     ``,
     `Totals:`,
     totalsLines.length ? totalsLines.join("\n") : "  (none)",
     ``,
     `Items:`,
-    summarizeItems(data?.items || []),
+    summarizeItems(items),
+    ``,
+    `Rules:`,
+    rulesTxt,
+    ``,
+    `Checklist:`,
+    checklistTxt,
+    ``,
+    `History (last 18):`,
+    historyTxt,
     ``,
     extraTop.length ? `EXTRA FIELDS:\n${extraTop.map(x=>"• "+x).join("\n")}` : "EXTRA FIELDS: (none)"
   ].join("\n");
 }
 
-/* Priority / Next */
-function priorityScore(r){
-  const s = normalizeStatus(r.status);
-  const rush = !!(r.order && r.order.rush);
-  if(s === "unpaid" && rush) return 1;
-  if(s === "unpaid") return 2;
-  if(s === "pending" && rush) return 3;
-  if(s === "pending") return 4;
-  if(s === "new" && rush) return 5;
-  if(s === "new") return 6;
-  return 99;
+/* =========================
+   History + order patch helper
+========================= */
+function nowIso(){ return new Date().toISOString(); }
+function pushHistory(existing, entry){
+  const arr = Array.isArray(existing) ? existing.slice(0, 80) : [];
+  arr.unshift(entry);
+  return arr.slice(0, 80);
 }
-function pickNext(rows){
-  const unfinished = rows.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
-  unfinished.sort((a,b)=>{
-    const sa = priorityScore(a), sb = priorityScore(b);
-    if(sa !== sb) return sa - sb;
-    return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
-  });
-  return unfinished[0] || null;
-}
+async function updateOrderWithHistory(orderId, patch, action, extraMeta={}){
+  const ref = ordersCol().doc(orderId);
+  const snap = await ref.get();
+  if(!snap.exists) throw new Error("Order not found: " + orderId);
 
-/* Safe delete (manager+) */
-const pendingDeletes = new Map();
-function armDelete(id){ pendingDeletes.set(id, Date.now()); }
-function canConfirmDelete(id){
-  const t = pendingDeletes.get(id);
-  if(!t) return false;
-  if(Date.now() - t > 60000){ pendingDeletes.delete(id); return false; }
-  return true;
+  const data = snap.data() || {};
+  const history = pushHistory(data.history, {
+    at: ts(),
+    atIso: nowIso(),
+    by: session.username,
+    role: session.role,
+    action,
+    ...extraMeta
+  });
+
+  await ref.set({ ...patch, history }, { merge:true });
+  bustOrders();
 }
 
 /* =========================
-   NATURAL -> COMMAND
+   Natural language -> command (simple)
 ========================= */
 function interpretNatural(text){
   const t = clean(text);
   const L = t.toLowerCase();
   const U = t.toUpperCase();
 
-  if(U === "?" ) return "HELP";
-  if(U.startsWith("LOGIN ") || U.startsWith("NEWBIZ ") || U.startsWith("LOGOUT") ) return t;
+  if(U === "?") return "HELP";
+  if(U.startsWith("LOGIN ") || U.startsWith("NEWBIZ ") || U.startsWith("LOGOUT")) return t;
   if(U === "WHOAMI") return "WHOAMI";
 
   if(L.includes("monthly") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE MONTH";
   if(L.includes("weekly") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE WEEK";
   if(L.includes("today") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE TODAY";
-
-  if(L.startsWith("showall ")) return "SHOWALL " + clean(t.slice(8));
-  if(L.startsWith("show ")) return "SHOWALL " + clean(t.slice(5));
 
   if(L.includes("next")) return "NEXT";
   if(L.includes("unfinished")) return "UNFINISHED";
@@ -560,14 +637,10 @@ function interpretNatural(text){
     return "DONE " + (rest || "");
   }
 
-  if(L.startsWith("delete ")){
-    return "DELETE " + clean(t.slice(7));
-  }
-
   const digs = digitsOnly(t);
   if(digs.length >= 7) return "BYPHONE " + digs;
 
-  return t; // let command handler try
+  return t;
 }
 
 /* =========================
@@ -585,7 +658,7 @@ function helpText(){
     "  LOGIN <bizCode5> <username> <password>",
     "  WHOAMI | LOGOUT",
     "",
-    "Users (Owner/Manager controls):",
+    "Users (Manager/Owner controls):",
     "  ADDCO <username> <password> staff|manager   (manager+)",
     "  LISTUSERS (manager+)",
     "  RENAMEUSER <old> <new> (manager+)",
@@ -596,26 +669,44 @@ function helpText(){
     "Orders (scoped to business):",
     "  NEXT | PRIORITY | UNFINISHED | UNPAID | TODAY | WEEK | MONTH",
     "  SHOWALL <idOrNickname>",
-    "  NICK <idOrNickname> <nickname>",
-    "  ALIASES | UNNICK <nickname>",
-    "  CLAIM <idOrNick> | MYQUEUE | UNCLAIM <idOrNick>",
+    "  NICK <idOrNickname> <nickname> | ALIASES | UNNICK <nickname>",
+    "  CLAIM <idOrNick> | MYQUEUE | UNCLAIM <idOrNick> (manager+)",
     "  NOTE <idOrNick> <text...>",
-    "  DONE <idOrNick> | PAID <idOrNick> | SHIPPED <idOrNick>",
-    "  DELETE <idOrNick>   (manager+, arms 60s)",
+    "",
+    "Admin assigns work (manager+):",
+    "  ASSIGN <idOrNick> <username> | <note...>",
+    "  ASSIGNNOTE <idOrNick> <note...>",
+    "  UNASSIGN <idOrNick>",
+    "  MYASSIGNED (shows orders assignedTo you)",
+    "",
+    "Rules + checklist:",
+    "  RULESADD <idOrNick> <rule text> (manager+)",
+    "  RULESCLEAR <idOrNick> (manager+)",
+    "  CHECKADD <idOrNick> <step text> (manager+)",
+    "  CHECKLIST <idOrNick>",
+    "  CHECKDONE <idOrNick> <step#>",
+    "  CHECKUNDO <idOrNick> <step#> (staff can undo own; manager+ can undo any)",
+    "",
+    "Status:",
+    "  DONE <idOrNick>   (sets doneAt + doneBy)",
+    "  PAID <idOrNick>   (sets paidAt)",
+    "  SHIPPED <idOrNick> (sets shippedAt)",
+    "",
+    "Safety:",
+    "  DELETE <idOrNick> (manager+, arms 60s)",
     "  DELETE <idOrNick> CONFIRM",
     "",
     "Money:",
     "  REVENUE TODAY|WEEK|MONTH",
     "  TOTALS TODAY|WEEK|MONTH",
     "",
-    "Learn triggers (per business):",
-    "  LEARN  (asks trigger then action; saved in Firestore)",
-    "  LISTSKILLS | FORGET <trigger>",
+    "Learn triggers (saved in Firestore):",
+    "  LEARN | LISTSKILLS | FORGET <trigger> (manager+)",
   ].join("\n");
 }
 
 /* =========================
-   MAIN STATE (learn flow)
+   Main state
 ========================= */
 const state = {
   lastOrderId: "",
@@ -631,12 +722,12 @@ async function handleCommand(raw){
   const U = upper(text);
   if(!text) return;
 
-  // LEARN capture
+  // Learn capture
   if(state.learnMode === "awaitTrigger"){
     requireLogin();
     state.learnTrigger = clean(raw);
     state.learnMode = "awaitAction";
-    addMsg(`Trigger saved:\n"${state.learnTrigger}"\n\nNow type the ACTION command to run.`, "bot");
+    addMsg(`Trigger saved:\n"${normAlias(state.learnTrigger)}"\n\nNow type the ACTION command to run.`, "bot");
     setChips(["CANCEL LEARN","HELP"]);
     return;
   }
@@ -652,11 +743,11 @@ async function handleCommand(raw){
     return;
   }
 
-  // HELP works even logged out
+  // HELP works logged out
   if(U === "HELP"){
     setStatus("");
     addMsg(helpText(), "bot");
-    setChips(["NEWBIZ MyBiz mypass","LOGIN 00000 owner pass","WHOAMI","LISTUSERS","NEXT","UNPAID","UNFINISHED"]);
+    setChips(["NEWBIZ TacticsTreats mypass","LOGIN 00000 owner pass","WHOAMI","NEXT","UNPAID","UNFINISHED"]);
     return;
   }
 
@@ -699,10 +790,9 @@ async function handleCommand(raw){
     session.role = "owner";
     session.loggedIn = true;
 
+    bustOrders();
     setStatus("");
-    addMsg(`✅ Business created!`, "bot");
-    addMsg(`Business code (never changes): ${biz}`, "bot");
-    addMsg(`Logged in as: owner (admin can rename users)`, "bot");
+    addMsg(`✅ Business created!\nBusiness code (never changes): ${biz}\nLogged in as: owner`, "bot");
     setChips(["WHOAMI","LISTUSERS","ADDCO jen pass123 staff","NEXT","HELP"]);
     await logAction("create_business", { biz, businessName });
     return;
@@ -784,8 +874,8 @@ async function handleCommand(raw){
   /* Everything below needs login */
   requireLogin();
 
-  // Learned triggers first (more specific wins)
-  if(U !== "LEARN" && U !== "LISTSKILLS" && !U.startsWith("FORGET ")){
+  // Learned triggers (before normal commands)
+  if(U !== "LEARN" && U !== "LISTSKILLS" && !U.startsWith("FORGET ") && U !== "CANCEL LEARN"){
     try{
       const skills = await loadSkills(900);
       const L = lower(text);
@@ -814,7 +904,7 @@ async function handleCommand(raw){
   if(U === "LEARN"){
     state.learnMode = "awaitTrigger";
     state.learnTrigger = "";
-    addMsg('Alright. What phrase do you want me to learn? (example: "monthly gross")', "bot");
+    addMsg('What phrase do you want me to learn? (example: "monthly gross")', "bot");
     setChips(["CANCEL LEARN","HELP"]);
     return;
   }
@@ -833,9 +923,9 @@ async function handleCommand(raw){
     return;
   }
   if(U.startsWith("FORGET ")){
+    requireRole("manager");
     const trg = clean(text.slice(7));
     if(!trg){ addMsg("Usage: FORGET <trigger>", "bot"); return; }
-    requireRole("manager");
     await forgetSkill(trg);
     await logAction("forget_skill", { trigger: normAlias(trg) });
     addMsg(`🧽 Forgot trigger: "${normAlias(trg)}"`, "bot");
@@ -863,7 +953,6 @@ async function handleCommand(raw){
       return;
     }
 
-    // username must be unique in this business
     const taken = await usersCol().where("username","==",username).limit(1).get();
     if(!taken.empty){
       addMsg("That username is already taken.", "bot");
@@ -919,7 +1008,6 @@ async function handleCommand(raw){
     const targetRef = qOld.docs[0].ref;
     const target = qOld.docs[0].data();
 
-    // managers can't rename owner
     if(String(target.role) === "owner" && session.role !== "owner"){
       addMsg("Only owner can rename the owner account.", "bot");
       return;
@@ -1003,7 +1091,7 @@ async function handleCommand(raw){
     return;
   }
 
-  // Aliases
+  // Nicknames (Aliases)
   if(U.startsWith("NICK ")){
     const rest = text.slice(5);
     const parts = rest.split(/\s+/);
@@ -1017,7 +1105,7 @@ async function handleCommand(raw){
     await setAlias(aliasText, id);
     await logAction("set_alias", { alias: normAlias(aliasText), orderId: id });
     addMsg(`✅ Nickname saved:\n"${normAlias(aliasText)}" → ${id}`, "bot");
-    setChips([`SHOWALL ${normAlias(aliasText)}`, `DONE ${normAlias(aliasText)}`, `DELETE ${normAlias(aliasText)}`]);
+    setChips([`SHOWALL ${normAlias(aliasText)}`, `DONE ${normAlias(aliasText)}`, `ASSIGN ${normAlias(aliasText)} `]);
     return;
   }
 
@@ -1038,7 +1126,7 @@ async function handleCommand(raw){
     return;
   }
 
-  // Revenue / totals
+  // Money
   if(U.startsWith("REVENUE ")){
     const range = upper(text.split(/\s+/)[1]||"MONTH");
     const rows = await ensureOrdersFresh();
@@ -1090,7 +1178,7 @@ async function handleCommand(raw){
 
     out = out.slice(0, 60);
     addMsg(formatOrderList(out, cmd0), "bot");
-    setChips(["NEXT","SHOWALL "+(out[0]?.id||""),"UNPAID","UNFINISHED","HELP"]);
+    setChips(["NEXT", out[0]?.id ? `SHOWALL ${out[0].id}` : "SHOWALL ", "UNPAID","UNFINISHED","HELP"]);
     return;
   }
 
@@ -1101,7 +1189,18 @@ async function handleCommand(raw){
     if(!next){ addMsg("NEXT: none found 🎉", "bot"); return; }
     state.lastOrderId = next.id;
     addMsg(orderCard(next.id, next), "bot");
-    setChips([`NICK ${next.id} `,`CLAIM ${next.id}`,`DONE ${next.id}`,`SHIPPED ${next.id}`,`PAID ${next.id}`,`DELETE ${next.id}`,`SHOWALL ${next.id}`,"UNPAID","UNFINISHED"]);
+    setChips([
+      `NICK ${next.id} `,
+      `ASSIGN ${next.id} `,
+      `CHECKLIST ${next.id}`,
+      `DONE ${next.id}`,
+      `SHIPPED ${next.id}`,
+      `PAID ${next.id}`,
+      `DELETE ${next.id}`,
+      `SHOWALL ${next.id}`,
+      "MYASSIGNED",
+      "MYQUEUE"
+    ]);
     return;
   }
 
@@ -1114,7 +1213,7 @@ async function handleCommand(raw){
     if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
     state.lastOrderId = id;
     addMsg(orderCard(id, snap.data()), "bot");
-    setChips([`NICK ${id} `,`CLAIM ${token}`,`DONE ${token}`,`SHIPPED ${token}`,`PAID ${token}`,`DELETE ${token}`,"MYQUEUE","NEXT"]);
+    setChips([`NICK ${id} `,`ASSIGN ${token} `,`CHECKLIST ${token}`,`DONE ${token}`,`SHIPPED ${token}`,`PAID ${token}`,`DELETE ${token}`,"MYASSIGNED","NEXT"]);
     return;
   }
 
@@ -1124,9 +1223,10 @@ async function handleCommand(raw){
     const token = clean(text.slice(6)) || state.lastOrderId;
     const id = await resolveOrderId(token);
     if(!id){ addMsg("CLAIM needs an id/nickname.", "bot"); return; }
-    await ordersCol().doc(id).set({ claimedBy: session.username, claimedAt: ts() }, { merge:true });
-    bustOrders();
+
+    await updateOrderWithHistory(id, { claimedBy: session.username, claimedAt: ts() }, "CLAIM", {});
     await logAction("claim_order", { orderId:id });
+
     addMsg(`✅ Claimed: ${id}`, "bot");
     return;
   }
@@ -1134,7 +1234,8 @@ async function handleCommand(raw){
   if(U === "MYQUEUE"){
     requireRole("staff");
     const rows = await ensureOrdersFresh();
-    const mine = rows.filter(r=>String(r.claimedBy||"").toLowerCase() === session.username.toLowerCase())
+    const mine = rows
+      .filter(r=>String(r.claimedBy||"").toLowerCase() === session.username.toLowerCase())
       .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
       .slice(0,80);
     addMsg(formatOrderList(mine, "MYQUEUE"), "bot");
@@ -1146,9 +1247,10 @@ async function handleCommand(raw){
     const token = clean(text.slice(8)) || state.lastOrderId;
     const id = await resolveOrderId(token);
     if(!id){ addMsg("UNCLAIM needs an id/nickname.", "bot"); return; }
-    await ordersCol().doc(id).set({ claimedBy: "", claimedAt: null }, { merge:true });
-    bustOrders();
+
+    await updateOrderWithHistory(id, { claimedBy: "", claimedAt: null }, "UNCLAIM", {});
     await logAction("unclaim_order", { orderId:id });
+
     addMsg(`✅ Unclaimed: ${id}`, "bot");
     return;
   }
@@ -1167,14 +1269,296 @@ async function handleCommand(raw){
       return;
     }
 
-    await ordersCol().doc(id).set({ adminNote: note, adminNoteBy: session.username, adminNoteAt: ts() }, { merge:true });
-    bustOrders();
+    await updateOrderWithHistory(
+      id,
+      { adminNote: note, adminNoteBy: session.username, adminNoteAt: ts() },
+      "NOTE",
+      { note }
+    );
     await logAction("note_order", { orderId:id });
+
     addMsg(`✅ Note saved on ${id}`, "bot");
     return;
   }
 
-  // DONE / SHIPPED / PAID (staff+)
+  /* =========================================================
+     ASSIGNMENT + NOTES (Manager+)
+     ASSIGN <idOrNick> <username> | <note...>
+     ASSIGNNOTE <idOrNick> <note...>
+     UNASSIGN <idOrNick>
+     MYASSIGNED (staff+)
+  ========================================================= */
+  if(U.startsWith("ASSIGN ")){
+    requireRole("manager");
+
+    const rawRest = text.slice(7).trim();
+    const pipeIdx = rawRest.indexOf("|");
+    const left = pipeIdx === -1 ? rawRest : rawRest.slice(0, pipeIdx).trim();
+    const note = pipeIdx === -1 ? "" : rawRest.slice(pipeIdx+1).trim();
+
+    const bits = left.split(/\s+/);
+    const token = bits[0] || state.lastOrderId;
+    const username = (bits[1] || "").toLowerCase().trim();
+
+    if(!token || !username){
+      addMsg("Usage: ASSIGN <idOrNick> <username> | <note...>", "bot");
+      return;
+    }
+
+    // user exists + active
+    const uq = await usersCol().where("username","==",username).limit(1).get();
+    if(uq.empty){ addMsg("User not found: " + username, "bot"); return; }
+    const u = uq.docs[0].data();
+    if(u.active === false){ addMsg("User is disabled: " + username, "bot"); return; }
+
+    const id = await resolveOrderId(token);
+    if(!id){ addMsg("Order not found. Use SHOWALL / NEXT first.", "bot"); return; }
+
+    await updateOrderWithHistory(
+      id,
+      {
+        assignedTo: username,
+        assignedAt: ts(),
+        assignedBy: session.username,
+        assignedNote: note || ""
+      },
+      "ASSIGN",
+      { assignedTo: username, note: note || "" }
+    );
+    await logAction("assign_order", { orderId:id, assignedTo: username });
+
+    addMsg(`✅ Assigned ${id} → ${username}\nNote: ${note || "(none)"}`, "bot");
+    setChips([`SHOWALL ${id}`, `MYASSIGNED`, `UNASSIGN ${id}`, `ASSIGNNOTE ${id} `, `CHECKLIST ${id}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("ASSIGNNOTE ")){
+    requireRole("manager");
+    const rest = text.slice(11).trim();
+    const parts = rest.split(/\s+/);
+    const token = parts[0] || state.lastOrderId;
+    const note = rest.slice((parts[0]||"").length).trim();
+
+    const id = await resolveOrderId(token);
+    if(!id || !note){
+      addMsg("Usage: ASSIGNNOTE <idOrNick> <note...>", "bot");
+      return;
+    }
+
+    await updateOrderWithHistory(id, { assignedNote: note }, "ASSIGNNOTE", { note });
+    await logAction("assign_note", { orderId:id });
+
+    addMsg(`✅ Assigned note updated for ${id}`, "bot");
+    setChips([`SHOWALL ${id}`, `CHECKLIST ${id}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("UNASSIGN ")){
+    requireRole("manager");
+    const token = clean(text.slice(9)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ addMsg("Usage: UNASSIGN <idOrNick>", "bot"); return; }
+
+    await updateOrderWithHistory(id, { assignedTo: "", assignedAt: null, assignedBy: "", assignedNote: "" }, "UNASSIGN");
+    await logAction("unassign_order", { orderId:id });
+
+    addMsg(`✅ Unassigned order ${id}`, "bot");
+    setChips([`SHOWALL ${id}`, "NEXT", "HELP"]);
+    return;
+  }
+
+  if(U === "MYASSIGNED"){
+    requireRole("staff");
+    const rows = await ensureOrdersFresh();
+    const mine = rows
+      .filter(r => String(r.assignedTo||"").toLowerCase() === session.username.toLowerCase())
+      .sort((a,b)=>orderCreatedDate(b) - orderCreatedDate(a))
+      .slice(0, 120);
+
+    addMsg(formatOrderList(mine, "MYASSIGNED"), "bot");
+    setChips(["NEXT","MYQUEUE","UNFINISHED","HELP"]);
+    return;
+  }
+
+  /* =========================================================
+     RULES (Manager+)
+     RULESADD <idOrNick> <rule text>
+     RULESCLEAR <idOrNick>
+  ========================================================= */
+  if(U.startsWith("RULESADD ")){
+    requireRole("manager");
+
+    const rest = text.slice(9).trim();
+    const parts = rest.split(/\s+/);
+    const token = parts[0] || state.lastOrderId;
+    const ruleText = rest.slice((parts[0]||"").length).trim();
+
+    const id = await resolveOrderId(token);
+    if(!id || !ruleText){
+      addMsg("Usage: RULESADD <idOrNick> <rule text>", "bot");
+      return;
+    }
+
+    const ref = ordersCol().doc(id);
+    const snap = await ref.get();
+    if(!snap.exists){ addMsg("Order not found.", "bot"); return; }
+    const data = snap.data() || {};
+    const rules = Array.isArray(data.rules) ? data.rules.slice(0, 30) : [];
+    rules.push(ruleText);
+
+    await updateOrderWithHistory(id, { rules }, "RULESADD", { rule: ruleText });
+    await logAction("rules_add", { orderId:id });
+
+    addMsg(`✅ Rule added on ${id}`, "bot");
+    setChips([`SHOWALL ${id}`, `RULESCLEAR ${id}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("RULESCLEAR ")){
+    requireRole("manager");
+    const token = clean(text.slice(11)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ addMsg("Usage: RULESCLEAR <idOrNick>", "bot"); return; }
+
+    await updateOrderWithHistory(id, { rules: [] }, "RULESCLEAR");
+    await logAction("rules_clear", { orderId:id });
+
+    addMsg(`✅ Cleared rules on ${id}`, "bot");
+    return;
+  }
+
+  /* =========================================================
+     CHECKLIST
+     CHECKADD <idOrNick> <step text> (manager+)
+     CHECKLIST <idOrNick> (staff+)
+     CHECKDONE <idOrNick> <step#> (staff+)
+     CHECKUNDO <idOrNick> <step#> (staff can undo own, manager+ any)
+  ========================================================= */
+  if(U.startsWith("CHECKADD ")){
+    requireRole("manager");
+
+    const rest = text.slice(9).trim();
+    const parts = rest.split(/\s+/);
+    const token = parts[0] || state.lastOrderId;
+    const stepText = rest.slice((parts[0]||"").length).trim();
+
+    const id = await resolveOrderId(token);
+    if(!id || !stepText){
+      addMsg("Usage: CHECKADD <idOrNick> <step text>", "bot");
+      return;
+    }
+
+    const ref = ordersCol().doc(id);
+    const snap = await ref.get();
+    if(!snap.exists){ addMsg("Order not found.", "bot"); return; }
+    const d = snap.data() || {};
+    const checklist = Array.isArray(d.checklist) ? d.checklist.slice(0, 40) : [];
+    checklist.push({ text: stepText, done:false, doneAt:null, doneBy:"" });
+
+    await updateOrderWithHistory(id, { checklist }, "CHECKADD", { step: stepText });
+    await logAction("check_add", { orderId:id });
+
+    addMsg(`✅ Step added to ${id}`, "bot");
+    setChips([`CHECKLIST ${id}`, `CHECKDONE ${id} ${checklist.length}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("CHECKLIST ")){
+    requireRole("staff");
+    const token = clean(text.slice(10)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ addMsg("Usage: CHECKLIST <idOrNick>", "bot"); return; }
+
+    const snap = await ordersCol().doc(id).get();
+    if(!snap.exists){ addMsg("Order not found.", "bot"); return; }
+    const d = snap.data() || {};
+    const list = Array.isArray(d.checklist) ? d.checklist : [];
+
+    if(!list.length){
+      addMsg(`Checklist for ${id}: (none)\nAdmin can add steps with: CHECKADD ${id} <text>`, "bot");
+      return;
+    }
+
+    const lines = list.map((s,i)=>{
+      const done = s.done ? "✅" : "⬜";
+      const who = s.doneBy ? ` by ${s.doneBy}` : "";
+      const when = s.doneAt ? ` @ ${fmtDate(s.doneAt)}` : "";
+      return `${i+1}) ${done} ${s.text}${who}${when}`;
+    }).join("\n");
+
+    addMsg(`Checklist for ${id}:\n${lines}`, "bot");
+    setChips([`CHECKDONE ${id} 1`, `CHECKUNDO ${id} 1`, `SHOWALL ${id}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("CHECKDONE ")){
+    requireRole("staff");
+
+    const parts = text.split(/\s+/);
+    const token = parts[1] || state.lastOrderId;
+    const idx = Number(parts[2]);
+
+    const id = await resolveOrderId(token);
+    if(!id || !Number.isFinite(idx) || idx < 1){
+      addMsg("Usage: CHECKDONE <idOrNick> <step#>", "bot");
+      return;
+    }
+
+    const ref = ordersCol().doc(id);
+    const snap = await ref.get();
+    if(!snap.exists){ addMsg("Order not found.", "bot"); return; }
+    const d = snap.data() || {};
+    const checklist = Array.isArray(d.checklist) ? d.checklist : [];
+    const i = idx - 1;
+    if(!checklist[i]){ addMsg("Step not found.", "bot"); return; }
+
+    checklist[i] = { ...checklist[i], done:true, doneAt: ts(), doneBy: session.username };
+
+    await updateOrderWithHistory(id, { checklist }, "CHECKDONE", { stepNumber: idx, stepText: checklist[i].text });
+    await logAction("check_done", { orderId:id, stepNumber: idx });
+
+    addMsg(`✅ Step ${idx} done on ${id}`, "bot");
+    setChips([`CHECKLIST ${id}`, `SHOWALL ${id}`, "NEXT"]);
+    return;
+  }
+
+  if(U.startsWith("CHECKUNDO ")){
+    requireRole("staff");
+
+    const parts = text.split(/\s+/);
+    const token = parts[1] || state.lastOrderId;
+    const idx = Number(parts[2]);
+
+    const id = await resolveOrderId(token);
+    if(!id || !Number.isFinite(idx) || idx < 1){
+      addMsg("Usage: CHECKUNDO <idOrNick> <step#>", "bot");
+      return;
+    }
+
+    const ref = ordersCol().doc(id);
+    const snap = await ref.get();
+    if(!snap.exists){ addMsg("Order not found.", "bot"); return; }
+    const d = snap.data() || {};
+    const checklist = Array.isArray(d.checklist) ? d.checklist : [];
+    const i = idx - 1;
+    if(!checklist[i]){ addMsg("Step not found.", "bot"); return; }
+
+    if(checklist[i].doneBy && checklist[i].doneBy !== session.username && roleLevel(session.role) < roleLevel("manager")){
+      addMsg("You can only undo steps you completed (unless manager+).", "bot");
+      return;
+    }
+
+    checklist[i] = { ...checklist[i], done:false, doneAt:null, doneBy:"" };
+
+    await updateOrderWithHistory(id, { checklist }, "CHECKUNDO", { stepNumber: idx });
+    await logAction("check_undo", { orderId:id, stepNumber: idx });
+
+    addMsg(`↩️ Step ${idx} undone on ${id}`, "bot");
+    setChips([`CHECKLIST ${id}`, "NEXT"]);
+    return;
+  }
+
+  // DONE / SHIPPED / PAID
   if(U.startsWith("DONE ") || U.startsWith("SHIPPED ") || U.startsWith("PAID ")){
     requireRole("staff");
     const parts = text.split(/\s+/);
@@ -1184,15 +1568,15 @@ async function handleCommand(raw){
     if(!id){ addMsg(`${verb} needs an id/nickname (or use NEXT/SHOWALL).`, "bot"); return; }
 
     const patch = {};
-    if(verb === "DONE"){ patch.status="done"; patch.doneAt=ts(); }
+    if(verb === "DONE"){ patch.status="done"; patch.doneAt=ts(); patch.doneBy=session.username; }
     if(verb === "SHIPPED"){ patch.shippedAt=ts(); }
     if(verb === "PAID"){ patch.paidAt=ts(); }
 
-    await ordersCol().doc(id).set(patch, { merge:true });
-    bustOrders();
+    await updateOrderWithHistory(id, patch, verb, { doneBy: verb==="DONE" ? session.username : "" });
     await logAction("update_order", { orderId:id, verb });
+
     addMsg(`✅ ${verb} set for ${id}`, "bot");
-    setChips([`SHOWALL ${id}`,"NEXT","MYQUEUE"]);
+    setChips([`SHOWALL ${id}`,"NEXT","MYQUEUE","MYASSIGNED"]);
     return;
   }
 
@@ -1246,19 +1630,17 @@ async function handleCommand(raw){
 }
 
 /* =========================
-   CHAT WRAPPER
+   Chat wrapper
 ========================= */
 async function handleChat(raw){
   const text = clean(raw);
   if(!text) return;
-
-  // natural -> command
   const cmd = interpretNatural(text);
   await handleCommand(cmd);
 }
 
 /* =========================
-   SEND
+   Send
 ========================= */
 async function send(){
   const raw = input.value;
@@ -1272,7 +1654,7 @@ async function send(){
   }catch(err){
     console.error(err);
     setStatus("⚠️ " + (err?.message || String(err)));
-    addMsg("⚠️ Error. Try HELP.", "bot");
+    addMsg("⚠️ Error. Type HELP.", "bot");
     setChips(["HELP","WHOAMI","LOGIN 00000 owner pass","NEWBIZ MyBiz pass"]);
   }
 }
@@ -1286,7 +1668,7 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   state.learnMode = null;
   state.learnTrigger = "";
   addMsg("Reset ✅\nTry: HELP", "bot");
-  setChips(["HELP","NEWBIZ MyBiz mypass","LOGIN 00000 owner pass"]);
+  setChips(["HELP","NEWBIZ TacticsTreats mypass","LOGIN 00000 owner pass","WHOAMI"]);
 });
 
 /* Boot */
@@ -1294,21 +1676,24 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   addMsg(
 `Howdy 🤠
 
-This is a FULL multi-business admin:
-• Each business gets an auto 5-digit code (never changes)
-• Owner can do everything
-• Manager controls staff + dangerous stuff (delete)
-• Staff can work orders (claim/done/paid/shipped/note)
+This is the FULL admin:
+• Multi-business (auto 5-digit code)
+• Owner / Manager / Staff
+• Assign orders to users + instructions
+• Add rules + checklist steps
+• Track who finished steps + who marked DONE (doneBy + doneAt)
+• Show full order details with SHOWALL
 
 Start:
 1) NEWBIZ TacticsTreats mypass
-2) It will give you a 5-digit business code
+2) It gives you a 5-digit business code
 3) LOGIN <code> owner mypass`,
   "bot"
   );
-  setChips(["HELP","NEWBIZ TacticsTreats mypass","LOGIN 00000 owner pass","WHOAMI"]);
+  setChips(["HELP","NEWBIZ TacticsTreats mypass","LOGIN 00000 owner pass","WHOAMI","NEXT"]);
   setStatus("✅ Ready");
 })();
 </script>
 </body>
 </html>
+```
