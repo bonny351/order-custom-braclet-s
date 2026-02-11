@@ -3,42 +3,131 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Full Admin</title>
+<title>Tactics & Treats – Chat Order</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;padding:16px;background:#0b0b0b;color:#fff;font-family:Poppins}
-.wrap{max-width:960px;margin:auto}
-h1{color:#ff2a2a}
-.chat{height:60vh;min-height:360px;background:#000;border-radius:14px;padding:12px;overflow:auto}
-.msg{margin:8px 0;padding:10px 12px;border-radius:12px;white-space:pre-line}
-.bot{background:#111;border:1px solid #2a2a2a}
-.user{background:#1c1c1c;border:1px solid #333;margin-left:auto}
-.bar{display:flex;gap:8px;margin-top:10px}
-input{flex:1;padding:12px;border-radius:14px;background:#111;color:#fff;border:1px solid #2a2a2a}
-button{padding:12px 16px;border-radius:14px;border:none;font-weight:800;background:#ff2a2a;color:#fff;cursor:pointer}
-#status{font-size:12px;color:#ffb347;margin-top:6px}
+  :root{
+    --bg:#0b0b0b; --panel:#141414; --panel2:#0f0f0f;
+    --text:#fff; --muted:#bdbdbd; --accent:#ff2a2a;
+    --line:#2a2a2a; --radius:16px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:18px;
+    background:var(--bg); color:var(--text);
+    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  .wrap{ max-width:920px; margin:0 auto; }
+  header{
+    display:flex; gap:12px; flex-wrap:wrap;
+    align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  h1{ margin:0; color:var(--accent); font-size:22px; }
+  .pill{
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:#1f1f1f; color:var(--muted); border:1px solid #2a2a2a;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid #262626;
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 0 18px rgba(255,0,0,.18);
+  }
+  .chat{
+    height:580px; overflow:auto;
+    padding:12px; border-radius:14px;
+    background:#000; border:1px solid var(--line);
+  }
+  .msg{
+    max-width:92%;
+    padding:10px 12px;
+    border-radius:14px;
+    margin:10px 0;
+    white-space:pre-line;
+    line-height:1.35;
+    word-break:break-word;
+  }
+  .bot{
+    background:#101010;
+    border:1px solid #2a2a2a;
+    border-top-left-radius:6px;
+  }
+  .user{
+    background:#1c1c1c;
+    border:1px solid #333;
+    margin-left:auto;
+    border-top-right-radius:6px;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip{
+    background:#191919; border:1px solid #2f2f2f;
+    color:#fff; padding:8px 10px; border-radius:999px;
+    cursor:pointer; font-size:13px; font-weight:800;
+  }
+  .chip:hover{ filter:brightness(1.08); }
+  .bar{ display:flex; gap:10px; margin-top:10px; }
+  input{
+    flex:1; border:none; outline:none;
+    border-radius:14px; padding:12px 12px;
+    font-size:15px; color:#fff;
+    background:var(--panel2);
+    border:1px solid var(--line);
+  }
+  button{
+    border:none; border-radius:14px;
+    padding:12px 14px; font-weight:900;
+    cursor:pointer; background:var(--accent);
+    color:#fff;
+  }
+  button:hover{ filter:brightness(1.08); }
+  .secondary{ background:#242424; border:1px solid #343434; color:#fff; }
+  .meta{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.35; }
+  #status{ margin-top:10px; color:#ffb347; font-weight:800; min-height:18px; white-space:pre-line; }
+  .small{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.35; }
+  .small b{ color:#fff; }
 </style>
 </head>
 
 <body>
 <div class="wrap">
-<h1>Tactics & Treats – Full Admin Bot</h1>
-<div id="chat" class="chat"></div>
-<div id="status"></div>
-<div class="bar">
-  <input id="input" placeholder="Talk to me like ChatGPT…" />
-  <button id="send">Send</button>
-</div>
+  <header>
+    <h1>Tactics & Treats – Chat Order</h1>
+    <div class="pill">Saves orders in tt_orders (Admin-compatible)</div>
+  </header>
+
+  <div class="card">
+    <div id="chat" class="chat"></div>
+    <div id="chips" class="chips"></div>
+    <div id="status"></div>
+    <div class="bar">
+      <input id="input" placeholder="Type your answer…" autocomplete="off" />
+      <button id="sendBtn" type="button">Send</button>
+      <button id="resetBtn" class="secondary" type="button">Reset</button>
+    </div>
+    <div class="meta">
+      Commands: <b>BACK</b>, <b>RESTART</b>, <b>CONFIRM</b>
+    </div>
+    <div class="small">
+      Tip: You can type a whole request like:<br/>
+      <b>“king cobra outside white middle black inside white, 8 inches, regular, bracelet, rush”</b>
+    </div>
+  </div>
 </div>
 
-<!-- Firebase (compat = stable everywhere) -->
+<!-- Firebase compat (works on mobile + GitHub Pages) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
 <script>
-/* ================= FIREBASE (YOUR PROJECT) ================= */
+/* =========================
+   FIREBASE (your project)
+========================= */
 firebase.initializeApp({
   apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
   authDomain:"bracelets-and-color.firebaseapp.com",
@@ -50,202 +139,755 @@ firebase.initializeApp({
 const db = firebase.firestore();
 const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 
-/* ================= UI ================= */
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-const statusEl=document.getElementById("status");
-function add(text,who="bot"){
-  const d=document.createElement("div");
-  d.className="msg "+(who==="user"?"user":"bot");
-  d.textContent=text;
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
-}
-function clean(s){return String(s||"").trim()}
-function digits(s){return String(s||"").replace(/\D/g,"")}
+const ORDERS_COLLECTION = "tt_orders";
 
-/* ================= STATE ================= */
-const convo={
-  lastOrder:null,
-  awaitingConfirm:null,
-  awaitingAction:null
+/* =========================
+   PRICING (edit anytime)
+========================= */
+const PRICE_PER_INCH = 1;
+const MIN_IN = 5;
+const MAX_IN = 40;
+
+const SHIPPING_IN = 6;
+const SHIPPING_OUT = 10;
+
+// order add-ons
+const FEE_RUSH = 5;
+const FEE_GIFT_NOTE = 2;
+const FEE_TRACKING = 3;
+const FEE_PACKAGING = 2;
+
+// item add-ons
+const FEE_DURABILITY = 3;
+const FEE_EXTRA_TAIL = 2;
+const FEE_CHARM = 3;
+const FEE_RING = 2;
+const FEE_EXTRA_COLOR = 2;
+const FEE_ENGRAVED_TAG = 8;
+
+// discounts
+const BUNDLE_SHIP_DISCOUNT = 2;
+const SET_DISCOUNT = 3;
+
+// coupon
+const COUPON_CODE = "NORTHIDAHO";
+const COUPON_PCT = 10;
+
+const PHONE = "208-304-3821";
+
+/* =========================
+   UI
+========================= */
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const chipsBox = document.getElementById("chips");
+const statusEl = document.getElementById("status");
+
+function setStatus(msg){ statusEl.textContent = msg || ""; }
+function addMsg(text, who="bot"){
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "user" ? "user" : "bot");
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+function setChips(options){
+  chipsBox.innerHTML = "";
+  (options || []).forEach(opt=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = opt;
+    b.onclick = ()=>{ input.value = opt; send(); };
+    chipsBox.appendChild(b);
+  });
+}
+function clean(s){ return String(s||"").trim(); }
+function lower(s){ return clean(s).toLowerCase(); }
+function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+function money(n){
+  const x = Number(n);
+  if(!Number.isFinite(x)) return "$0";
+  return "$" + x.toFixed(2).replace(/\.00$/,"");
+}
+
+/* =========================
+   DATA MODEL (Admin-compatible)
+========================= */
+function defaultItem(){
+  return {
+    itemType:"",
+    weave:"",
+    inches:0,
+    fit:"",
+    colors:[],
+    patternStyle:"",
+    extraColor:false,
+    durability:false,
+    extraTail:false,
+    charm:false,
+    keychainRing:false,
+    engravedTagText:""
+  };
+}
+
+let items = [defaultItem()];
+
+const order = {
+  // order-level
+  rush:false,
+  giftNote:false,
+  giftNoteText:"",
+  tracking:false,
+  packaging:false,
+  donation:0,
+  coupon:"",
+  shipping:"", // "in" | "out"
+  address:"",
+  name:"",
+  phone:"",
+  notes:""
 };
 
-/* ================= FAST CACHE ================= */
-let orderCache=[], cacheAt=0;
-const CACHE_TTL=15000;
+/* =========================
+   TOTALS
+========================= */
+function itemBase(i){ return (Number(i.inches)||0) * PRICE_PER_INCH; }
+function itemAddons(i){
+  let a = 0;
+  if(i.durability) a += FEE_DURABILITY;
+  if(i.extraTail) a += FEE_EXTRA_TAIL;
+  if(i.charm) a += FEE_CHARM;
+  if(i.keychainRing) a += FEE_RING;
+  if(i.extraColor) a += FEE_EXTRA_COLOR;
+  if(i.itemType === "dog collar" && i.engravedTagText) a += FEE_ENGRAVED_TAG;
+  return a;
+}
+function orderAddons(){
+  let a = 0;
+  if(order.rush) a += FEE_RUSH;
+  if(order.giftNote) a += FEE_GIFT_NOTE;
+  if(order.tracking) a += FEE_TRACKING;
+  if(order.packaging) a += FEE_PACKAGING;
+  return a;
+}
+function shippingCost(){
+  let ship = order.shipping === "in" ? SHIPPING_IN : (order.shipping === "out" ? SHIPPING_OUT : 0);
+  if(items.length >= 2) ship = Math.max(0, ship - BUNDLE_SHIP_DISCOUNT);
+  return ship;
+}
+function setDiscount(){
+  if(items.length !== 2) return 0;
+  const types = items.map(x=>x.itemType).sort().join("|");
+  if(types === "bracelet|dog collar") return SET_DISCOUNT;
+  return 0;
+}
+function couponDiscount(subtotal){
+  const code = String(order.coupon||"").trim().toUpperCase();
+  if(!code) return 0;
+  if(code !== COUPON_CODE) return 0;
+  return subtotal * (COUPON_PCT/100);
+}
+function calcTotals(){
+  const base = items.reduce((s,i)=>s+itemBase(i),0);
+  const itemUpsells = items.reduce((s,i)=>s+itemAddons(i),0);
+  const orderUpsells = orderAddons();
+  const setDisc = setDiscount();
+  const ship = shippingCost();
+  const donation = Number(order.donation)||0;
 
-async function getOrders(){
-  if(Date.now()-cacheAt<CACHE_TTL && orderCache.length) return orderCache;
-  const snap=await db.collection("tt_orders").limit(500).get();
-  orderCache=snap.docs.map(d=>({id:d.id,...d.data()}));
-  cacheAt=Date.now();
-  return orderCache;
+  const subtotal = Math.max(0, base + itemUpsells + orderUpsells - setDisc);
+  const coup = couponDiscount(subtotal);
+  const subtotalAfterCoupon = Math.max(0, subtotal - coup);
+  const total = subtotalAfterCoupon + ship + donation;
+
+  return { base, itemUpsells, orderUpsells, setDisc, subtotal, coup, subtotalAfterCoupon, ship, donation, total };
+}
+function pricePreviewLine(){
+  const t = calcTotals();
+  const bits = [`Est. total: ${money(t.total)}`];
+  if(t.coup > 0) bits.push(`(coupon -${money(t.coup)})`);
+  return bits.join(" ");
 }
 
-/* ================= SKILLS ================= */
-async function loadSkills(){
-  const s=await db.collection("tt_skills").get();
-  return s.docs.map(d=>d.data());
-}
-async function saveSkill(trigger,action){
-  await db.collection("tt_skills").add({trigger,action,createdAt:ts()});
-}
+/* =========================
+   AUTOFILL PARSER (simple but useful)
+========================= */
+function extractHints(text){
+  const t = lower(text);
+  const h = { weave:null, colors:null, inches:null, fit:null, itemType:null, rush:null };
 
-/* ================= TRANSLATION ================= */
-function translate(text){
-  text=text.toLowerCase();
+  if(t.includes("dog") && t.includes("collar")) h.itemType="dog collar";
+  else if(t.includes("collar")) h.itemType="dog collar";
+  else if(t.includes("keychain")) h.itemType="keychain";
+  else if(t.includes("bracelet")) h.itemType="bracelet";
 
-  if(text.includes("how much")||text.includes("gross")||text.includes("revenue")){
-    if(text.includes("month")) return "REVENUE_MONTH";
-    if(text.includes("week")) return "REVENUE_WEEK";
-    return "REVENUE_MONTH";
+  if(t.includes("king cobra")) h.weave="king cobra";
+  else if(t.includes("cobra")) h.weave="cobra";
+
+  const mIn = t.match(/(\d+(\.\d+)?)/);
+  if(mIn){
+    const n = Number(mIn[1]);
+    if(Number.isFinite(n) && n>=MIN_IN && n<=MAX_IN) h.inches=n;
   }
 
-  if(text.includes("fake")&&text.includes("order")) return "MAKE_FAKE";
-  if(text.includes("next")) return "NEXT";
-  if(text.includes("mark")&&text.includes("done")) return "DONE";
+  if(t.includes("snug")) h.fit="snug";
+  else if(t.includes("regular")) h.fit="regular";
+  else if(t.includes("loose")) h.fit="loose";
 
+  if(t.includes("rush")) h.rush = true;
+
+  // outside/middle/inside for king cobra
+  const outside = t.match(/outside\s+([a-z]+)/);
+  const middle  = t.match(/middle\s+(?:band\s+)?([a-z]+)/);
+  const inside  = t.match(/inside\s+([a-z]+)/);
+  if(outside && middle && inside) h.colors=[outside[1], middle[1], inside[1]];
+
+  // red/black or red/black/gray
+  const slash = t.match(/\b([a-z]+)\s*\/\s*([a-z]+)(?:\s*\/\s*([a-z]+))?\b/);
+  if(!h.colors && slash) h.colors=[slash[1], slash[2], slash[3]].filter(Boolean);
+
+  // comma colors
+  if(!h.colors && text.includes(",")){
+    const parts = text.split(",").map(s=>s.trim()).filter(Boolean);
+    const cands = parts
+      .map(p=>p.split(" ")[0].toLowerCase())
+      .filter(x=>/^[a-z]+$/.test(x));
+    if(cands.length>=2 && cands.length<=3) h.colors=cands.slice(0,3);
+  }
+
+  return h;
+}
+function applyHints(h){
+  const it = items[0];
+
+  if(h.itemType && !it.itemType) it.itemType = h.itemType;
+  if(h.weave && !it.weave) it.weave = h.weave;
+  if(h.inches && !it.inches) it.inches = h.inches;
+  if(h.fit && !it.fit) it.fit = h.fit;
+  if(h.rush) order.rush = true;
+
+  if(h.colors && Array.isArray(h.colors) && !it.colors.length){
+    if(!it.weave){
+      it.weave = (h.colors.length===3) ? "king cobra" : "cobra";
+    }
+    const need = (it.weave==="king cobra") ? 3 : 2;
+    if(h.colors.length >= need){
+      it.colors = h.colors.slice(0, need);
+    }
+  }
+}
+
+/* =========================
+   FLOW STEPS
+========================= */
+const steps = [
+  { key:"itemType", ask:"What are you ordering? (bracelet / dog collar / keychain)", chips:["bracelet","dog collar","keychain"] },
+  { key:"weave", ask:"What weave? (cobra / king cobra)", chips:["cobra","king cobra"] },
+  { key:"inches", ask:`How many inches? (${MIN_IN}-${MAX_IN})`, chips:["7","8","9","10","12"] },
+  { key:"fit", ask:"Fit? (snug / regular / loose)", chips:["snug","regular","loose"] },
+  { key:"colors", ask:"Colors?\nCobra = 2 colors\nKing Cobra = outside / middle / inside\n(Example: outside white middle black inside white)", chips:["red/black","black/white","outside white middle black inside white"] },
+  { key:"patternStyle", ask:"Pattern style? (stripes / split / fade / chevron)", chips:["stripes","split","fade","chevron"] },
+
+  { key:"upsells", ask:"Any upgrades?\n• rush (+$5)\n• durability (+$3)\n• extra tail (+$2)\n• charm (+$3)\n• ring (+$2)\n• 4th color (king cobra +$2)\nType what you want or say “none”.", chips:["rush","durability","extra tail","charm","ring","none"] },
+
+  { key:"orderUpsells", ask:"Order upgrades?\n• gift note (+$2)\n• tracking (+$3)\n• packaging (+$2)\nType what you want or say “none”.", chips:["gift note","tracking","packaging","none"] },
+
+  { key:"coupon", ask:`Coupon code? (or “none”)\nCode ${COUPON_CODE} = ${COUPON_PCT}% off subtotal`, chips:[COUPON_CODE,"none"] },
+  { key:"donation", ask:"Donation / tip? (number like 2 or 5, or “0”)", chips:["0","2","5","10"] },
+
+  { key:"shipping", ask:"Shipping: in-state or out-of-state?", chips:["in","out"] },
+  { key:"address", ask:"Shipping address (type it out).", chips:[] },
+  { key:"name", ask:"Your name?", chips:[] },
+  { key:"phone", ask:"Phone number?", chips:[] },
+  { key:"notes", ask:"Any extra notes? (or “none”)", chips:["none"] },
+];
+
+let stepIndex = 0;
+const backStack = [];
+
+function needColorsCount(it){
+  if(it.weave === "king cobra") return 3;
+  if(it.weave === "cobra") return 2;
+  return 0;
+}
+
+function stepSatisfied(key){
+  const it = items[0];
+  switch(key){
+    case "itemType": return !!it.itemType;
+    case "weave": return !!it.weave;
+    case "inches": return !!it.inches;
+    case "fit": return !!it.fit;
+    case "colors": {
+      const need = needColorsCount(it);
+      return need>0 && it.colors.length===need;
+    }
+    case "patternStyle": return !!it.patternStyle;
+    case "upsells": return true;
+    case "orderUpsells": return true;
+    case "coupon": return true;
+    case "donation": return true;
+    case "shipping": return !!order.shipping;
+    case "address": return !!order.address;
+    case "name": return !!order.name;
+    case "phone": return !!order.phone;
+    case "notes": return true;
+    default: return false;
+  }
+}
+
+function nextUnfilledIndex(start){
+  let i = start;
+  while(i < steps.length && stepSatisfied(steps[i].key)) i++;
+  return i;
+}
+
+function askStep(){
+  stepIndex = nextUnfilledIndex(stepIndex);
+  if(stepIndex >= steps.length){
+    addMsg(buildSummary(), "bot");
+    setChips(["CONFIRM","BACK","RESTART"]);
+    addMsg(pricePreviewLine(), "bot");
+    return;
+  }
+  const s = steps[stepIndex];
+  addMsg(s.ask, "bot");
+  setChips(s.chips || []);
+  addMsg(pricePreviewLine(), "bot");
+}
+
+function buildSummary(){
+  const it = items[0];
+  const t = calcTotals();
+  const couponOk = String(order.coupon||"").trim().toUpperCase() === COUPON_CODE;
+
+  const itemUps = [];
+  if(it.durability) itemUps.push("durability");
+  if(it.extraTail) itemUps.push("extra tail");
+  if(it.charm) itemUps.push("charm");
+  if(it.keychainRing) itemUps.push("ring");
+  if(it.extraColor) itemUps.push("4th color");
+  if(it.itemType==="dog collar" && it.engravedTagText) itemUps.push(`engraved tag: "${it.engravedTagText}"`);
+
+  const ups = [];
+  if(order.rush) ups.push("rush");
+  if(order.giftNote) ups.push("gift note");
+  if(order.tracking) ups.push("tracking");
+  if(order.packaging) ups.push("packaging");
+
+  return (
+`Order Summary
+• Item: ${it.itemType}
+• Weave: ${it.weave}
+• Size: ${it.inches}"
+• Fit: ${it.fit}
+• Colors: ${it.colors.join(", ")}
+• Pattern: ${it.patternStyle}
+• Item upgrades: ${itemUps.length ? itemUps.join(", ") : "none"}
+
+• Order upgrades: ${ups.length ? ups.join(", ") : "none"}
+• Shipping: ${order.shipping === "in" ? "in-state" : "out-of-state"}
+• Address: ${order.address}
+• Name: ${order.name}
+• Phone: ${order.phone}
+• Coupon: ${order.coupon ? (couponOk ? `${order.coupon} ✅` : `${order.coupon} (not valid)`) : "none"}
+• Donation: ${money(order.donation || 0)}
+• Notes: ${order.notes || "none"}
+
+Price breakdown
+• Base: ${money(t.base)}
+• Item upsells: ${money(t.itemUpsells)}
+• Order upsells: ${money(t.orderUpsells)}
+• Set discount: -${money(t.setDisc)}
+• Subtotal: ${money(t.subtotal)}
+• Coupon discount: -${money(t.coup)}
+• Shipping: ${money(t.ship)}
+• Donation: ${money(t.donation)}
+= Total: ${money(t.total)}
+
+Type CONFIRM to submit.`
+  );
+}
+
+/* =========================
+   APPLY ANSWERS
+========================= */
+function parseYesNo(t){
+  const s = lower(t);
+  if(["yes","y","yeah","yep","sure","ok"].includes(s)) return true;
+  if(["no","n","nope","nah"].includes(s)) return false;
   return null;
 }
 
-/* ================= UNDERSTAND ================= */
-async function understand(text){
-  const L=text.toLowerCase();
+function applyStepAnswer(stepKey, text){
+  const it = items[0];
+  const t = lower(text);
 
-  // yes/no learning
-  if(convo.awaitingConfirm){
-    if(["yes","yeah","yep","ok","sure"].includes(L)){
-      convo.awaitingAction=convo.awaitingConfirm;
-      convo.awaitingConfirm=null;
-      return "__ASK_ACTION__";
-    }
-    if(["no","nope","nah"].includes(L)){
-      convo.awaitingConfirm=null;
-      return "__CANCEL__";
-    }
+  if(stepKey === "itemType"){
+    if(t.includes("dog")) it.itemType = "dog collar";
+    else if(t.includes("collar")) it.itemType = "dog collar";
+    else if(t.includes("keychain")) it.itemType = "keychain";
+    else it.itemType = "bracelet";
+    return true;
   }
 
-  // explain action
-  if(convo.awaitingAction){
-    const action=translate(text);
-    if(action){
-      await saveSkill(convo.awaitingAction,action);
-      convo.awaitingAction=null;
-      return "__LEARNED__";
+  if(stepKey === "weave"){
+    if(t.includes("king")) it.weave = "king cobra";
+    else it.weave = "cobra";
+    return true;
+  }
+
+  if(stepKey === "inches"){
+    const m = t.match(/(\d+(\.\d+)?)/);
+    if(!m) return false;
+    const n = clamp(Number(m[1]), MIN_IN, MAX_IN);
+    it.inches = n;
+    return true;
+  }
+
+  if(stepKey === "fit"){
+    if(t.includes("snug")) it.fit = "snug";
+    else if(t.includes("loose")) it.fit = "loose";
+    else it.fit = "regular";
+    return true;
+  }
+
+  if(stepKey === "colors"){
+    const h = extractHints(text);
+    if(h.colors && h.colors.length){
+      if(!it.weave){
+        it.weave = (h.colors.length===3) ? "king cobra" : "cobra";
+      }
+      const need = needColorsCount(it);
+      if(need && h.colors.length >= need){
+        it.colors = h.colors.slice(0, need);
+        return true;
+      }
     }
-    return "__ASK_ACTION__";
+    // allow manual simple: "red black" or "red,black"
+    const words = t.replace(/,/g," ").split(/\s+/).filter(Boolean).filter(w=>/^[a-z]+$/.test(w));
+    const need = needColorsCount(it);
+    if(need && words.length >= need){
+      it.colors = words.slice(0, need);
+      return true;
+    }
+    return false;
   }
 
-  // learned skills first
-  const skills=await loadSkills();
-  for(const s of skills){
-    if(L.includes(s.trigger)) return s.action;
+  if(stepKey === "patternStyle"){
+    if(t.includes("split")) it.patternStyle="split";
+    else if(t.includes("fade")) it.patternStyle="fade";
+    else if(t.includes("chev")) it.patternStyle="chevron";
+    else it.patternStyle="stripes";
+    return true;
   }
 
-  // built-ins
-  if(L.includes("next")) return "NEXT";
-  if(L.includes("fake")) return "MAKE_FAKE";
-  if(L.includes("done")) return "DONE";
+  if(stepKey === "upsells"){
+    // allow "none"
+    if(t.includes("none")) return true;
+    if(t.includes("rush")) order.rush = true;
+    if(t.includes("durab")) it.durability = true;
+    if(t.includes("tail")) it.extraTail = true;
+    if(t.includes("charm")) it.charm = true;
+    if(t.includes("ring")) it.keychainRing = true;
+    if(t.includes("4th") || t.includes("fourth") || t.includes("extra color")) it.extraColor = true;
+    // dog collar tag
+    if(it.itemType==="dog collar" && (t.includes("tag") || t.includes("engrave"))){
+      // if they typed tag text like: tag: REX
+      const m = text.match(/tag\s*:\s*(.+)$/i);
+      if(m) it.engravedTagText = clean(m[1]).slice(0, 40);
+    }
+    return true;
+  }
 
-  // unknown
-  convo.awaitingConfirm=text;
-  return "__UNKNOWN__";
+  if(stepKey === "orderUpsells"){
+    if(t.includes("none")) return true;
+    if(t.includes("gift")) order.giftNote = true;
+    if(t.includes("tracking")) order.tracking = true;
+    if(t.includes("pack")) order.packaging = true;
+
+    // if gift note text provided like: note: hi mom
+    const m = text.match(/note\s*:\s*(.+)$/i);
+    if(m){
+      order.giftNote = true;
+      order.giftNoteText = clean(m[1]).slice(0, 120);
+    }
+    return true;
+  }
+
+  if(stepKey === "coupon"){
+    if(t === "none") { order.coupon=""; return true; }
+    order.coupon = clean(text).toUpperCase().replace(/\s+/g,"");
+    return true;
+  }
+
+  if(stepKey === "donation"){
+    const m = t.match(/(\d+(\.\d+)?)/);
+    const n = m ? Number(m[1]) : 0;
+    order.donation = Number.isFinite(n) ? clamp(n, 0, 999) : 0;
+    return true;
+  }
+
+  if(stepKey === "shipping"){
+    order.shipping = t.includes("in") ? "in" : "out";
+    return true;
+  }
+
+  if(stepKey === "address"){
+    order.address = clean(text);
+    return order.address.length >= 6;
+  }
+
+  if(stepKey === "name"){
+    order.name = clean(text);
+    return order.name.length >= 2;
+  }
+
+  if(stepKey === "phone"){
+    order.phone = clean(text);
+    return digitsOnly(order.phone).length >= 7;
+  }
+
+  if(stepKey === "notes"){
+    if(t.includes("none")) order.notes = "";
+    else order.notes = clean(text).slice(0, 240);
+    return true;
+  }
+
+  return false;
 }
 
-/* ================= EXECUTE ================= */
-async function run(cmd){
-  if(cmd==="__UNKNOWN__"){
-    add(`I don’t understand that 🤔
+/* =========================
+   ADMIN-COMPAT SAVE
+========================= */
+async function saveOrderToFirestore(){
+  const phoneDigits = digitsOnly(order.phone);
 
-Do you want me to learn it?
-"${convo.awaitingConfirm}"
+  const t = calcTotals();
+  const cleanedItems = items.map(i => ({
+    itemType: i.itemType || "",
+    weave: i.weave || "",
+    inches: Number(i.inches) || 0,
+    fit: i.fit || "",
+    colors: Array.isArray(i.colors) ? i.colors.map(c=>String(c||"").toLowerCase()) : [],
+    patternStyle: i.patternStyle || "",
+    extraColor: !!i.extraColor,
+    durability: !!i.durability,
+    extraTail: !!i.extraTail,
+    charm: !!i.charm,
+    keychainRing: !!i.keychainRing,
+    engravedTagText: i.engravedTagText || ""
+  }));
 
-Reply yes or no.`);
-    return;
-  }
+  const docData = {
+    status: "unpaid",            // best for admin queues
+    createdAt: ts(),
 
-  if(cmd==="__ASK_ACTION__"){
-    add(`What should I do when you say:
-"${convo.awaitingAction}"`);
-    return;
-  }
+    order: {
+      name: order.name || "",
+      phone: order.phone || "",
+      phoneDigits,
+      shipping: order.shipping || "", // "in" or "out"
+      address: order.address || "",
+      rush: !!order.rush
+    },
 
-  if(cmd==="__LEARNED__"){
-    add("✅ Learned and saved. I’ll remember that.");
-    return;
-  }
+    // admin fields
+    assignedTo: "",
+    adminNote: "",
+    tracking: "",
+    flagged: false,
+    problemNote: "",
+    paidAt: null,
+    shippedAt: null,
+    doneAt: null,
 
-  if(cmd==="__CANCEL__"){
-    add("Okay 👍 I won’t learn that.");
-    return;
-  }
+    // customer extras (optional)
+    notes: order.notes || "",
+    giftNote: !!order.giftNote,
+    giftNoteText: order.giftNoteText || "",
+    trackingUpgrade: !!order.tracking,
+    packaging: !!order.packaging,
+    donation: Number(order.donation) || 0,
+    coupon: String(order.coupon || "").trim(),
 
-  if(cmd==="MAKE_FAKE"){
-    const id="TEST_"+Math.random().toString(36).slice(2,7);
-    await db.collection("tt_orders").doc(id).set({
-      fake:true,
-      status:"new",
-      createdAt:ts(),
-      totals:{total:25}
-    });
-    cacheAt=0;
-    add(`🧪 Fake order created: ${id}`);
-    return;
-  }
+    items: cleanedItems,
 
-  if(cmd==="NEXT"){
-    const o=(await getOrders()).find(o=>o.status!=="done");
-    if(!o){add("No orders left 🎉");return;}
-    convo.lastOrder=o.id;
-    add(`Next order:\n${o.id}`);
-    return;
-  }
+    totals: {
+      base: Number(t.base) || 0,
+      itemUpsells: Number(t.itemUpsells) || 0,
+      orderUpsells: Number(t.orderUpsells) || 0,
+      setDisc: Number(t.setDisc) || 0,
+      subtotal: Number(t.subtotal) || 0,
+      coup: Number(t.coup) || 0,
+      subtotalAfterCoupon: Number(t.subtotalAfterCoupon) || 0,
+      ship: Number(t.ship) || 0,
+      donation: Number(t.donation) || 0,
+      total: Number(t.total) || 0
+    }
+  };
 
-  if(cmd==="DONE"){
-    if(!convo.lastOrder){add("Which order?");return;}
-    await db.collection("tt_orders").doc(convo.lastOrder)
-      .update({status:"done",doneAt:ts()});
-    cacheAt=0;
-    add(`✅ Marked ${convo.lastOrder} done`);
-    return;
-  }
-
-  if(cmd==="REVENUE_MONTH"){
-    const rows=await getOrders();
-    const sum=rows.filter(r=>r.status==="done")
-      .reduce((a,b)=>a+(b.totals?.total||0),0);
-    add(`📊 Monthly gross: $${sum.toFixed(2)}`);
-    return;
-  }
-
-  add("I’m not sure what to do with that yet.");
+  const ref = await db.collection(ORDERS_COLLECTION).add(docData);
+  return ref.id;
 }
 
-/* ================= SEND ================= */
-async function send(){
-  const t=clean(input.value);
-  if(!t) return;
-  input.value="";
-  add(t,"user");
-  const cmd=await understand(t);
-  await run(cmd);
+/* =========================
+   COMMANDS + CHAT LOOP
+========================= */
+function resetAll(){
+  items = [defaultItem()];
+  order.rush=false; order.giftNote=false; order.giftNoteText="";
+  order.tracking=false; order.packaging=false;
+  order.donation=0; order.coupon="";
+  order.shipping=""; order.address=""; order.name=""; order.phone=""; order.notes="";
+  stepIndex = 0;
+  backStack.length = 0;
+  chat.innerHTML = "";
+  setStatus("");
+  boot();
 }
-document.getElementById("send").onclick=send;
-input.onkeydown=e=>e.key==="Enter"&&send();
 
-/* ================= START ================= */
-add(`Howdy 🤠
-
-You are in FULL ADMIN mode.
+function boot(){
+  addMsg(
+`Howdy 🤠
+Tell me what you want, and I’ll build the order.
 
 Examples:
-• what's next
-• mark it done
-• make a fake order
-• monthly gross
-• make it so when I say monthly gross tell me how much I made that month
-`);
+• king cobra outside white middle black inside white, 8 inches, regular, bracelet, rush
+• cobra red/black 7 regular bracelet
+• dog collar king cobra outside black middle red inside black 16 snug
+
+Commands:
+• BACK  • RESTART  • CONFIRM (after summary)`,
+  "bot"
+  );
+  setChips(["bracelet","dog collar","keychain","Price","Shipping","RESTART"]);
+  askStep();
+}
+
+function handleFAQ(text){
+  const t = lower(text);
+  if(t === "price" || t.includes("how much") || t.includes("cost")){
+    addMsg(
+`Pricing:
+• $${PRICE_PER_INCH}/inch (sizes ${MIN_IN}-${MAX_IN})
+Shipping:
+• $${SHIPPING_IN} in-state
+• $${SHIPPING_OUT} out-of-state
+Upgrades:
+• rush +$${FEE_RUSH}, durability +$${FEE_DURABILITY}, charm +$${FEE_CHARM}, tracking +$${FEE_TRACKING}
+Coupon:
+• ${COUPON_CODE} = ${COUPON_PCT}% off subtotal`,
+    "bot"
+    );
+    return true;
+  }
+  if(t.includes("shipping")){
+    addMsg(`Shipping is $${SHIPPING_IN} in-state and $${SHIPPING_OUT} out-of-state.`, "bot");
+    return true;
+  }
+  return false;
+}
+
+async function handleInput(raw){
+  const text = clean(raw);
+  const U = text.toUpperCase();
+
+  if(!text) return;
+
+  if(U === "RESTART"){
+    resetAll();
+    return;
+  }
+
+  if(U === "BACK"){
+    if(backStack.length){
+      const prev = backStack.pop();
+      stepIndex = Math.max(0, prev);
+      addMsg("Okay — going back.", "bot");
+      askStep();
+    }else{
+      addMsg("You’re already at the start.", "bot");
+    }
+    return;
+  }
+
+  // if summary shown, CONFIRM submits
+  if(U === "CONFIRM" && stepIndex >= steps.length){
+    setStatus("Submitting order…");
+    try{
+      const id = await saveOrderToFirestore();
+      setStatus("");
+      addMsg(`✅ Order submitted!\nOrder ID: ${id}\n\nIf needed: ${PHONE}`, "bot");
+      setChips(["RESTART"]);
+    }catch(e){
+      setStatus("");
+      addMsg("⚠️ Could not submit the order. Try again.", "bot");
+      addMsg(String(e?.message || e), "bot");
+      setChips(["CONFIRM","RESTART"]);
+    }
+    return;
+  }
+
+  // FAQ quick
+  if(handleFAQ(text)) return;
+
+  // Apply autofill hints first (so one big message can fill multiple fields)
+  const hints = extractHints(text);
+  applyHints(hints);
+
+  // Try to answer the current step
+  stepIndex = nextUnfilledIndex(stepIndex);
+  const current = steps[stepIndex];
+  if(!current){
+    askStep();
+    return;
+  }
+
+  // record for BACK
+  backStack.push(stepIndex);
+
+  // step fill
+  const ok = applyStepAnswer(current.key, text);
+
+  // if not ok, undo backStack push and ask again
+  if(!ok){
+    backStack.pop();
+    addMsg("I didn’t catch that — try again.", "bot");
+    askStep();
+    return;
+  }
+
+  // If they typed a big message, keep progressing and auto-ask next
+  stepIndex++;
+  askStep();
+}
+
+async function send(){
+  const raw = input.value;
+  input.value = "";
+  if(!clean(raw)) return;
+
+  addMsg(raw, "user");
+  try{
+    await handleInput(raw);
+  }catch(err){
+    console.error(err);
+    setStatus("⚠️ " + (err?.message || String(err)));
+    addMsg("⚠️ Something broke. Try RESTART.", "bot");
+    setChips(["RESTART"]);
+  }
+}
+
+/* Buttons */
+document.getElementById("sendBtn").addEventListener("click", send);
+input.addEventListener("keydown", (e)=>{ if(e.key==="Enter") send(); });
+document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+/* Start */
+boot();
 </script>
 </body>
 </html>
