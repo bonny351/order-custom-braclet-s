@@ -638,4 +638,806 @@ async function buildFixPlan(){
       }
 
       if(FIX_RULES.ensureCreatedAt){
-        const ok = o.createdAt && (isTimestamp(o.createdA
+        const ok = o.createdAt && (isTimestamp(o.createdAt) || typeof o.createdAt === "string" || typeof o.createdAt === "number");
+        if(!ok){ patch.createdAt = ts(); missingCreated++; }
+      }
+
+      if(FIX_RULES.ensurePhoneDigits){
+        const phone = o?.order?.phone || "";
+        const digs = digitsOnly(o?.order?.phoneDigits || phone);
+        if(digs && o?.order?.phoneDigits !== digs){
+          patch["order.phoneDigits"] = digs;
+          phoneFixed++;
+        }
+      }
+
+      if(FIX_RULES.ensureTotalsNumber){
+        const t = o?.totals?.total;
+        if(t != null && typeof t !== "number"){
+          const n = Number(t);
+          if(Number.isFinite(n)){ patch["totals.total"] = n; totalsFixed++; }
+        }
+      }
+
+      addFix(plan, o.__ref, o.__id, patch, "orders normalize fields");
+    }
+
+    plan.summary.push(
+      `Orders scanned: ${orders.length}`,
+      `• Missing status set: ${missingStatus}`,
+      `• Status normalized: ${normedStatus}`,
+      `• Missing createdAt set: ${missingCreated}`,
+      `• order.phoneDigits fixed: ${phoneFixed}`,
+      `• totals.total converted: ${totalsFixed}`
+    );
+  }
+
+  // SKILLS fixes
+  if(FIX_RULES.normalizeSkillTrigger){
+    const skills = await scanCollectionWithRefs(SKILLS, 500);
+    let trig=0;
+    for(const s of skills){
+      const patch = {};
+      if(typeof s.trigger === "string"){
+        const nt = normAlias(s.trigger);
+        if(nt !== s.trigger){ patch.trigger = nt; trig++; }
+      }
+      addFix(plan, s.__ref, s.__id, patch, "skills normalize trigger");
+    }
+    plan.summary.push(`Skills scanned: ${skills.length}`, `• Triggers normalized: ${trig}`);
+  }
+
+  // PRODUCT stock -> number
+  if(FIX_RULES.ensureProductStockNumber){
+    for(const col of [PRODUCTS.bracelets, PRODUCTS.cookies]){
+      const prods = await scanCollectionWithRefs(col, 500);
+      let stockFixed=0;
+      for(const p of prods){
+        const patch = {};
+        if(p.stock != null && typeof p.stock !== "number"){
+          const n = Number(p.stock);
+          if(Number.isFinite(n)){ patch.stock = n; stockFixed++; }
+        }
+        addFix(plan, p.__ref, p.__id, patch, `${col} stock -> number`);
+      }
+      plan.summary.push(`${col} scanned: ${prods.length}`, `• stock converted: ${stockFixed}`);
+    }
+  }
+
+  return plan;
+}
+async function applyFixPlan(plan){
+  const MAX_WRITES = 250; // safety cap
+  const fixes = plan.fixes.slice(0, MAX_WRITES);
+
+  let ok=0, fail=0;
+  const BATCH = 400;
+
+  for(let i=0;i<fixes.length;i+=BATCH){
+    const batch = db.batch();
+    const chunk = fixes.slice(i, i+BATCH);
+    for(const f of chunk) batch.update(f.ref, f.patch);
+
+    try{
+      await batch.commit();
+      ok += chunk.length;
+    }catch(e){
+      for(const f of chunk){
+        try{ await f.ref.update(f.patch); ok++; }
+        catch(err){ fail++; }
+      }
+    }
+  }
+  return { ok, fail, total: fixes.length };
+}
+
+/* =========================
+   BULK IMPORT (aliases + skills)
+========================= */
+const bulk = { waiting:false, parsed:null };
+
+function parseBulkBlock(text){
+  const lines = String(text||"")
+    .split(/\r?\n/)
+    .map(l=>l.trim())
+    .filter(l=>l && !l.startsWith("#"));
+
+  const first = lines[0] || "";
+  if(first.includes("->")) return { mode:"SKILLS", items: parseSkills(lines) };
+  if(first.includes("="))  return { mode:"ALIASES", items: parseAliases(lines) };
+  return { mode:"UNKNOWN", items: [] };
+}
+function parseAliases(lines){
+  const out = [];
+  for(const l of lines){
+    const m = l.split("=");
+    if(m.length < 2) continue;
+    const alias = normAlias(m[0]);
+    const orderId = String(m.slice(1).join("=").trim());
+    if(alias && orderId) out.push({ alias, orderId });
+  }
+  return out;
+}
+function parseSkills(lines){
+  const out = [];
+  for(const l of lines){
+    const m = l.split("->");
+    if(m.length < 2) continue;
+    const trigger = normAlias(m[0]);
+    const action = String(m.slice(1).join("->").trim());
+    if(trigger && action) out.push({ trigger, action });
+  }
+  return out;
+}
+async function bulkWriteAliases(items){
+  const batch = db.batch();
+  const slice = items.slice(0, 400);
+  for(const it of slice){
+    const ref = db.collection(ALIASES).doc(it.alias);
+    batch.set(ref, { alias: it.alias, orderId: it.orderId, updatedAt: ts() }, { merge:true });
+  }
+  await batch.commit();
+  bustAliases();
+}
+async function bulkWriteSkills(items){
+  const batch = db.batch();
+  const slice = items.slice(0, 400);
+  for(const it of slice){
+    const ref = db.collection(SKILLS).doc();
+    batch.set(ref, { trigger: it.trigger, action: it.action, createdAt: ts() }, { merge:true });
+  }
+  await batch.commit();
+  bustSkills();
+}
+
+/* =========================
+   WORKFLOW + PRIORITY
+========================= */
+function priorityScore(r){
+  const s = normalizeStatus(r.status);
+  const rush = !!(r.order && r.order.rush);
+  if(s === "unpaid" && rush) return 1;
+  if(s === "unpaid") return 2;
+  if(s === "pending" && rush) return 3;
+  if(s === "pending") return 4;
+  if(s === "new" && rush) return 5;
+  if(s === "new") return 6;
+  return 99;
+}
+function pickNext(rows){
+  const unfinished = rows.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+  unfinished.sort((a,b)=>{
+    const sa = priorityScore(a), sb = priorityScore(b);
+    if(sa !== sb) return sa - sb;
+    return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
+  });
+  return unfinished[0] || null;
+}
+
+/* =========================
+   MAIN STATE
+========================= */
+const state = {
+  lastOrderId: "",
+  awaitingLearnConfirm: null,
+  awaitingLearnAction: null,
+  learnTemp: null,
+  pendingFixPlan: null,
+};
+
+/* =========================
+   HELP
+========================= */
+function helpText(){
+  return [
+    "ADMIN BOT COMMANDS (FULL UPDATED)",
+    "",
+    "Core:",
+    "  NEXT | UNFINISHED | UNPAID | NEW | PENDING | DONE | TODAY | WEEK | MONTH | PRIORITY",
+    "  SHOW <idOrNickname> | SHOWALL <idOrNickname>",
+    "  DONE <idOrNickname> | SHIPPED <idOrNickname> | PAID <idOrNickname>",
+    "",
+    "Nicknames:",
+    "  NICK <id> <nickname>     (or: NICK <nickname> uses last shown order)",
+    "  ALIASES | UNNICK <nickname>",
+    "",
+    "Money / stats:",
+    "  MONTHLY GROSS | WEEKLY GROSS | TODAY GROSS",
+    "  TOTALS TODAY|WEEK|MONTH",
+    "",
+    "Database tools:",
+    "  DBSCAN",
+    "  SCANFIX   (plan)  →  SCANFIX CONFIRM (apply fixes safely)",
+    "",
+    "Learning:",
+    "  LISTSKILLS | FORGET <trigger>",
+    "",
+    "Bulk import:",
+    "  BULK  (then paste)",
+    "  BULK CONFIRM | BULK CANCEL",
+    "",
+    "Tip: You can type normal phrases like “mark john rush done” or “showall cookie lady”.",
+  ].join("\n");
+}
+
+/* =========================
+   NATURAL -> COMMAND
+========================= */
+function interpretNatural(text){
+  const t = clean(text);
+  const L = t.toLowerCase();
+  const U = t.toUpperCase();
+
+  // learn flow
+  if(state.awaitingLearnConfirm){
+    if(["yes","y","yeah","yep","sure","ok"].includes(L)){
+      state.awaitingLearnAction = String(state.awaitingLearnConfirm).trim();
+      state.awaitingLearnConfirm = null;
+      return "__ASK_LEARN_ACTION__";
+    }
+    if(["no","n","nope","nah"].includes(L)){
+      state.awaitingLearnConfirm = null;
+      return "__LEARN_CANCEL__";
+    }
+  }
+  if(state.awaitingLearnAction){
+    state.learnTemp = { trigger: state.awaitingLearnAction, action: t };
+    state.awaitingLearnAction = null;
+    return "__SAVE_SKILL__";
+  }
+
+  if(L === "help" || L === "?") return "HELP";
+
+  if(L.includes("dbscan") || (L.includes("scan") && (L.includes("firebase") || L.includes("database")))) return "DBSCAN";
+  if(L.includes("scanfix") || (L.includes("scan") && L.includes("fix"))){
+    if(L.includes("confirm")) return "SCANFIX CONFIRM";
+    return "SCANFIX";
+  }
+
+  if(L.startsWith("bulk confirm")) return "BULK CONFIRM";
+  if(L.startsWith("bulk cancel")) return "BULK CANCEL";
+  if(L === "bulk") return "BULK";
+
+  if(L === "monthly gross" || (L.includes("monthly") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE MONTH";
+  if(L === "weekly gross" || (L.includes("weekly") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE WEEK";
+  if(L === "today gross" || (L.includes("today") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE TODAY";
+
+  if(L.startsWith("totals ")){
+    const r = upper(L.split(/\s+/)[1]||"MONTH");
+    return `TOTALS ${r}`;
+  }
+
+  if(L.includes("what's next") || L.includes("whats next") || L === "next") return "NEXT";
+  if(L.includes("priority")) return "PRIORITY";
+  if(L.includes("unfinished")) return "UNFINISHED";
+  if(L.includes("unpaid")) return "UNPAID";
+
+  if(L.startsWith("nick ")) return "NICK " + t.slice(5);
+  if(L.startsWith("aliases")) return "ALIASES";
+  if(L.startsWith("unnick ")) return "UNNICK " + t.slice(7);
+
+  if(L.startsWith("showall ")){ return "SHOWALL " + clean(t.slice(8)); }
+  if(L.startsWith("show ")){ return "SHOW " + clean(t.slice(5)); }
+
+  if(L.includes("mark") && (L.includes("done") || L.includes("complete"))){
+    const rest = L.replace("mark","").replace("as","").replace("done","").replace("complete","").replace("completed","").trim();
+    const idOrNick = rest || state.lastOrderId;
+    return "DONE " + idOrNick;
+  }
+  if(L.includes("shipped") || (L.includes("mark") && L.includes("ship"))){
+    const rest = L.replace("mark","").replace("as","").replace("shipped","").replace("ship","").trim();
+    const idOrNick = rest || state.lastOrderId;
+    return "SHIPPED " + idOrNick;
+  }
+  if(L.includes("paid") && L.includes("mark")){
+    const rest = L.replace("mark","").replace("as","").replace("paid","").trim();
+    const idOrNick = rest || state.lastOrderId;
+    return "PAID " + idOrNick;
+  }
+
+  // phone => BYPHONE
+  const digs = digitsOnly(t);
+  if(digs.length >= 7) return "BYPHONE " + digs;
+
+  // default: FIND
+  return "FIND " + t;
+}
+
+/* =========================
+   COMMAND EXECUTOR
+========================= */
+async function handleCommand(raw){
+  const text = clean(raw);
+  const U = upper(text);
+  if(!text) return;
+
+  // learn system internal commands
+  if(U === "__ASK_LEARN_ACTION__"){
+    setStatus("");
+    addMsg(
+      "I can learn that.\n\n" +
+      "What should I do when you say that?\n\n" +
+      "Examples actions:\n" +
+      "• NEXT\n• UNPAID\n• SHOWALL <id>\n• REVENUE MONTH\n• DBSCAN\n• SCANFIX\n\n" +
+      "Now type the action exactly how you want it saved.",
+      "bot"
+    );
+    return;
+  }
+  if(U === "__LEARN_CANCEL__"){
+    setStatus("");
+    addMsg("Okay — I won’t learn that.", "bot");
+    return;
+  }
+  if(U === "__SAVE_SKILL__"){
+    const tgr = state.learnTemp?.trigger;
+    const act = state.learnTemp?.action;
+    if(tgr && act){
+      await saveSkill(tgr, act);
+      state.learnTemp = null;
+      setStatus("");
+      addMsg(`✅ Learned:\n"${normAlias(tgr)}" → ${act}`, "bot");
+      setChips(["LISTSKILLS","HELP"]);
+      return;
+    }
+    setStatus("");
+    addMsg("Couldn’t save that. Try again.", "bot");
+    return;
+  }
+
+  // BULK flow
+  if(U === "BULK"){
+    bulk.waiting = true;
+    bulk.parsed = null;
+    setStatus("");
+    addMsg(
+      "BULK IMPORT MODE\n\nPaste a block next.\n\nAliases format:\n  john rush = AbCdEf123\n\nSkills format:\n  monthly gross -> REVENUE MONTH\n\nAfter paste: BULK CONFIRM or BULK CANCEL",
+      "bot"
+    );
+    setChips(["BULK CANCEL","HELP"]);
+    return;
+  }
+  if(U === "BULK CANCEL"){
+    bulk.waiting = false;
+    bulk.parsed = null;
+    setStatus("");
+    addMsg("Bulk import cancelled.", "bot");
+    setChips(["HELP","NEXT","UNPAID"]);
+    return;
+  }
+  if(U === "BULK CONFIRM"){
+    if(!bulk.parsed || !bulk.parsed.items?.length){
+      setStatus("");
+      addMsg("No bulk data to import. Type BULK then paste your block first.", "bot");
+      return;
+    }
+    setStatus("Importing…");
+    try{
+      if(bulk.parsed.mode === "ALIASES"){
+        await bulkWriteAliases(bulk.parsed.items);
+        setStatus("");
+        addMsg(`✅ Imported ${bulk.parsed.items.length} nickname(s).`, "bot");
+        setChips(["ALIASES","HELP"]);
+      }else if(bulk.parsed.mode === "SKILLS"){
+        await bulkWriteSkills(bulk.parsed.items);
+        setStatus("");
+        addMsg(`✅ Imported ${bulk.parsed.items.length} learned command(s).`, "bot");
+        setChips(["LISTSKILLS","HELP"]);
+      }else{
+        setStatus("");
+        addMsg("I couldn’t detect the bulk type. Use '=' for aliases or '->' for skills.", "bot");
+        setChips(["BULK","HELP"]);
+      }
+      bulk.parsed = null;
+    }catch(e){
+      setStatus("");
+      addMsg("Bulk import failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+
+  // HELP
+  if(U === "HELP"){
+    setStatus("");
+    addMsg(helpText(), "bot");
+    setChips(["NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS"]);
+    return;
+  }
+
+  // LISTSKILLS / FORGET
+  if(U === "LISTSKILLS"){
+    const skills = await ensureSkillsFresh();
+    setStatus("");
+    if(!skills.length){ addMsg("No learned commands yet.", "bot"); return; }
+    addMsg(
+      `Learned commands (showing ${Math.min(80,skills.length)}):\n` +
+      skills.slice(0,80).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n"),
+      "bot"
+    );
+    setChips(["HELP","BULK"]);
+    return;
+  }
+  if(U.startsWith("FORGET ")){
+    const trig = clean(text.slice(7));
+    if(!trig){ setStatus(""); addMsg("Usage: FORGET <trigger>", "bot"); return; }
+    await deleteSkillByTrigger(trig);
+    setStatus("");
+    addMsg(`🧽 Forgot trigger: "${normAlias(trig)}"`, "bot");
+    setChips(["LISTSKILLS","HELP"]);
+    return;
+  }
+
+  // ALIASES / UNNICK / NICK
+  if(U === "ALIASES"){
+    const a = await listAliases(200);
+    setStatus("");
+    if(!a.length){ addMsg("No nicknames yet. Use: NICK <id> <name>", "bot"); return; }
+    addMsg("Nicknames:\n" + a.slice(0,200).map(x=>`• "${x.alias}" → ${x.orderId}`).join("\n"), "bot");
+    setChips(["HELP","NEXT"]);
+    return;
+  }
+  if(U.startsWith("UNNICK ")){
+    const aliasText = clean(text.slice(7));
+    if(!aliasText){ setStatus(""); addMsg("Usage: UNNICK <nickname>", "bot"); return; }
+    await deleteAlias(aliasText);
+    setStatus("");
+    addMsg(`🧽 Removed nickname: "${normAlias(aliasText)}"`, "bot");
+    setChips(["ALIASES","HELP"]);
+    return;
+  }
+  if(U.startsWith("NICK ")){
+    // NICK <id> <nickname...> OR NICK <nickname...> uses last
+    const parts = text.split(/\s+/);
+    const maybeId = parts[1] || "";
+    let id = "";
+    let aliasText = "";
+
+    if(looksLikeId(maybeId)){
+      id = maybeId;
+      aliasText = parts.slice(2).join(" ");
+    }else{
+      id = state.lastOrderId;
+      aliasText = parts.slice(1).join(" ");
+    }
+
+    id = await resolveOrderId(id);
+    if(!id){ setStatus(""); addMsg("NICK needs an order (use NEXT or SHOW first, or include id).", "bot"); return; }
+    if(!clean(aliasText)){ setStatus(""); addMsg("NICK needs a nickname. Example: NICK john rush", "bot"); return; }
+
+    await setAlias(aliasText, id);
+    setStatus("");
+    addMsg(`✅ Saved nickname:\n"${normAlias(aliasText)}" → ${id}`, "bot");
+    setChips([`SHOWALL ${normAlias(aliasText)}`, `DONE ${normAlias(aliasText)}`, `SHIPPED ${normAlias(aliasText)}`, "ALIASES"]);
+    return;
+  }
+
+  // DBSCAN
+  if(U === "DBSCAN"){
+    setStatus("Scanning database…");
+    try{
+      const report = await dbScanAll();
+      setStatus("");
+      addMsg(report, "bot");
+      setChips(["SCANFIX","HELP"]);
+    }catch(e){
+      setStatus("");
+      addMsg("DBSCAN failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+
+  // SCANFIX
+  if(U === "SCANFIX"){
+    setStatus("Scanning + building fix plan…");
+    try{
+      const plan = await buildFixPlan();
+      state.pendingFixPlan = plan;
+      setStatus("");
+      addMsg(
+        "SCANFIX REPORT\n" +
+        plan.summary.join("\n") + "\n\n" +
+        `Fixes queued: ${plan.fixes.length}\n` +
+        (plan.fixes.length ? "Type: SCANFIX CONFIRM to apply (safe capped)." : "No fixes needed 🎉"),
+        "bot"
+      );
+      setChips(["SCANFIX CONFIRM","DBSCAN","HELP"]);
+    }catch(e){
+      setStatus("");
+      addMsg("SCANFIX failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+  if(U === "SCANFIX CONFIRM"){
+    if(!state.pendingFixPlan || !state.pendingFixPlan.fixes.length){
+      setStatus("");
+      addMsg("No pending fix plan. Run SCANFIX first.", "bot");
+      return;
+    }
+    setStatus("Applying fixes…");
+    try{
+      const res = await applyFixPlan(state.pendingFixPlan);
+      state.pendingFixPlan = null;
+      bustOrders(); bustSkills(); bustAliases();
+      setStatus("");
+      addMsg(`✅ Applied fixes: ${res.ok}/${res.total}\nFailed: ${res.fail}`, "bot");
+      setChips(["DBSCAN","HELP"]);
+    }catch(e){
+      setStatus("");
+      addMsg("Apply failed: " + (e?.message || String(e)), "bot");
+    }
+    return;
+  }
+
+  // Revenue / totals
+  if(U.startsWith("REVENUE ")){
+    const range = upper(text.split(/\s+/)[1]||"MONTH");
+    const rows = await ensureOrdersFresh();
+    const pred = (range==="TODAY") ? isToday : (range==="WEEK" ? isThisWeek : isThisMonth);
+    const inRange = rows.filter(pred);
+    const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
+    const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
+    setStatus("");
+    addMsg(`REVENUE ${range}\n${money(revenue)} (done orders only)`, "bot");
+    setChips(["REVENUE MONTH","REVENUE WEEK","TOTALS MONTH","HELP"]);
+    return;
+  }
+  if(U.startsWith("TOTALS ")){
+    const range = upper(text.split(/\s+/)[1]||"MONTH");
+    const rows = await ensureOrdersFresh();
+    const pred = (range==="TODAY") ? isToday : (range==="WEEK" ? isThisWeek : isThisMonth);
+    const inRange = rows.filter(pred);
+    const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
+    const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
+    setStatus("");
+    addMsg(`TOTALS ${range}\nOrders: ${inRange.length}\nDone: ${done.length}\nRevenue (done only): ${money(revenue)}`, "bot");
+    setChips(["TOTALS MONTH","TOTALS WEEK","REVENUE MONTH","HELP"]);
+    return;
+  }
+
+  // Lists
+  const listCmds = ["UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","PRIORITY"];
+  const cmd0 = upper(text.split(/\s+/)[0]||"");
+  if(listCmds.includes(cmd0)){
+    const rows = await ensureOrdersFresh();
+    let out = rows.slice();
+
+    if(cmd0 === "UNFINISHED") out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+    if(cmd0 === "NEW") out = out.filter(r=>normalizeStatus(r.status)==="new");
+    if(cmd0 === "PENDING") out = out.filter(r=>normalizeStatus(r.status)==="pending");
+    if(cmd0 === "UNPAID") out = out.filter(r=>normalizeStatus(r.status)==="unpaid");
+    if(cmd0 === "DONE") out = out.filter(r=>normalizeStatus(r.status)==="done");
+    if(cmd0 === "TODAY") out = out.filter(isToday);
+    if(cmd0 === "WEEK") out = out.filter(isThisWeek);
+    if(cmd0 === "MONTH") out = out.filter(isThisMonth);
+
+    if(cmd0 === "PRIORITY"){
+      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normalizeStatus(r.status)));
+      out.sort((a,b)=>{
+        const sa = priorityScore(a), sb = priorityScore(b);
+        if(sa !== sb) return sa - sb;
+        return orderCreatedDate(a).getTime() - orderCreatedDate(b).getTime();
+      });
+    }else{
+      out.sort((a,b)=>orderCreatedDate(b).getTime() - orderCreatedDate(a).getTime());
+    }
+
+    out = out.slice(0, 60);
+    setStatus("");
+    addMsg(formatOrderList(out, cmd0), "bot");
+    setChips(["NEXT","UNPAID","UNFINISHED","PRIORITY","HELP","SHOWALL "+(state.lastOrderId||"")].filter(Boolean));
+    return;
+  }
+
+  // NEXT
+  if(U === "NEXT"){
+    const rows = await ensureOrdersFresh();
+    const next = pickNext(rows);
+    setStatus("");
+    if(!next){ addMsg("NEXT: none found 🎉", "bot"); return; }
+    state.lastOrderId = next.id;
+    addMsg(orderCard(next.id, next), "bot");
+    setChips([`NICK ${next.id} `,`DONE ${next.id}`,`SHIPPED ${next.id}`,`PAID ${next.id}`,`SHOWALL ${next.id}`,"UNPAID","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // SHOW / SHOWALL
+  if(U.startsWith("SHOWALL ")){
+    const token = clean(text.slice(8)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ setStatus(""); addMsg("SHOWALL needs an id or nickname.", "bot"); return; }
+    const snap = await db.collection(ORDERS).doc(id).get();
+    setStatus("");
+    if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
+    const data = snap.data();
+    state.lastOrderId = id;
+    addMsg(orderCard(id, data), "bot");
+    setChips([`NICK ${id} `,`DONE ${token||id}`,`SHIPPED ${token||id}`,`PAID ${token||id}`,"NEXT","HELP"]);
+    return;
+  }
+
+  if(U.startsWith("SHOW ")){
+    // SHOW uses same full details now (so you always see everything)
+    const token = clean(text.slice(5)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ setStatus(""); addMsg("SHOW needs an id or nickname.", "bot"); return; }
+    const snap = await db.collection(ORDERS).doc(id).get();
+    setStatus("");
+    if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
+    const data = snap.data();
+    state.lastOrderId = id;
+    addMsg(orderCard(id, data), "bot");
+    setChips([`NICK ${id} `,`DONE ${token||id}`,`SHIPPED ${token||id}`,`PAID ${token||id}`,"NEXT","HELP"]);
+    return;
+  }
+
+  // DONE / SHIPPED / PAID
+  if(U.startsWith("DONE ") || U.startsWith("SHIPPED ") || U.startsWith("PAID ")){
+    const parts = text.split(/\s+/);
+    const verb = upper(parts[0]);
+    const token = clean(parts.slice(1).join(" ")) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ setStatus(""); addMsg(`${verb} needs an id or nickname (or use NEXT first).`, "bot"); return; }
+
+    const patch = {};
+    if(verb === "DONE"){ patch.status="done"; patch.doneAt=ts(); }
+    if(verb === "SHIPPED"){ patch.shippedAt=ts(); }
+    if(verb === "PAID"){ patch.paidAt=ts(); }
+
+    await db.collection(ORDERS).doc(id).set(patch, { merge:true });
+    bustOrders();
+    setStatus("");
+    state.lastOrderId = id;
+    addMsg(`✅ ${verb} set for ${id}`, "bot");
+    setChips([`SHOWALL ${id}`,"NEXT","UNPAID","HELP"]);
+    return;
+  }
+
+  // BYPHONE
+  if(U.startsWith("BYPHONE ")){
+    const digs = digitsOnly(text.slice(8));
+    const rows = await ensureOrdersFresh();
+    const out = rows.filter(r=>{
+      const pd = digitsOnly(r?.order?.phoneDigits || "");
+      const p = digitsOnly(r?.order?.phone || "");
+      return (pd && pd === digs) || (!pd && p === digs);
+    }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0, 120);
+
+    setStatus("");
+    addMsg(formatOrderList(out, `BYPHONE ${digs}`), "bot");
+    setChips(["NEXT","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // FIND
+  if(U.startsWith("FIND ")){
+    const q = lower(text.slice(5));
+    const rows = await ensureOrdersFresh();
+    const out = rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q))
+      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
+      .slice(0, 120);
+
+    setStatus("");
+    addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
+    setChips(["NEXT","UNFINISHED","HELP"]);
+    return;
+  }
+
+  // Not recognized: ask to learn
+  setStatus("");
+  addMsg("I didn’t recognize that.", "bot");
+  state.awaitingLearnConfirm = text;
+  addMsg(`Do you want me to learn this as a new command?\n"${text}"\nReply yes or no.`, "bot");
+}
+
+/* =========================
+   CHAT WRAPPER
+   - handles bulk paste
+   - checks learned triggers first
+========================= */
+async function handleChat(raw){
+  const text = clean(raw);
+  if(!text) return;
+
+  // BULK paste capture
+  if(bulk.waiting){
+    bulk.waiting = false;
+    const parsed = parseBulkBlock(raw);
+    bulk.parsed = parsed;
+
+    const n = parsed.items.length;
+    const preview = parsed.mode === "ALIASES"
+      ? parsed.items.slice(0,10).map(x=>`• "${x.alias}" → ${x.orderId}`).join("\n")
+      : parsed.mode === "SKILLS"
+        ? parsed.items.slice(0,10).map(x=>`• "${x.trigger}" → ${x.action}`).join("\n")
+        : "(unknown format)";
+
+    addMsg(
+      `BULK PREVIEW (${parsed.mode})\nItems found: ${n}\n\n${preview}\n\nType: BULK CONFIRM to import\nor: BULK CANCEL`,
+      "bot"
+    );
+    setChips(["BULK CONFIRM","BULK CANCEL"]);
+    return;
+  }
+
+  // Learned triggers first (simple includes match)
+  try{
+    const skills = await ensureSkillsFresh();
+    const L = lower(text);
+    for(const s of skills){
+      const trig = String(s.trigger||"").toLowerCase();
+      if(trig && L.includes(trig)){
+        await handleCommand(String(s.action||""));
+        return;
+      }
+    }
+  }catch(e){
+    // ignore
+  }
+
+  // Interpret natural -> command
+  const cmd = interpretNatural(text);
+  await handleCommand(cmd);
+}
+
+/* =========================
+   SEND
+========================= */
+async function send(){
+  const raw = input.value;
+  input.value = "";
+  if(!clean(raw)) return;
+
+  addMsg(raw, "user");
+  try{
+    setStatus("");
+    await handleChat(raw);
+  }catch(err){
+    console.error(err);
+    setStatus("⚠️ " + (err?.message || String(err)));
+    addMsg("⚠️ Something broke. Try HELP.", "bot");
+    setChips(["HELP","NEXT","UNPAID"]);
+  }
+}
+
+/* Events */
+document.getElementById("sendBtn").addEventListener("click", send);
+input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") send(); });
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  chat.innerHTML = "";
+  setStatus("");
+  state.lastOrderId = "";
+  state.awaitingLearnConfirm = null;
+  state.awaitingLearnAction = null;
+  state.learnTemp = null;
+  state.pendingFixPlan = null;
+  bulk.waiting = false;
+  bulk.parsed = null;
+
+  setChips(["HELP","NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS"]);
+  addMsg("Reset ✅\nTry: NEXT, showall <nickname>, unpaid, bulk", "bot");
+});
+
+/* Boot */
+(function init(){
+  setChips(["HELP","NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS","PRIORITY"]);
+  addMsg(
+`Howdy 🤠
+This admin bot shows EVERYTHING stored on an order.
+
+Try:
+• NEXT
+• showall <id or nickname>
+• nick john rush
+• aliases
+• bulk
+• monthly gross
+• dbscan
+• scanfix`,
+  "bot"
+  );
+  setStatus("✅ Ready");
+})();
+</script>
+</body>
+</html>
