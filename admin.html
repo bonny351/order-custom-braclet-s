@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Smart Admin Bot (Full Updated)</title>
+<title>Tactics & Treats – Multi-Business Admin (Full)</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
     background:var(--bg); color:var(--text);
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   }
-  .wrap{ max-width:1040px; margin:0 auto; }
+  .wrap{ max-width:1060px; margin:0 auto; }
   header{
     display:flex; align-items:center; justify-content:space-between;
     gap:12px; flex-wrap:wrap; margin-bottom:12px;
@@ -36,10 +36,10 @@
     border:1px solid #262626;
     border-radius:var(--radius);
     padding:14px;
-    box-shadow:0 0 18px rgba(255,0,0,.16);
+    box-shadow:0 0 18px rgba(255,0,0,.14);
   }
   .chat{
-    height:62vh; min-height:380px; max-height:720px;
+    height:62vh; min-height:380px; max-height:760px;
     overflow:auto;
     padding:12px;
     border-radius:14px;
@@ -124,8 +124,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Tactics & Treats – Admin Bot (Full Updated)</h1>
-    <div class="pill">Natural chat • SHOWALL • Nicknames • Bulk • DBSCAN • SCANFIX</div>
+    <h1>Multi-Business Admin Bot</h1>
+    <div class="pill">Auto 5-digit business code • Owner/Manager/Staff • Orders</div>
   </header>
 
   <div class="card">
@@ -134,25 +134,31 @@
     <div id="status"></div>
 
     <div class="bar">
-      <input id="input" placeholder="Talk to me… (try: NEXT, showall john rush, unpaid, bulk)" autocomplete="off" />
+      <input id="input" placeholder='Try: NEWBIZ TacticsTreats mypass | LOGIN 12345 owner mypass | HELP' autocomplete="off" />
       <button id="sendBtn" type="button">Send</button>
       <button id="resetBtn" type="button" class="secondary">Reset</button>
     </div>
 
     <div class="meta">
-      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNPAID</b>, <b>UNFINISHED</b>, <b>MONTHLY GROSS</b>,
-      <b>SHOWALL</b>, <b>DBSCAN</b>, <b>SCANFIX</b>, <b>BULK</b>, <b>ALIASES</b>
+      Quick: <b>HELP</b>, <b>WHOAMI</b>, <b>NEWBIZ</b>, <b>LOGIN</b>, <b>LISTUSERS</b>, <b>NEXT</b>, <b>UNPAID</b>, <b>UNFINISHED</b>, <b>SHOWALL</b>, <b>DONE</b>
     </div>
   </div>
 </div>
 
-<!-- Firebase compat (easy hosting) -->
+<!-- Firebase compat (best for plain HTML) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
 <script>
 /* =========================
-   FIREBASE (your project)
+   NOTE (Chromebook local file)
+========================= */
+if (location.protocol === "file:") {
+  console.warn("Opened as file:// — Firebase may fail. Use Live Server or python http.server.");
+}
+
+/* =========================
+   FIREBASE CONFIG (yours)
 ========================= */
 firebase.initializeApp({
   apiKey:"AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
@@ -164,25 +170,6 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const ts = () => firebase.firestore.FieldValue.serverTimestamp();
-
-/* =========================
-   COLLECTIONS
-========================= */
-const ORDERS = "tt_orders";
-const SKILLS = "tt_skills";
-const ALIASES = "tt_order_aliases"; // nickname -> orderId
-const PRODUCTS = {
-  bracelets: "products_bracelets",
-  cookies: "products_cookies",
-};
-
-const DB_COLLECTIONS = [
-  { key:"orders", name: ORDERS, limit: 500 },
-  { key:"skills", name: SKILLS, limit: 500 },
-  { key:"aliases", name: ALIASES, limit: 500 },
-  { key:"bracelets", name: PRODUCTS.bracelets, limit: 500 },
-  { key:"cookies", name: PRODUCTS.cookies, limit: 500 },
-];
 
 /* =========================
    UI
@@ -238,206 +225,89 @@ function normalizeStatus(s){
 function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
 function startOfWeek(){ const d=startOfToday(); const day=d.getDay(); d.setDate(d.getDate()-day); return d; }
 function startOfMonth(){ const d=startOfToday(); d.setDate(1); return d; }
-function orderCreatedDate(r){ return safeToDate(r.createdAt) || new Date(0); }
-function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
-function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
-function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
-
-function orderTotal(r){
-  const n = Number(r?.totals?.total);
-  return Number.isFinite(n) ? n : 0;
-}
 
 /* =========================
-   DISPLAY: EVERYTHING ABOUT ITEMS + ORDER
+   MULTI-BUSINESS
+   business code = 5 digits, auto assigned, never changeable
 ========================= */
-function summarizeItems(items){
-  if(!Array.isArray(items) || !items.length) return "(none)";
+const BUSINESSES = "tt_businesses";
 
-  const pickExtras = (it)=>{
-    const extras = [];
-    for(const [k,v] of Object.entries(it || {})){
-      if(v === undefined || v === null) continue;
-      if(v === "" ) continue;
-      if(Array.isArray(v) && v.length === 0) continue;
-      if(typeof v === "boolean" && v === false) continue;
-
-      // skip fields we already print nicely below
-      if(["itemType","weave","inches","fit","colors","patternStyle"].includes(k)) continue;
-
-      extras.push(`${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
-    }
-    return extras;
-  };
-
-  return items.map((it, i)=>{
-    const colors = Array.isArray(it.colors) ? it.colors.join(" / ") : "";
-    const extras = pickExtras(it);
-
-    return [
-      `${i+1}) ${it.itemType || "(item)"}`,
-      `   • weave: ${it.weave || ""}`,
-      `   • size: ${it.inches || ""}"`,
-      `   • fit: ${it.fit || ""}`,
-      `   • colors: ${colors || "(none)"}`,
-      `   • pattern: ${it.patternStyle || "(none)"}`,
-      extras.length ? `   • extras:\n     - ${extras.join("\n     - ")}` : `   • extras: (none)`
-    ].join("\n");
-  }).join("\n\n");
+function rand5(){
+  const n = crypto.getRandomValues(new Uint32Array(1))[0] % 100000;
+  return String(n).padStart(5,"0");
 }
-
-function orderCard(id, data){
-  const o = data?.order || {};
-  const status = normalizeStatus(data?.status);
-
-  const totals = data?.totals || {};
-  const totalNum = Number(totals.total);
-  const totalTxt = Number.isFinite(totalNum) ? money(totalNum) : (totals.total ?? "");
-
-  // Known top-level fields (everything else gets printed under EXTRA FIELDS)
-  const knownTop = new Set([
-    "status","createdAt","order","items","totals",
-    "assignedTo","adminNote","tracking","flagged","problemNote",
-    "paidAt","shippedAt","doneAt",
-    "notes","giftNote","giftNoteText","trackingUpgrade","packaging","photoBeforePay",
-    "donation","coupon"
-  ]);
-
-  // Print any unknown top fields too
-  const extraTop = [];
-  for(const [k,v] of Object.entries(data || {})){
-    if(knownTop.has(k)) continue;
-    if(v === undefined || v === null) continue;
-    if(v === "" ) continue;
-    if(Array.isArray(v) && v.length === 0) continue;
-    if(typeof v === "boolean" && v === false) continue;
-
-    if(typeof v?.toDate === "function") extraTop.push(`${k}: ${fmtDate(v)}`);
-    else extraTop.push(`${k}: ${Array.isArray(v) ? JSON.stringify(v) : String(v)}`);
+async function makeUniqueBizCode5(){
+  for(let i=0;i<60;i++){
+    const code = rand5();
+    const snap = await db.collection(BUSINESSES).doc(code).get();
+    if(!snap.exists) return code;
   }
+  // super rare fallback
+  return String(Math.floor(Math.random()*100000)).padStart(5,"0");
+}
 
-  const totalsLines = [];
-  for(const [k,v] of Object.entries(totals || {})){
-    if(v === undefined || v === null) continue;
-    if(typeof v === "number") totalsLines.push(`  • ${k}: ${money(v)}`);
-    else totalsLines.push(`  • ${k}: ${String(v)}`);
+async function sha256Hex(text){
+  const enc = new TextEncoder().encode(String(text));
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function newUserId(){
+  return "u_" + crypto.getRandomValues(new Uint32Array(3)).join("").slice(0,14);
+}
+
+/* Session */
+const session = {
+  biz: "",
+  userId: "",
+  username: "",
+  role: "",
+  loggedIn: false
+};
+
+function requireLogin(){
+  if(!session.loggedIn) throw new Error("Not logged in. Use: LOGIN <bizCode> <username> <password>");
+}
+function roleLevel(role){
+  role = String(role||"").toLowerCase();
+  if(role === "owner") return 3;
+  if(role === "manager") return 2;
+  return 1;
+}
+function requireRole(minRole){
+  requireLogin();
+  if(roleLevel(session.role) < roleLevel(minRole)){
+    throw new Error(`Permission denied. Need ${minRole}+`);
   }
-
-  const orderLines = [];
-  for(const [k,v] of Object.entries(o || {})){
-    if(v === undefined || v === null) continue;
-    if(v === "" ) continue;
-    if(typeof v === "boolean" && v === false) continue;
-    orderLines.push(`  • ${k}: ${String(v)}`);
-  }
-
-  return [
-    `ORDER FULL DETAILS`,
-    `Order ID: ${id}`,
-    `Status: ${status}`,
-    `Created: ${fmtDate(data?.createdAt)}`,
-    ``,
-    `Customer / Shipping (order object):`,
-    orderLines.length ? orderLines.join("\n") : "  (none)",
-    ``,
-    `Admin fields:`,
-    `  • assignedTo: ${data?.assignedTo || ""}`,
-    `  • adminNote: ${data?.adminNote || ""}`,
-    `  • tracking: ${data?.tracking || ""}`,
-    `  • flagged: ${data?.flagged ? "yes" : "no"}`,
-    `  • problemNote: ${data?.problemNote || ""}`,
-    `  • paidAt: ${fmtDate(data?.paidAt)}`,
-    `  • shippedAt: ${fmtDate(data?.shippedAt)}`,
-    `  • doneAt: ${fmtDate(data?.doneAt)}`,
-    ``,
-    `Customer extras:`,
-    `  • notes: ${data?.notes || ""}`,
-    `  • giftNote: ${data?.giftNote ? "yes" : "no"}`,
-    `  • giftNoteText: ${data?.giftNoteText || ""}`,
-    `  • trackingUpgrade: ${data?.trackingUpgrade ? "yes" : "no"}`,
-    `  • packaging: ${data?.packaging ? "yes" : "no"}`,
-    `  • photoBeforePay: ${data?.photoBeforePay ? "yes" : "no"}`,
-    `  • coupon: ${data?.coupon || ""}`,
-    `  • donation: ${money(data?.donation || 0)}`,
-    ``,
-    `Totals:`,
-    totalsLines.length ? totalsLines.join("\n") : "  (none)",
-    `  • total_display: ${totalTxt}`,
-    ``,
-    `Items:`,
-    summarizeItems(data?.items || []),
-    ``,
-    extraTop.length ? `EXTRA FIELDS:\n${extraTop.map(x=>"• "+x).join("\n")}` : "EXTRA FIELDS: (none)"
-  ].join("\n");
 }
 
-function compactOrderLine(r){
-  const o = r.order || {};
-  const t = orderTotal(r);
-  return `• ${r.id} | ${normalizeStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(t)}`;
-}
-function formatOrderList(rows, title){
-  if(!rows.length) return `${title}: none found.`;
-  return [
-    `${title} (showing ${rows.length}):`,
-    ...rows.map(compactOrderLine)
-  ].join("\n");
-}
+/* Scoped collections (everything stays inside your business) */
+function bizDoc(){ requireLogin(); return db.collection(BUSINESSES).doc(session.biz); }
+function usersCol(){ return bizDoc().collection("users"); }
+function ordersCol(){ return bizDoc().collection("orders"); }
+function productsCol(){ return bizDoc().collection("products"); }
+function skillsCol(){ return bizDoc().collection("skills"); }
+function aliasesCol(){ return bizDoc().collection("aliases"); }
+function logsCol(){ return bizDoc().collection("logs"); }
 
 /* =========================
-   CACHES (fast)
+   LOGGING (optional but nice)
 ========================= */
-let orderCache = [];
-let orderCacheAt = 0;
-
-let skillsCache = [];
-let skillsCacheAt = 0;
-
-let aliasCache = [];
-let aliasCacheAt = 0;
-
-const TTL = 15000;
-const ORDER_FETCH_LIMIT = 900;
-
-async function refreshOrders(){
-  const snap = await db.collection(ORDERS).limit(ORDER_FETCH_LIMIT).get();
-  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  orderCacheAt = Date.now();
-  return orderCache;
+async function logAction(action, meta){
+  try{
+    if(!session.loggedIn) return;
+    await logsCol().add({
+      at: ts(),
+      byUserId: session.userId,
+      byUsername: session.username,
+      byRole: session.role,
+      action: String(action||""),
+      meta: meta || {}
+    });
+  }catch{}
 }
-async function ensureOrdersFresh(){
-  if(!orderCache.length || (Date.now() - orderCacheAt) > TTL) await refreshOrders();
-  return orderCache;
-}
-
-async function refreshSkills(){
-  const snap = await db.collection(SKILLS).limit(900).get();
-  skillsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  skillsCacheAt = Date.now();
-  return skillsCache;
-}
-async function ensureSkillsFresh(){
-  if(!skillsCache.length || (Date.now() - skillsCacheAt) > TTL) await refreshSkills();
-  return skillsCache;
-}
-
-async function refreshAliases(){
-  const snap = await db.collection(ALIASES).limit(900).get();
-  aliasCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  aliasCacheAt = Date.now();
-  return aliasCache;
-}
-async function ensureAliasesFresh(){
-  if(!aliasCache.length || (Date.now() - aliasCacheAt) > TTL) await refreshAliases();
-  return aliasCache;
-}
-
-function bustOrders(){ orderCacheAt = 0; }
-function bustSkills(){ skillsCacheAt = 0; }
-function bustAliases(){ aliasCacheAt = 0; }
 
 /* =========================
-   ALIASES (nicknames)
+   ALIASES (nicknames per business)
 ========================= */
 function normAlias(s){
   return String(s||"")
@@ -455,28 +325,17 @@ function looksLikeId(tok){
 }
 async function setAlias(alias, orderId){
   const a = normAlias(alias);
-  if(!a) throw new Error("Alias is empty.");
-  if(!orderId) throw new Error("OrderId missing.");
-  await db.collection(ALIASES).doc(a).set({
-    alias: a,
-    orderId: String(orderId).trim(),
-    updatedAt: ts()
-  }, { merge:true });
-  bustAliases();
+  if(!a) throw new Error("Alias empty.");
+  await aliasesCol().doc(a).set({ alias:a, orderId:String(orderId).trim(), updatedAt: ts() }, { merge:true });
 }
 async function getAlias(alias){
   const a = normAlias(alias);
-  const snap = await db.collection(ALIASES).doc(a).get();
+  const snap = await aliasesCol().doc(a).get();
   return snap.exists ? snap.data() : null;
 }
-async function deleteAlias(alias){
+async function delAlias(alias){
   const a = normAlias(alias);
-  await db.collection(ALIASES).doc(a).delete();
-  bustAliases();
-}
-async function listAliases(limit=80){
-  const snap = await db.collection(ALIASES).limit(limit).get();
-  return snap.docs.map(d=>d.data());
+  await aliasesCol().doc(a).delete();
 }
 async function resolveOrderId(token){
   const t = String(token||"").trim();
@@ -487,312 +346,160 @@ async function resolveOrderId(token){
 }
 
 /* =========================
-   SKILLS (learn)
+   SKILLS (learned triggers per business)
 ========================= */
 async function saveSkill(trigger, action){
-  await db.collection(SKILLS).add({
+  await skillsCol().add({
     trigger: normAlias(trigger),
     action: String(action||"").trim(),
     createdAt: ts()
   });
-  bustSkills();
 }
-async function deleteSkillByTrigger(trigger){
+async function loadSkills(limit=900){
+  const snap = await skillsCol().limit(limit).get();
+  return snap.docs.map(d=>({ id:d.id, ...d.data() }));
+}
+async function forgetSkill(trigger){
   const trg = normAlias(trigger);
-  const snap = await db.collection(SKILLS).where("trigger","==",trg).limit(80).get();
+  const snap = await skillsCol().where("trigger","==",trg).limit(200).get();
   const batch = db.batch();
   snap.docs.forEach(d=>batch.delete(d.ref));
   await batch.commit();
-  bustSkills();
 }
 
 /* =========================
-   DBSCAN (schema-ish)
+   ORDERS helpers
 ========================= */
-function typeOfValue(v){
-  if(v === null) return "null";
-  if(Array.isArray(v)) return "array";
-  if(typeof v?.toDate === "function") return "timestamp";
-  const t = typeof v;
-  if(t === "object") return "object";
-  return t;
+const ORDER_FETCH_LIMIT = 900;
+let orderCache = [];
+let orderCacheAt = 0;
+const TTL = 15000;
+
+async function refreshOrders(){
+  requireLogin();
+  const snap = await ordersCol().limit(ORDER_FETCH_LIMIT).get();
+  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  orderCacheAt = Date.now();
+  return orderCache;
 }
-function mergeType(map, key, t){
-  if(!map[key]) map[key] = new Set();
-  map[key].add(t);
+async function ensureOrdersFresh(){
+  requireLogin();
+  if(!orderCache.length || (Date.now() - orderCacheAt) > TTL) await refreshOrders();
+  return orderCache;
 }
-function walkSchema(obj, prefix, map){
-  if(!obj || typeof obj !== "object") return;
-  for(const k of Object.keys(obj)){
-    const path = prefix ? `${prefix}.${k}` : k;
-    const v = obj[k];
-    const t = typeOfValue(v);
-    mergeType(map, path, t);
-    if(t === "object") walkSchema(v, path, map);
+function bustOrders(){ orderCacheAt = 0; }
+
+function orderCreatedDate(r){ return safeToDate(r.createdAt) || new Date(0); }
+function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
+function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
+function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
+function orderTotal(r){
+  const n = Number(r?.totals?.total);
+  return Number.isFinite(n) ? n : 0;
+}
+function compactOrderLine(r){
+  const o = r.order || {};
+  return `• ${r.id} | ${normalizeStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(orderTotal(r))}`;
+}
+function formatOrderList(rows, title){
+  if(!rows.length) return `${title}: none found.`;
+  return [`${title} (showing ${rows.length}):`, ...rows.map(compactOrderLine)].join("\n");
+}
+function summarizeItems(items){
+  if(!Array.isArray(items) || !items.length) return "(none)";
+  const pickExtras = (it)=>{
+    const extras = [];
+    for(const [k,v] of Object.entries(it || {})){
+      if(v === undefined || v === null) continue;
+      if(v === "" ) continue;
+      if(Array.isArray(v) && v.length === 0) continue;
+      if(typeof v === "boolean" && v === false) continue;
+      if(["itemType","weave","inches","fit","colors","patternStyle"].includes(k)) continue;
+      extras.push(`${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
+    }
+    return extras;
+  };
+
+  return items.map((it, i)=>{
+    const colors = Array.isArray(it.colors) ? it.colors.join(" / ") : "";
+    const extras = pickExtras(it);
+    return [
+      `${i+1}) ${it.itemType || "(item)"}`,
+      `   • weave: ${it.weave || ""}`,
+      `   • size: ${it.inches || ""}"`,
+      `   • fit: ${it.fit || ""}`,
+      `   • colors: ${colors || "(none)"}`,
+      `   • pattern: ${it.patternStyle || "(none)"}`,
+      extras.length ? `   • extras:\n     - ${extras.join("\n     - ")}` : `   • extras: (none)`
+    ].join("\n");
+  }).join("\n\n");
+}
+function orderCard(id, data){
+  const o = data?.order || {};
+  const totals = data?.totals || {};
+  const knownTop = new Set([
+    "status","createdAt","order","items","totals",
+    "assignedTo","adminNote","tracking","flagged","problemNote",
+    "paidAt","shippedAt","doneAt","claimedBy","claimedAt"
+  ]);
+
+  const extraTop = [];
+  for(const [k,v] of Object.entries(data || {})){
+    if(knownTop.has(k)) continue;
+    if(v === undefined || v === null) continue;
+    if(v === "" ) continue;
+    if(Array.isArray(v) && v.length === 0) continue;
+    if(typeof v === "boolean" && v === false) continue;
+    extraTop.push(`${k}: ${typeof v?.toDate === "function" ? fmtDate(v) : (Array.isArray(v) ? JSON.stringify(v) : String(v))}`);
   }
-}
-function schemaReport(docs){
-  const map = {};
-  for(const d of docs) walkSchema(d, "", map);
-  const keys = Object.keys(map).sort();
-  if(!keys.length) return "(no fields)";
-  return keys.map(k=>`• ${k}: ${Array.from(map[k]).sort().join(" | ")}`).join("\n");
-}
-async function scanCollection(colName, lim){
-  const snap = await db.collection(colName).limit(lim).get();
-  return snap.docs.map(d=>({ id:d.id, ...d.data() }));
-}
-function summarizeOrders(docs){
-  const statusCount = {};
-  let doneRevenue = 0;
-  for(const o of docs){
-    const s = normalizeStatus(o.status);
-    statusCount[s] = (statusCount[s]||0)+1;
-    if(s==="done") doneRevenue += orderTotal(o);
+
+  const orderLines = [];
+  for(const [k,v] of Object.entries(o || {})){
+    if(v === undefined || v === null) continue;
+    if(v === "" ) continue;
+    if(typeof v === "boolean" && v === false) continue;
+    orderLines.push(`  • ${k}: ${String(v)}`);
   }
-  const lines = Object.keys(statusCount).sort().map(k=>`• ${k}: ${statusCount[k]}`);
+
+  const totalsLines = [];
+  for(const [k,v] of Object.entries(totals || {})){
+    if(v === undefined || v === null) continue;
+    totalsLines.push(`  • ${k}: ${typeof v === "number" ? money(v) : String(v)}`);
+  }
+
   return [
-    `Orders scanned: ${docs.length}`,
-    `Done revenue (scanned): ${money(doneRevenue)}`,
-    `Status breakdown:\n${lines.join("\n") || "(none)"}`
+    `ORDER FULL DETAILS`,
+    `Business: ${session.biz}`,
+    `Order ID: ${id}`,
+    `Status: ${normalizeStatus(data?.status)}`,
+    `Created: ${fmtDate(data?.createdAt)}`,
+    ``,
+    `Customer / Shipping (order object):`,
+    orderLines.length ? orderLines.join("\n") : "  (none)",
+    ``,
+    `Admin fields:`,
+    `  • assignedTo: ${data?.assignedTo || ""}`,
+    `  • claimedBy: ${data?.claimedBy || ""}`,
+    `  • claimedAt: ${fmtDate(data?.claimedAt)}`,
+    `  • adminNote: ${data?.adminNote || ""}`,
+    `  • tracking: ${data?.tracking || ""}`,
+    `  • flagged: ${data?.flagged ? "yes" : "no"}`,
+    `  • problemNote: ${data?.problemNote || ""}`,
+    `  • paidAt: ${fmtDate(data?.paidAt)}`,
+    `  • shippedAt: ${fmtDate(data?.shippedAt)}`,
+    `  • doneAt: ${fmtDate(data?.doneAt)}`,
+    ``,
+    `Totals:`,
+    totalsLines.length ? totalsLines.join("\n") : "  (none)",
+    ``,
+    `Items:`,
+    summarizeItems(data?.items || []),
+    ``,
+    extraTop.length ? `EXTRA FIELDS:\n${extraTop.map(x=>"• "+x).join("\n")}` : "EXTRA FIELDS: (none)"
   ].join("\n");
 }
-function summarizeAliases(docs){
-  const sample = docs.slice(0, 12).map(a=>`• "${a.alias}" → ${a.orderId}`).join("\n") || "(none)";
-  return `Aliases scanned: ${docs.length}\nSample:\n${sample}`;
-}
-function summarizeSkills(docs){
-  const sample = docs.slice(0, 12).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n") || "(none)";
-  return `Skills scanned: ${docs.length}\nSample:\n${sample}`;
-}
-function summarizeProducts(docs){
-  let low=0,out=0;
-  for(const p of docs){
-    const stock = Number(p.stock);
-    if(Number.isFinite(stock)){
-      if(stock<=0) out++;
-      else if(stock<=3) low++;
-    }
-  }
-  return `Products scanned: ${docs.length}\nOut of stock: ${out}\nLow stock (<=3): ${low}`;
-}
-async function dbScanAll(){
-  const blocks = [];
-  for(const c of DB_COLLECTIONS){
-    const docs = await scanCollection(c.name, c.limit);
-    let summary = "";
-    if(c.name === ORDERS) summary = summarizeOrders(docs);
-    else if(c.name === SKILLS) summary = summarizeSkills(docs);
-    else if(c.name === ALIASES) summary = summarizeAliases(docs);
-    else summary = summarizeProducts(docs);
 
-    blocks.push(
-      `=== ${c.name} ===\n` +
-      summary + "\n\n" +
-      `Schema (inferred):\n` +
-      schemaReport(docs.slice(0, 80))
-    );
-  }
-  return blocks.join("\n\n");
-}
-
-/* =========================
-   SCANFIX (safe plan + confirm)
-========================= */
-const FIX_RULES = {
-  ensureOrderStatus: true,
-  ensureCreatedAt: true,
-  ensurePhoneDigits: true,
-  ensureTotalsNumber: true,
-  normalizeSkillTrigger: true,
-  ensureProductStockNumber: true
-};
-function isTimestamp(v){ return v && typeof v.toDate === "function"; }
-
-async function scanCollectionWithRefs(col, lim){
-  const snap = await db.collection(col).limit(lim).get();
-  return snap.docs.map(d => ({ __id: d.id, __ref: d.ref, ...d.data() }));
-}
-function addFix(plan, ref, id, patch, reason){
-  if(!patch || !Object.keys(patch).length) return;
-  plan.fixes.push({ ref, id, patch, reason });
-}
-async function buildFixPlan(){
-  const plan = { createdAt: new Date().toISOString(), fixes: [], summary: [] };
-
-  // ORDERS fixes
-  {
-    const orders = await scanCollectionWithRefs(ORDERS, 500);
-    let missingStatus=0, normedStatus=0, missingCreated=0, phoneFixed=0, totalsFixed=0;
-
-    for(const o of orders){
-      const patch = {};
-
-      if(FIX_RULES.ensureOrderStatus){
-        if(o.status == null){
-          patch.status = "new"; missingStatus++;
-        }else{
-          const ns = normalizeStatus(o.status);
-          if(ns !== o.status){ patch.status = ns; normedStatus++; }
-        }
-      }
-
-      if(FIX_RULES.ensureCreatedAt){
-        const ok = o.createdAt && (isTimestamp(o.createdAt) || typeof o.createdAt === "string" || typeof o.createdAt === "number");
-        if(!ok){ patch.createdAt = ts(); missingCreated++; }
-      }
-
-      if(FIX_RULES.ensurePhoneDigits){
-        const phone = o?.order?.phone || "";
-        const digs = digitsOnly(o?.order?.phoneDigits || phone);
-        if(digs && o?.order?.phoneDigits !== digs){
-          patch["order.phoneDigits"] = digs;
-          phoneFixed++;
-        }
-      }
-
-      if(FIX_RULES.ensureTotalsNumber){
-        const t = o?.totals?.total;
-        if(t != null && typeof t !== "number"){
-          const n = Number(t);
-          if(Number.isFinite(n)){ patch["totals.total"] = n; totalsFixed++; }
-        }
-      }
-
-      addFix(plan, o.__ref, o.__id, patch, "orders normalize fields");
-    }
-
-    plan.summary.push(
-      `Orders scanned: ${orders.length}`,
-      `• Missing status set: ${missingStatus}`,
-      `• Status normalized: ${normedStatus}`,
-      `• Missing createdAt set: ${missingCreated}`,
-      `• order.phoneDigits fixed: ${phoneFixed}`,
-      `• totals.total converted: ${totalsFixed}`
-    );
-  }
-
-  // SKILLS fixes
-  if(FIX_RULES.normalizeSkillTrigger){
-    const skills = await scanCollectionWithRefs(SKILLS, 500);
-    let trig=0;
-    for(const s of skills){
-      const patch = {};
-      if(typeof s.trigger === "string"){
-        const nt = normAlias(s.trigger);
-        if(nt !== s.trigger){ patch.trigger = nt; trig++; }
-      }
-      addFix(plan, s.__ref, s.__id, patch, "skills normalize trigger");
-    }
-    plan.summary.push(`Skills scanned: ${skills.length}`, `• Triggers normalized: ${trig}`);
-  }
-
-  // PRODUCT stock -> number
-  if(FIX_RULES.ensureProductStockNumber){
-    for(const col of [PRODUCTS.bracelets, PRODUCTS.cookies]){
-      const prods = await scanCollectionWithRefs(col, 500);
-      let stockFixed=0;
-      for(const p of prods){
-        const patch = {};
-        if(p.stock != null && typeof p.stock !== "number"){
-          const n = Number(p.stock);
-          if(Number.isFinite(n)){ patch.stock = n; stockFixed++; }
-        }
-        addFix(plan, p.__ref, p.__id, patch, `${col} stock -> number`);
-      }
-      plan.summary.push(`${col} scanned: ${prods.length}`, `• stock converted: ${stockFixed}`);
-    }
-  }
-
-  return plan;
-}
-async function applyFixPlan(plan){
-  const MAX_WRITES = 250; // safety cap
-  const fixes = plan.fixes.slice(0, MAX_WRITES);
-
-  let ok=0, fail=0;
-  const BATCH = 400;
-
-  for(let i=0;i<fixes.length;i+=BATCH){
-    const batch = db.batch();
-    const chunk = fixes.slice(i, i+BATCH);
-    for(const f of chunk) batch.update(f.ref, f.patch);
-
-    try{
-      await batch.commit();
-      ok += chunk.length;
-    }catch(e){
-      for(const f of chunk){
-        try{ await f.ref.update(f.patch); ok++; }
-        catch(err){ fail++; }
-      }
-    }
-  }
-  return { ok, fail, total: fixes.length };
-}
-
-/* =========================
-   BULK IMPORT (aliases + skills)
-========================= */
-const bulk = { waiting:false, parsed:null };
-
-function parseBulkBlock(text){
-  const lines = String(text||"")
-    .split(/\r?\n/)
-    .map(l=>l.trim())
-    .filter(l=>l && !l.startsWith("#"));
-
-  const first = lines[0] || "";
-  if(first.includes("->")) return { mode:"SKILLS", items: parseSkills(lines) };
-  if(first.includes("="))  return { mode:"ALIASES", items: parseAliases(lines) };
-  return { mode:"UNKNOWN", items: [] };
-}
-function parseAliases(lines){
-  const out = [];
-  for(const l of lines){
-    const m = l.split("=");
-    if(m.length < 2) continue;
-    const alias = normAlias(m[0]);
-    const orderId = String(m.slice(1).join("=").trim());
-    if(alias && orderId) out.push({ alias, orderId });
-  }
-  return out;
-}
-function parseSkills(lines){
-  const out = [];
-  for(const l of lines){
-    const m = l.split("->");
-    if(m.length < 2) continue;
-    const trigger = normAlias(m[0]);
-    const action = String(m.slice(1).join("->").trim());
-    if(trigger && action) out.push({ trigger, action });
-  }
-  return out;
-}
-async function bulkWriteAliases(items){
-  const batch = db.batch();
-  const slice = items.slice(0, 400);
-  for(const it of slice){
-    const ref = db.collection(ALIASES).doc(it.alias);
-    batch.set(ref, { alias: it.alias, orderId: it.orderId, updatedAt: ts() }, { merge:true });
-  }
-  await batch.commit();
-  bustAliases();
-}
-async function bulkWriteSkills(items){
-  const batch = db.batch();
-  const slice = items.slice(0, 400);
-  for(const it of slice){
-    const ref = db.collection(SKILLS).doc();
-    batch.set(ref, { trigger: it.trigger, action: it.action, createdAt: ts() }, { merge:true });
-  }
-  await batch.commit();
-  bustSkills();
-}
-
-/* =========================
-   WORKFLOW + PRIORITY
-========================= */
+/* Priority / Next */
 function priorityScore(r){
   const s = normalizeStatus(r.status);
   const rush = !!(r.order && r.order.rush);
@@ -814,50 +521,14 @@ function pickNext(rows){
   return unfinished[0] || null;
 }
 
-/* =========================
-   MAIN STATE
-========================= */
-const state = {
-  lastOrderId: "",
-  awaitingLearnConfirm: null,
-  awaitingLearnAction: null,
-  learnTemp: null,
-  pendingFixPlan: null,
-};
-
-/* =========================
-   HELP
-========================= */
-function helpText(){
-  return [
-    "ADMIN BOT COMMANDS (FULL UPDATED)",
-    "",
-    "Core:",
-    "  NEXT | UNFINISHED | UNPAID | NEW | PENDING | DONE | TODAY | WEEK | MONTH | PRIORITY",
-    "  SHOW <idOrNickname> | SHOWALL <idOrNickname>",
-    "  DONE <idOrNickname> | SHIPPED <idOrNickname> | PAID <idOrNickname>",
-    "",
-    "Nicknames:",
-    "  NICK <id> <nickname>     (or: NICK <nickname> uses last shown order)",
-    "  ALIASES | UNNICK <nickname>",
-    "",
-    "Money / stats:",
-    "  MONTHLY GROSS | WEEKLY GROSS | TODAY GROSS",
-    "  TOTALS TODAY|WEEK|MONTH",
-    "",
-    "Database tools:",
-    "  DBSCAN",
-    "  SCANFIX   (plan)  →  SCANFIX CONFIRM (apply fixes safely)",
-    "",
-    "Learning:",
-    "  LISTSKILLS | FORGET <trigger>",
-    "",
-    "Bulk import:",
-    "  BULK  (then paste)",
-    "  BULK CONFIRM | BULK CANCEL",
-    "",
-    "Tip: You can type normal phrases like “mark john rush done” or “showall cookie lady”.",
-  ].join("\n");
+/* Safe delete (manager+) */
+const pendingDeletes = new Map();
+function armDelete(id){ pendingDeletes.set(id, Date.now()); }
+function canConfirmDelete(id){
+  const t = pendingDeletes.get(id);
+  if(!t) return false;
+  if(Date.now() - t > 60000){ pendingDeletes.delete(id); return false; }
+  return true;
 }
 
 /* =========================
@@ -868,303 +539,502 @@ function interpretNatural(text){
   const L = t.toLowerCase();
   const U = t.toUpperCase();
 
-  // learn flow
-  if(state.awaitingLearnConfirm){
-    if(["yes","y","yeah","yep","sure","ok"].includes(L)){
-      state.awaitingLearnAction = String(state.awaitingLearnConfirm).trim();
-      state.awaitingLearnConfirm = null;
-      return "__ASK_LEARN_ACTION__";
-    }
-    if(["no","n","nope","nah"].includes(L)){
-      state.awaitingLearnConfirm = null;
-      return "__LEARN_CANCEL__";
-    }
-  }
-  if(state.awaitingLearnAction){
-    state.learnTemp = { trigger: state.awaitingLearnAction, action: t };
-    state.awaitingLearnAction = null;
-    return "__SAVE_SKILL__";
-  }
+  if(U === "?" ) return "HELP";
+  if(U.startsWith("LOGIN ") || U.startsWith("NEWBIZ ") || U.startsWith("LOGOUT") ) return t;
+  if(U === "WHOAMI") return "WHOAMI";
 
-  if(L === "help" || L === "?") return "HELP";
+  if(L.includes("monthly") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE MONTH";
+  if(L.includes("weekly") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE WEEK";
+  if(L.includes("today") && (L.includes("gross") || L.includes("revenue"))) return "REVENUE TODAY";
 
-  if(L.includes("dbscan") || (L.includes("scan") && (L.includes("firebase") || L.includes("database")))) return "DBSCAN";
-  if(L.includes("scanfix") || (L.includes("scan") && L.includes("fix"))){
-    if(L.includes("confirm")) return "SCANFIX CONFIRM";
-    return "SCANFIX";
-  }
+  if(L.startsWith("showall ")) return "SHOWALL " + clean(t.slice(8));
+  if(L.startsWith("show ")) return "SHOWALL " + clean(t.slice(5));
 
-  if(L.startsWith("bulk confirm")) return "BULK CONFIRM";
-  if(L.startsWith("bulk cancel")) return "BULK CANCEL";
-  if(L === "bulk") return "BULK";
-
-  if(L === "monthly gross" || (L.includes("monthly") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE MONTH";
-  if(L === "weekly gross" || (L.includes("weekly") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE WEEK";
-  if(L === "today gross" || (L.includes("today") && (L.includes("gross") || L.includes("revenue")))) return "REVENUE TODAY";
-
-  if(L.startsWith("totals ")){
-    const r = upper(L.split(/\s+/)[1]||"MONTH");
-    return `TOTALS ${r}`;
-  }
-
-  if(L.includes("what's next") || L.includes("whats next") || L === "next") return "NEXT";
-  if(L.includes("priority")) return "PRIORITY";
+  if(L.includes("next")) return "NEXT";
   if(L.includes("unfinished")) return "UNFINISHED";
   if(L.includes("unpaid")) return "UNPAID";
-
-  if(L.startsWith("nick ")) return "NICK " + t.slice(5);
-  if(L.startsWith("aliases")) return "ALIASES";
-  if(L.startsWith("unnick ")) return "UNNICK " + t.slice(7);
-
-  if(L.startsWith("showall ")){ return "SHOWALL " + clean(t.slice(8)); }
-  if(L.startsWith("show ")){ return "SHOW " + clean(t.slice(5)); }
+  if(L.includes("priority")) return "PRIORITY";
 
   if(L.includes("mark") && (L.includes("done") || L.includes("complete"))){
     const rest = L.replace("mark","").replace("as","").replace("done","").replace("complete","").replace("completed","").trim();
-    const idOrNick = rest || state.lastOrderId;
-    return "DONE " + idOrNick;
-  }
-  if(L.includes("shipped") || (L.includes("mark") && L.includes("ship"))){
-    const rest = L.replace("mark","").replace("as","").replace("shipped","").replace("ship","").trim();
-    const idOrNick = rest || state.lastOrderId;
-    return "SHIPPED " + idOrNick;
-  }
-  if(L.includes("paid") && L.includes("mark")){
-    const rest = L.replace("mark","").replace("as","").replace("paid","").trim();
-    const idOrNick = rest || state.lastOrderId;
-    return "PAID " + idOrNick;
+    return "DONE " + (rest || "");
   }
 
-  // phone => BYPHONE
+  if(L.startsWith("delete ")){
+    return "DELETE " + clean(t.slice(7));
+  }
+
   const digs = digitsOnly(t);
   if(digs.length >= 7) return "BYPHONE " + digs;
 
-  // default: FIND
-  return "FIND " + t;
+  return t; // let command handler try
 }
 
 /* =========================
-   COMMAND EXECUTOR
+   HELP
+========================= */
+function helpText(){
+  return [
+    "MULTI-BUSINESS ADMIN (FULL)",
+    "",
+    "Create business (auto 5-digit code):",
+    "  NEWBIZ <businessName...> <ownerPassword>",
+    "  (creates owner username = owner)",
+    "",
+    "Login / session:",
+    "  LOGIN <bizCode5> <username> <password>",
+    "  WHOAMI | LOGOUT",
+    "",
+    "Users (Owner/Manager controls):",
+    "  ADDCO <username> <password> staff|manager   (manager+)",
+    "  LISTUSERS (manager+)",
+    "  RENAMEUSER <old> <new> (manager+)",
+    "  SETROLE <username> staff|manager (owner only)",
+    "  DISABLEUSER <username> (manager+)",
+    "  ENABLEUSER <username> (manager+)",
+    "",
+    "Orders (scoped to business):",
+    "  NEXT | PRIORITY | UNFINISHED | UNPAID | TODAY | WEEK | MONTH",
+    "  SHOWALL <idOrNickname>",
+    "  NICK <idOrNickname> <nickname>",
+    "  ALIASES | UNNICK <nickname>",
+    "  CLAIM <idOrNick> | MYQUEUE | UNCLAIM <idOrNick>",
+    "  NOTE <idOrNick> <text...>",
+    "  DONE <idOrNick> | PAID <idOrNick> | SHIPPED <idOrNick>",
+    "  DELETE <idOrNick>   (manager+, arms 60s)",
+    "  DELETE <idOrNick> CONFIRM",
+    "",
+    "Money:",
+    "  REVENUE TODAY|WEEK|MONTH",
+    "  TOTALS TODAY|WEEK|MONTH",
+    "",
+    "Learn triggers (per business):",
+    "  LEARN  (asks trigger then action; saved in Firestore)",
+    "  LISTSKILLS | FORGET <trigger>",
+  ].join("\n");
+}
+
+/* =========================
+   MAIN STATE (learn flow)
+========================= */
+const state = {
+  lastOrderId: "",
+  learnMode: null,     // null | "awaitTrigger" | "awaitAction"
+  learnTrigger: ""
+};
+
+/* =========================
+   COMMAND HANDLER
 ========================= */
 async function handleCommand(raw){
   const text = clean(raw);
   const U = upper(text);
   if(!text) return;
 
-  // learn system internal commands
-  if(U === "__ASK_LEARN_ACTION__"){
-    setStatus("");
-    addMsg(
-      "I can learn that.\n\n" +
-      "What should I do when you say that?\n\n" +
-      "Examples actions:\n" +
-      "• NEXT\n• UNPAID\n• SHOWALL <id>\n• REVENUE MONTH\n• DBSCAN\n• SCANFIX\n\n" +
-      "Now type the action exactly how you want it saved.",
-      "bot"
-    );
+  // LEARN capture
+  if(state.learnMode === "awaitTrigger"){
+    requireLogin();
+    state.learnTrigger = clean(raw);
+    state.learnMode = "awaitAction";
+    addMsg(`Trigger saved:\n"${state.learnTrigger}"\n\nNow type the ACTION command to run.`, "bot");
+    setChips(["CANCEL LEARN","HELP"]);
     return;
   }
-  if(U === "__LEARN_CANCEL__"){
-    setStatus("");
-    addMsg("Okay — I won’t learn that.", "bot");
-    return;
-  }
-  if(U === "__SAVE_SKILL__"){
-    const tgr = state.learnTemp?.trigger;
-    const act = state.learnTemp?.action;
-    if(tgr && act){
-      await saveSkill(tgr, act);
-      state.learnTemp = null;
-      setStatus("");
-      addMsg(`✅ Learned:\n"${normAlias(tgr)}" → ${act}`, "bot");
-      setChips(["LISTSKILLS","HELP"]);
-      return;
-    }
-    setStatus("");
-    addMsg("Couldn’t save that. Try again.", "bot");
+  if(state.learnMode === "awaitAction"){
+    requireLogin();
+    const action = clean(raw);
+    await saveSkill(state.learnTrigger, action);
+    await logAction("learn_skill", { trigger: normAlias(state.learnTrigger), action });
+    addMsg(`✅ Learned (saved in Firestore):\n"${normAlias(state.learnTrigger)}" → ${action}`, "bot");
+    state.learnMode = null;
+    state.learnTrigger = "";
+    setChips(["LISTSKILLS","HELP","NEXT"]);
     return;
   }
 
-  // BULK flow
-  if(U === "BULK"){
-    bulk.waiting = true;
-    bulk.parsed = null;
-    setStatus("");
-    addMsg(
-      "BULK IMPORT MODE\n\nPaste a block next.\n\nAliases format:\n  john rush = AbCdEf123\n\nSkills format:\n  monthly gross -> REVENUE MONTH\n\nAfter paste: BULK CONFIRM or BULK CANCEL",
-      "bot"
-    );
-    setChips(["BULK CANCEL","HELP"]);
-    return;
-  }
-  if(U === "BULK CANCEL"){
-    bulk.waiting = false;
-    bulk.parsed = null;
-    setStatus("");
-    addMsg("Bulk import cancelled.", "bot");
-    setChips(["HELP","NEXT","UNPAID"]);
-    return;
-  }
-  if(U === "BULK CONFIRM"){
-    if(!bulk.parsed || !bulk.parsed.items?.length){
-      setStatus("");
-      addMsg("No bulk data to import. Type BULK then paste your block first.", "bot");
-      return;
-    }
-    setStatus("Importing…");
-    try{
-      if(bulk.parsed.mode === "ALIASES"){
-        await bulkWriteAliases(bulk.parsed.items);
-        setStatus("");
-        addMsg(`✅ Imported ${bulk.parsed.items.length} nickname(s).`, "bot");
-        setChips(["ALIASES","HELP"]);
-      }else if(bulk.parsed.mode === "SKILLS"){
-        await bulkWriteSkills(bulk.parsed.items);
-        setStatus("");
-        addMsg(`✅ Imported ${bulk.parsed.items.length} learned command(s).`, "bot");
-        setChips(["LISTSKILLS","HELP"]);
-      }else{
-        setStatus("");
-        addMsg("I couldn’t detect the bulk type. Use '=' for aliases or '->' for skills.", "bot");
-        setChips(["BULK","HELP"]);
-      }
-      bulk.parsed = null;
-    }catch(e){
-      setStatus("");
-      addMsg("Bulk import failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-
-  // HELP
+  // HELP works even logged out
   if(U === "HELP"){
     setStatus("");
     addMsg(helpText(), "bot");
-    setChips(["NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS"]);
+    setChips(["NEWBIZ MyBiz mypass","LOGIN 00000 owner pass","WHOAMI","LISTUSERS","NEXT","UNPAID","UNFINISHED"]);
     return;
   }
 
-  // LISTSKILLS / FORGET
-  if(U === "LISTSKILLS"){
-    const skills = await ensureSkillsFresh();
+  // NEWBIZ <name...> <ownerPassword>
+  if(U.startsWith("NEWBIZ ")){
+    const parts = text.split(/\s+/);
+    if(parts.length < 3){
+      addMsg("Usage: NEWBIZ <businessName...> <ownerPassword>", "bot");
+      return;
+    }
+    const ownerPassword = parts.pop();
+    const businessName = parts.slice(1).join(" ").trim();
+
+    setStatus("Working…");
+    const biz = await makeUniqueBizCode5();
+    const ownerId = newUserId();
+    const passHash = await sha256Hex(ownerPassword);
+
+    await db.collection(BUSINESSES).doc(biz).set({
+      businessCode: biz,
+      businessName,
+      createdAt: ts(),
+      updatedAt: ts(),
+      codeLocked: true
+    }, { merge:true });
+
+    await db.collection(BUSINESSES).doc(biz).collection("users").doc(ownerId).set({
+      userId: ownerId,
+      username: "owner",
+      passHash,
+      role: "owner",
+      active: true,
+      createdAt: ts(),
+      updatedAt: ts()
+    }, { merge:true });
+
+    session.biz = biz;
+    session.userId = ownerId;
+    session.username = "owner";
+    session.role = "owner";
+    session.loggedIn = true;
+
     setStatus("");
-    if(!skills.length){ addMsg("No learned commands yet.", "bot"); return; }
-    addMsg(
-      `Learned commands (showing ${Math.min(80,skills.length)}):\n` +
-      skills.slice(0,80).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n"),
-      "bot"
-    );
-    setChips(["HELP","BULK"]);
+    addMsg(`✅ Business created!`, "bot");
+    addMsg(`Business code (never changes): ${biz}`, "bot");
+    addMsg(`Logged in as: owner (admin can rename users)`, "bot");
+    setChips(["WHOAMI","LISTUSERS","ADDCO jen pass123 staff","NEXT","HELP"]);
+    await logAction("create_business", { biz, businessName });
+    return;
+  }
+
+  // LOGIN <bizCode5> <username> <password>
+  if(U.startsWith("LOGIN ")){
+    const parts = text.split(/\s+/);
+    const biz = (parts[1]||"").trim();
+    const username = (parts[2]||"").trim().toLowerCase();
+    const password = parts.slice(3).join(" ");
+
+    if(!/^\d{5}$/.test(biz)){
+      addMsg("Business code must be 5 digits. Example: LOGIN 48392 owner pass", "bot");
+      return;
+    }
+    if(!username || !password){
+      addMsg("Usage: LOGIN <bizCode5> <username> <password>", "bot");
+      return;
+    }
+
+    setStatus("Working…");
+    const q = await db.collection(BUSINESSES).doc(biz).collection("users")
+      .where("username","==",username).limit(1).get();
+
+    if(q.empty){
+      setStatus("");
+      addMsg("Login failed.", "bot");
+      return;
+    }
+
+    const doc = q.docs[0];
+    const user = doc.data();
+    if(user.active === false){
+      setStatus("");
+      addMsg("Login failed (disabled).", "bot");
+      return;
+    }
+
+    const entered = await sha256Hex(password);
+    if(String(user.passHash||"") !== entered){
+      setStatus("");
+      addMsg("Login failed (wrong password).", "bot");
+      return;
+    }
+
+    session.biz = biz;
+    session.userId = user.userId || doc.id;
+    session.username = user.username || username;
+    session.role = user.role || "staff";
+    session.loggedIn = true;
+
+    bustOrders();
+
+    setStatus("");
+    addMsg(`✅ Logged in to ${biz} as ${session.username} (${session.role})`, "bot");
+    setChips(["WHOAMI","NEXT","UNPAID","UNFINISHED","HELP"]);
+    await logAction("login", {});
+    return;
+  }
+
+  if(U === "LOGOUT"){
+    if(session.loggedIn) await logAction("logout", {});
+    session.biz=""; session.userId=""; session.username=""; session.role=""; session.loggedIn=false;
+    state.lastOrderId = "";
+    bustOrders();
+    setStatus("");
+    addMsg("✅ Logged out.", "bot");
+    setChips(["HELP","NEWBIZ MyBiz mypass","LOGIN 00000 owner pass"]);
+    return;
+  }
+
+  if(U === "WHOAMI"){
+    requireLogin();
+    addMsg(`Business: ${session.biz}\nUser: ${session.username}\nRole: ${session.role}`, "bot");
+    return;
+  }
+
+  /* Everything below needs login */
+  requireLogin();
+
+  // Learned triggers first (more specific wins)
+  if(U !== "LEARN" && U !== "LISTSKILLS" && !U.startsWith("FORGET ")){
+    try{
+      const skills = await loadSkills(900);
+      const L = lower(text);
+      const scored = skills
+        .map(s=>{
+          const trig = String(s.trigger||"").toLowerCase().trim();
+          if(!trig) return null;
+          let score = 0;
+          if(L === trig) score = 300;
+          else if(L.startsWith(trig)) score = 200;
+          else if(L.includes(trig)) score = 100;
+          if(!score) return null;
+          score += Math.min(50, trig.length);
+          return { s, score };
+        })
+        .filter(Boolean)
+        .sort((a,b)=>b.score - a.score);
+      if(scored.length){
+        await handleCommand(String(scored[0].s.action||""));
+        return;
+      }
+    }catch{}
+  }
+
+  // LEARN / skills
+  if(U === "LEARN"){
+    state.learnMode = "awaitTrigger";
+    state.learnTrigger = "";
+    addMsg('Alright. What phrase do you want me to learn? (example: "monthly gross")', "bot");
+    setChips(["CANCEL LEARN","HELP"]);
+    return;
+  }
+  if(U === "CANCEL LEARN"){
+    state.learnMode = null;
+    state.learnTrigger = "";
+    addMsg("Learn cancelled.", "bot");
+    setChips(["HELP","NEXT","UNPAID"]);
+    return;
+  }
+  if(U === "LISTSKILLS"){
+    const skills = await loadSkills(200);
+    if(!skills.length){ addMsg("No learned commands yet. Type LEARN.", "bot"); return; }
+    addMsg("Learned triggers:\n" + skills.map(s=>`• "${s.trigger}" → ${s.action}`).join("\n"), "bot");
+    setChips(["LEARN","FORGET monthly gross","HELP"]);
     return;
   }
   if(U.startsWith("FORGET ")){
-    const trig = clean(text.slice(7));
-    if(!trig){ setStatus(""); addMsg("Usage: FORGET <trigger>", "bot"); return; }
-    await deleteSkillByTrigger(trig);
-    setStatus("");
-    addMsg(`🧽 Forgot trigger: "${normAlias(trig)}"`, "bot");
-    setChips(["LISTSKILLS","HELP"]);
+    const trg = clean(text.slice(7));
+    if(!trg){ addMsg("Usage: FORGET <trigger>", "bot"); return; }
+    requireRole("manager");
+    await forgetSkill(trg);
+    await logAction("forget_skill", { trigger: normAlias(trg) });
+    addMsg(`🧽 Forgot trigger: "${normAlias(trg)}"`, "bot");
     return;
   }
 
-  // ALIASES / UNNICK / NICK
-  if(U === "ALIASES"){
-    const a = await listAliases(200);
-    setStatus("");
-    if(!a.length){ addMsg("No nicknames yet. Use: NICK <id> <name>", "bot"); return; }
-    addMsg("Nicknames:\n" + a.slice(0,200).map(x=>`• "${x.alias}" → ${x.orderId}`).join("\n"), "bot");
-    setChips(["HELP","NEXT"]);
-    return;
-  }
-  if(U.startsWith("UNNICK ")){
-    const aliasText = clean(text.slice(7));
-    if(!aliasText){ setStatus(""); addMsg("Usage: UNNICK <nickname>", "bot"); return; }
-    await deleteAlias(aliasText);
-    setStatus("");
-    addMsg(`🧽 Removed nickname: "${normAlias(aliasText)}"`, "bot");
-    setChips(["ALIASES","HELP"]);
-    return;
-  }
-  if(U.startsWith("NICK ")){
-    // NICK <id> <nickname...> OR NICK <nickname...> uses last
+  // Users: add coworker (manager+)
+  if(U.startsWith("ADDCO ")){
+    requireRole("manager");
     const parts = text.split(/\s+/);
-    const maybeId = parts[1] || "";
-    let id = "";
-    let aliasText = "";
+    const username = (parts[1]||"").toLowerCase().trim();
+    const password = parts[2] || "";
+    const role = (parts[3]||"staff").toLowerCase();
 
-    if(looksLikeId(maybeId)){
-      id = maybeId;
-      aliasText = parts.slice(2).join(" ");
-    }else{
-      id = state.lastOrderId;
-      aliasText = parts.slice(1).join(" ");
-    }
-
-    id = await resolveOrderId(id);
-    if(!id){ setStatus(""); addMsg("NICK needs an order (use NEXT or SHOW first, or include id).", "bot"); return; }
-    if(!clean(aliasText)){ setStatus(""); addMsg("NICK needs a nickname. Example: NICK john rush", "bot"); return; }
-
-    await setAlias(aliasText, id);
-    setStatus("");
-    addMsg(`✅ Saved nickname:\n"${normAlias(aliasText)}" → ${id}`, "bot");
-    setChips([`SHOWALL ${normAlias(aliasText)}`, `DONE ${normAlias(aliasText)}`, `SHIPPED ${normAlias(aliasText)}`, "ALIASES"]);
-    return;
-  }
-
-  // DBSCAN
-  if(U === "DBSCAN"){
-    setStatus("Scanning database…");
-    try{
-      const report = await dbScanAll();
-      setStatus("");
-      addMsg(report, "bot");
-      setChips(["SCANFIX","HELP"]);
-    }catch(e){
-      setStatus("");
-      addMsg("DBSCAN failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-
-  // SCANFIX
-  if(U === "SCANFIX"){
-    setStatus("Scanning + building fix plan…");
-    try{
-      const plan = await buildFixPlan();
-      state.pendingFixPlan = plan;
-      setStatus("");
-      addMsg(
-        "SCANFIX REPORT\n" +
-        plan.summary.join("\n") + "\n\n" +
-        `Fixes queued: ${plan.fixes.length}\n` +
-        (plan.fixes.length ? "Type: SCANFIX CONFIRM to apply (safe capped)." : "No fixes needed 🎉"),
-        "bot"
-      );
-      setChips(["SCANFIX CONFIRM","DBSCAN","HELP"]);
-    }catch(e){
-      setStatus("");
-      addMsg("SCANFIX failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-  if(U === "SCANFIX CONFIRM"){
-    if(!state.pendingFixPlan || !state.pendingFixPlan.fixes.length){
-      setStatus("");
-      addMsg("No pending fix plan. Run SCANFIX first.", "bot");
+    if(!username || !password){
+      addMsg("Usage: ADDCO <username> <password> staff|manager", "bot");
       return;
     }
-    setStatus("Applying fixes…");
-    try{
-      const res = await applyFixPlan(state.pendingFixPlan);
-      state.pendingFixPlan = null;
-      bustOrders(); bustSkills(); bustAliases();
-      setStatus("");
-      addMsg(`✅ Applied fixes: ${res.ok}/${res.total}\nFailed: ${res.fail}`, "bot");
-      setChips(["DBSCAN","HELP"]);
-    }catch(e){
-      setStatus("");
-      addMsg("Apply failed: " + (e?.message || String(e)), "bot");
+    if(!/^[a-z0-9_]{3,20}$/.test(username)){
+      addMsg("Username must be 3-20 chars: letters, numbers, underscore.", "bot");
+      return;
     }
+    if(!["staff","manager"].includes(role)){
+      addMsg("Role must be staff or manager (owner is only created by system).", "bot");
+      return;
+    }
+
+    // username must be unique in this business
+    const taken = await usersCol().where("username","==",username).limit(1).get();
+    if(!taken.empty){
+      addMsg("That username is already taken.", "bot");
+      return;
+    }
+
+    const userId = newUserId();
+    const passHash = await sha256Hex(password);
+    await usersCol().doc(userId).set({
+      userId,
+      username,
+      passHash,
+      role,
+      active:true,
+      createdAt: ts(),
+      updatedAt: ts()
+    }, { merge:true });
+
+    await logAction("add_user", { username, role, userId });
+    addMsg(`✅ Added user: ${username} (${role})`, "bot");
+    setChips(["LISTUSERS","HELP"]);
+    return;
+  }
+
+  if(U === "LISTUSERS"){
+    requireRole("manager");
+    const snap = await usersCol().limit(200).get();
+    const users = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+      .sort((a,b)=>String(a.username||"").localeCompare(String(b.username||"")));
+    if(!users.length){ addMsg("No users.", "bot"); return; }
+    addMsg("Users:\n" + users.map(u=>`• ${u.username} | ${u.role} | ${u.active===false?"inactive":"active"}`).join("\n"), "bot");
+    setChips(["RENAMEUSER jen jen2","DISABLEUSER jen","ENABLEUSER jen","HELP"]);
+    return;
+  }
+
+  if(U.startsWith("RENAMEUSER ")){
+    requireRole("manager");
+    const parts = text.split(/\s+/);
+    const oldName = (parts[1]||"").toLowerCase().trim();
+    const newName = (parts[2]||"").toLowerCase().trim();
+
+    if(!oldName || !newName){
+      addMsg("Usage: RENAMEUSER <oldUsername> <newUsername>", "bot");
+      return;
+    }
+    if(!/^[a-z0-9_]{3,20}$/.test(newName)){
+      addMsg("New username must be 3-20 chars: letters, numbers, underscore.", "bot");
+      return;
+    }
+
+    const qOld = await usersCol().where("username","==",oldName).limit(1).get();
+    if(qOld.empty){ addMsg("User not found: " + oldName, "bot"); return; }
+    const targetRef = qOld.docs[0].ref;
+    const target = qOld.docs[0].data();
+
+    // managers can't rename owner
+    if(String(target.role) === "owner" && session.role !== "owner"){
+      addMsg("Only owner can rename the owner account.", "bot");
+      return;
+    }
+
+    const qNew = await usersCol().where("username","==",newName).limit(1).get();
+    if(!qNew.empty){ addMsg("That username is already taken.", "bot"); return; }
+
+    await targetRef.set({ username:newName, updatedAt: ts() }, { merge:true });
+    await logAction("rename_user", { from: oldName, to: newName });
+
+    addMsg(`✅ Renamed "${oldName}" → "${newName}"`, "bot");
+    return;
+  }
+
+  if(U.startsWith("SETROLE ")){
+    requireRole("owner");
+    const parts = text.split(/\s+/);
+    const username = (parts[1]||"").toLowerCase().trim();
+    const newRole = (parts[2]||"").toLowerCase().trim();
+
+    if(!username || !["staff","manager"].includes(newRole)){
+      addMsg("Usage: SETROLE <username> staff|manager", "bot");
+      return;
+    }
+
+    const q = await usersCol().where("username","==",username).limit(1).get();
+    if(q.empty){ addMsg("User not found.", "bot"); return; }
+    const doc = q.docs[0];
+    const user = doc.data();
+
+    if(String(user.role) === "owner"){
+      addMsg("Owner role cannot be changed.", "bot");
+      return;
+    }
+
+    await doc.ref.set({ role:newRole, updatedAt: ts() }, { merge:true });
+    await logAction("set_role", { username, newRole });
+
+    addMsg(`✅ Role updated: ${username} → ${newRole}`, "bot");
+    return;
+  }
+
+  if(U.startsWith("DISABLEUSER ")){
+    requireRole("manager");
+    const username = clean(text.slice(12)).toLowerCase();
+
+    if(!username){ addMsg("Usage: DISABLEUSER <username>", "bot"); return; }
+
+    const q = await usersCol().where("username","==",username).limit(1).get();
+    if(q.empty){ addMsg("User not found.", "bot"); return; }
+    const doc = q.docs[0];
+    const user = doc.data();
+
+    if(String(user.role) === "owner"){
+      addMsg("Owner cannot be disabled.", "bot");
+      return;
+    }
+
+    await doc.ref.set({ active:false, updatedAt: ts() }, { merge:true });
+    await logAction("disable_user", { username });
+
+    addMsg(`✅ Disabled: ${username}`, "bot");
+    return;
+  }
+
+  if(U.startsWith("ENABLEUSER ")){
+    requireRole("manager");
+    const username = clean(text.slice(11)).toLowerCase();
+
+    if(!username){ addMsg("Usage: ENABLEUSER <username>", "bot"); return; }
+
+    const q = await usersCol().where("username","==",username).limit(1).get();
+    if(q.empty){ addMsg("User not found.", "bot"); return; }
+    const doc = q.docs[0];
+
+    await doc.ref.set({ active:true, updatedAt: ts() }, { merge:true });
+    await logAction("enable_user", { username });
+
+    addMsg(`✅ Enabled: ${username}`, "bot");
+    return;
+  }
+
+  // Aliases
+  if(U.startsWith("NICK ")){
+    const rest = text.slice(5);
+    const parts = rest.split(/\s+/);
+    const tok = parts[0] || state.lastOrderId;
+    const aliasText = parts.slice(1).join(" ");
+
+    const id = await resolveOrderId(tok || state.lastOrderId);
+    if(!id){ addMsg("NICK needs an order id/nickname (use NEXT/SHOWALL first).", "bot"); return; }
+    if(!clean(aliasText)){ addMsg("Usage: NICK <idOrNickname> <newNickname>", "bot"); return; }
+
+    await setAlias(aliasText, id);
+    await logAction("set_alias", { alias: normAlias(aliasText), orderId: id });
+    addMsg(`✅ Nickname saved:\n"${normAlias(aliasText)}" → ${id}`, "bot");
+    setChips([`SHOWALL ${normAlias(aliasText)}`, `DONE ${normAlias(aliasText)}`, `DELETE ${normAlias(aliasText)}`]);
+    return;
+  }
+
+  if(U === "ALIASES"){
+    const snap = await aliasesCol().limit(200).get();
+    const a = snap.docs.map(d=>d.data()).sort((x,y)=>String(x.alias||"").localeCompare(String(y.alias||"")));
+    if(!a.length){ addMsg("No nicknames yet. Use NICK <id> <name>", "bot"); return; }
+    addMsg("Nicknames:\n" + a.map(x=>`• "${x.alias}" → ${x.orderId}`).join("\n"), "bot");
+    return;
+  }
+
+  if(U.startsWith("UNNICK ")){
+    const a = clean(text.slice(7));
+    if(!a){ addMsg("Usage: UNNICK <nickname>", "bot"); return; }
+    await delAlias(a);
+    await logAction("del_alias", { alias: normAlias(a) });
+    addMsg(`🧽 Removed nickname: "${normAlias(a)}"`, "bot");
     return;
   }
 
@@ -1176,11 +1046,10 @@ async function handleCommand(raw){
     const inRange = rows.filter(pred);
     const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
     const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
-    setStatus("");
     addMsg(`REVENUE ${range}\n${money(revenue)} (done orders only)`, "bot");
-    setChips(["REVENUE MONTH","REVENUE WEEK","TOTALS MONTH","HELP"]);
     return;
   }
+
   if(U.startsWith("TOTALS ")){
     const range = upper(text.split(/\s+/)[1]||"MONTH");
     const rows = await ensureOrdersFresh();
@@ -1188,15 +1057,13 @@ async function handleCommand(raw){
     const inRange = rows.filter(pred);
     const done = inRange.filter(r=>normalizeStatus(r.status)==="done");
     const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
-    setStatus("");
-    addMsg(`TOTALS ${range}\nOrders: ${inRange.length}\nDone: ${done.length}\nRevenue (done only): ${money(revenue)}`, "bot");
-    setChips(["TOTALS MONTH","TOTALS WEEK","REVENUE MONTH","HELP"]);
+    addMsg(`TOTALS ${range}\nOrders: ${inRange.length}\nDone: ${done.length}\nRevenue (done): ${money(revenue)}`, "bot");
     return;
   }
 
   // Lists
-  const listCmds = ["UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","PRIORITY"];
   const cmd0 = upper(text.split(/\s+/)[0]||"");
+  const listCmds = ["UNFINISHED","NEW","PENDING","UNPAID","DONE","TODAY","WEEK","MONTH","PRIORITY"];
   if(listCmds.includes(cmd0)){
     const rows = await ensureOrdersFresh();
     let out = rows.slice();
@@ -1222,9 +1089,8 @@ async function handleCommand(raw){
     }
 
     out = out.slice(0, 60);
-    setStatus("");
     addMsg(formatOrderList(out, cmd0), "bot");
-    setChips(["NEXT","UNPAID","UNFINISHED","PRIORITY","HELP","SHOWALL "+(state.lastOrderId||"")].filter(Boolean));
+    setChips(["NEXT","SHOWALL "+(out[0]?.id||""),"UNPAID","UNFINISHED","HELP"]);
     return;
   }
 
@@ -1232,63 +1098,132 @@ async function handleCommand(raw){
   if(U === "NEXT"){
     const rows = await ensureOrdersFresh();
     const next = pickNext(rows);
-    setStatus("");
     if(!next){ addMsg("NEXT: none found 🎉", "bot"); return; }
     state.lastOrderId = next.id;
     addMsg(orderCard(next.id, next), "bot");
-    setChips([`NICK ${next.id} `,`DONE ${next.id}`,`SHIPPED ${next.id}`,`PAID ${next.id}`,`SHOWALL ${next.id}`,"UNPAID","UNFINISHED","HELP"]);
+    setChips([`NICK ${next.id} `,`CLAIM ${next.id}`,`DONE ${next.id}`,`SHIPPED ${next.id}`,`PAID ${next.id}`,`DELETE ${next.id}`,`SHOWALL ${next.id}`,"UNPAID","UNFINISHED"]);
     return;
   }
 
-  // SHOW / SHOWALL
+  // SHOWALL
   if(U.startsWith("SHOWALL ")){
     const token = clean(text.slice(8)) || state.lastOrderId;
     const id = await resolveOrderId(token);
-    if(!id){ setStatus(""); addMsg("SHOWALL needs an id or nickname.", "bot"); return; }
-    const snap = await db.collection(ORDERS).doc(id).get();
-    setStatus("");
+    if(!id){ addMsg("SHOWALL needs an id or nickname.", "bot"); return; }
+    const snap = await ordersCol().doc(id).get();
     if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
-    const data = snap.data();
     state.lastOrderId = id;
-    addMsg(orderCard(id, data), "bot");
-    setChips([`NICK ${id} `,`DONE ${token||id}`,`SHIPPED ${token||id}`,`PAID ${token||id}`,"NEXT","HELP"]);
+    addMsg(orderCard(id, snap.data()), "bot");
+    setChips([`NICK ${id} `,`CLAIM ${token}`,`DONE ${token}`,`SHIPPED ${token}`,`PAID ${token}`,`DELETE ${token}`,"MYQUEUE","NEXT"]);
     return;
   }
 
-  if(U.startsWith("SHOW ")){
-    // SHOW uses same full details now (so you always see everything)
-    const token = clean(text.slice(5)) || state.lastOrderId;
+  // CLAIM / MYQUEUE / UNCLAIM
+  if(U.startsWith("CLAIM ")){
+    requireRole("staff");
+    const token = clean(text.slice(6)) || state.lastOrderId;
     const id = await resolveOrderId(token);
-    if(!id){ setStatus(""); addMsg("SHOW needs an id or nickname.", "bot"); return; }
-    const snap = await db.collection(ORDERS).doc(id).get();
-    setStatus("");
-    if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
-    const data = snap.data();
-    state.lastOrderId = id;
-    addMsg(orderCard(id, data), "bot");
-    setChips([`NICK ${id} `,`DONE ${token||id}`,`SHIPPED ${token||id}`,`PAID ${token||id}`,"NEXT","HELP"]);
+    if(!id){ addMsg("CLAIM needs an id/nickname.", "bot"); return; }
+    await ordersCol().doc(id).set({ claimedBy: session.username, claimedAt: ts() }, { merge:true });
+    bustOrders();
+    await logAction("claim_order", { orderId:id });
+    addMsg(`✅ Claimed: ${id}`, "bot");
     return;
   }
 
-  // DONE / SHIPPED / PAID
+  if(U === "MYQUEUE"){
+    requireRole("staff");
+    const rows = await ensureOrdersFresh();
+    const mine = rows.filter(r=>String(r.claimedBy||"").toLowerCase() === session.username.toLowerCase())
+      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
+      .slice(0,80);
+    addMsg(formatOrderList(mine, "MYQUEUE"), "bot");
+    return;
+  }
+
+  if(U.startsWith("UNCLAIM ")){
+    requireRole("manager");
+    const token = clean(text.slice(8)) || state.lastOrderId;
+    const id = await resolveOrderId(token);
+    if(!id){ addMsg("UNCLAIM needs an id/nickname.", "bot"); return; }
+    await ordersCol().doc(id).set({ claimedBy: "", claimedAt: null }, { merge:true });
+    bustOrders();
+    await logAction("unclaim_order", { orderId:id });
+    addMsg(`✅ Unclaimed: ${id}`, "bot");
+    return;
+  }
+
+  // NOTE <idOrNick> <text...>
+  if(U.startsWith("NOTE ")){
+    requireRole("staff");
+    const rest = text.slice(5);
+    const parts = rest.split(/\s+/);
+    const token = parts[0] || state.lastOrderId;
+    const note = parts.slice(1).join(" ");
+
+    const id = await resolveOrderId(token);
+    if(!id || !note){
+      addMsg("Usage: NOTE <idOrNick> <text...>", "bot");
+      return;
+    }
+
+    await ordersCol().doc(id).set({ adminNote: note, adminNoteBy: session.username, adminNoteAt: ts() }, { merge:true });
+    bustOrders();
+    await logAction("note_order", { orderId:id });
+    addMsg(`✅ Note saved on ${id}`, "bot");
+    return;
+  }
+
+  // DONE / SHIPPED / PAID (staff+)
   if(U.startsWith("DONE ") || U.startsWith("SHIPPED ") || U.startsWith("PAID ")){
+    requireRole("staff");
     const parts = text.split(/\s+/);
     const verb = upper(parts[0]);
     const token = clean(parts.slice(1).join(" ")) || state.lastOrderId;
     const id = await resolveOrderId(token);
-    if(!id){ setStatus(""); addMsg(`${verb} needs an id or nickname (or use NEXT first).`, "bot"); return; }
+    if(!id){ addMsg(`${verb} needs an id/nickname (or use NEXT/SHOWALL).`, "bot"); return; }
 
     const patch = {};
     if(verb === "DONE"){ patch.status="done"; patch.doneAt=ts(); }
     if(verb === "SHIPPED"){ patch.shippedAt=ts(); }
     if(verb === "PAID"){ patch.paidAt=ts(); }
 
-    await db.collection(ORDERS).doc(id).set(patch, { merge:true });
+    await ordersCol().doc(id).set(patch, { merge:true });
     bustOrders();
-    setStatus("");
-    state.lastOrderId = id;
+    await logAction("update_order", { orderId:id, verb });
     addMsg(`✅ ${verb} set for ${id}`, "bot");
-    setChips([`SHOWALL ${id}`,"NEXT","UNPAID","HELP"]);
+    setChips([`SHOWALL ${id}`,"NEXT","MYQUEUE"]);
+    return;
+  }
+
+  // DELETE (manager+, safe confirm)
+  if(U.startsWith("DELETE")){
+    requireRole("manager");
+    const rest = clean(text.slice(6)).trim();
+    const parts = rest.split(/\s+/).filter(Boolean);
+    const token = parts[0] || state.lastOrderId;
+    const wantsConfirm = upper(parts.slice(1).join(" ")) === "CONFIRM";
+    const id = await resolveOrderId(token);
+
+    if(!id){ addMsg("DELETE needs an id/nickname (or use NEXT/SHOWALL).", "bot"); return; }
+
+    if(!wantsConfirm){
+      armDelete(id);
+      addMsg(`⚠️ Delete armed for 60 seconds.\nType: DELETE ${token} CONFIRM`, "bot");
+      setChips([`DELETE ${token} CONFIRM`, `SHOWALL ${token}`, "HELP"]);
+      return;
+    }
+
+    if(!canConfirmDelete(id)){
+      addMsg("Delete confirm expired (or not armed). Type DELETE <id> first.", "bot");
+      return;
+    }
+
+    await ordersCol().doc(id).delete();
+    bustOrders();
+    await logAction("delete_order", { orderId:id });
+    addMsg(`🗑️ Deleted order: ${id}`, "bot");
+    setChips(["NEXT","UNPAID","HELP"]);
     return;
   }
 
@@ -1297,84 +1232,27 @@ async function handleCommand(raw){
     const digs = digitsOnly(text.slice(8));
     const rows = await ensureOrdersFresh();
     const out = rows.filter(r=>{
-      const pd = digitsOnly(r?.order?.phoneDigits || "");
       const p = digitsOnly(r?.order?.phone || "");
-      return (pd && pd === digs) || (!pd && p === digs);
-    }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0, 120);
+      return p === digs;
+    }).sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a)).slice(0,120);
 
-    setStatus("");
     addMsg(formatOrderList(out, `BYPHONE ${digs}`), "bot");
-    setChips(["NEXT","UNFINISHED","HELP"]);
     return;
   }
 
-  // FIND
-  if(U.startsWith("FIND ")){
-    const q = lower(text.slice(5));
-    const rows = await ensureOrdersFresh();
-    const out = rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q))
-      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
-      .slice(0, 120);
-
-    setStatus("");
-    addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
-    setChips(["NEXT","UNFINISHED","HELP"]);
-    return;
-  }
-
-  // Not recognized: ask to learn
-  setStatus("");
-  addMsg("I didn’t recognize that.", "bot");
-  state.awaitingLearnConfirm = text;
-  addMsg(`Do you want me to learn this as a new command?\n"${text}"\nReply yes or no.`, "bot");
+  // Unknown fallback
+  addMsg("I didn’t recognize that. Type HELP.", "bot");
+  setChips(["HELP","NEXT","UNPAID","UNFINISHED","WHOAMI"]);
 }
 
 /* =========================
    CHAT WRAPPER
-   - handles bulk paste
-   - checks learned triggers first
 ========================= */
 async function handleChat(raw){
   const text = clean(raw);
   if(!text) return;
 
-  // BULK paste capture
-  if(bulk.waiting){
-    bulk.waiting = false;
-    const parsed = parseBulkBlock(raw);
-    bulk.parsed = parsed;
-
-    const n = parsed.items.length;
-    const preview = parsed.mode === "ALIASES"
-      ? parsed.items.slice(0,10).map(x=>`• "${x.alias}" → ${x.orderId}`).join("\n")
-      : parsed.mode === "SKILLS"
-        ? parsed.items.slice(0,10).map(x=>`• "${x.trigger}" → ${x.action}`).join("\n")
-        : "(unknown format)";
-
-    addMsg(
-      `BULK PREVIEW (${parsed.mode})\nItems found: ${n}\n\n${preview}\n\nType: BULK CONFIRM to import\nor: BULK CANCEL`,
-      "bot"
-    );
-    setChips(["BULK CONFIRM","BULK CANCEL"]);
-    return;
-  }
-
-  // Learned triggers first (simple includes match)
-  try{
-    const skills = await ensureSkillsFresh();
-    const L = lower(text);
-    for(const s of skills){
-      const trig = String(s.trigger||"").toLowerCase();
-      if(trig && L.includes(trig)){
-        await handleCommand(String(s.action||""));
-        return;
-      }
-    }
-  }catch(e){
-    // ignore
-  }
-
-  // Interpret natural -> command
+  // natural -> command
   const cmd = interpretNatural(text);
   await handleCommand(cmd);
 }
@@ -1394,12 +1272,10 @@ async function send(){
   }catch(err){
     console.error(err);
     setStatus("⚠️ " + (err?.message || String(err)));
-    addMsg("⚠️ Something broke. Try HELP.", "bot");
-    setChips(["HELP","NEXT","UNPAID"]);
+    addMsg("⚠️ Error. Try HELP.", "bot");
+    setChips(["HELP","WHOAMI","LOGIN 00000 owner pass","NEWBIZ MyBiz pass"]);
   }
 }
-
-/* Events */
 document.getElementById("sendBtn").addEventListener("click", send);
 input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") send(); });
 
@@ -1407,35 +1283,30 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   chat.innerHTML = "";
   setStatus("");
   state.lastOrderId = "";
-  state.awaitingLearnConfirm = null;
-  state.awaitingLearnAction = null;
-  state.learnTemp = null;
-  state.pendingFixPlan = null;
-  bulk.waiting = false;
-  bulk.parsed = null;
-
-  setChips(["HELP","NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS"]);
-  addMsg("Reset ✅\nTry: NEXT, showall <nickname>, unpaid, bulk", "bot");
+  state.learnMode = null;
+  state.learnTrigger = "";
+  addMsg("Reset ✅\nTry: HELP", "bot");
+  setChips(["HELP","NEWBIZ MyBiz mypass","LOGIN 00000 owner pass"]);
 });
 
 /* Boot */
 (function init(){
-  setChips(["HELP","NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","SHOWALL","DBSCAN","SCANFIX","BULK","ALIASES","LISTSKILLS","PRIORITY"]);
   addMsg(
 `Howdy 🤠
-This admin bot shows EVERYTHING stored on an order.
 
-Try:
-• NEXT
-• showall <id or nickname>
-• nick john rush
-• aliases
-• bulk
-• monthly gross
-• dbscan
-• scanfix`,
+This is a FULL multi-business admin:
+• Each business gets an auto 5-digit code (never changes)
+• Owner can do everything
+• Manager controls staff + dangerous stuff (delete)
+• Staff can work orders (claim/done/paid/shipped/note)
+
+Start:
+1) NEWBIZ TacticsTreats mypass
+2) It will give you a 5-digit business code
+3) LOGIN <code> owner mypass`,
   "bot"
   );
+  setChips(["HELP","NEWBIZ TacticsTreats mypass","LOGIN 00000 owner pass","WHOAMI"]);
   setStatus("✅ Ready");
 })();
 </script>
