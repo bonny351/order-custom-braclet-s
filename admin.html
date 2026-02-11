@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tactics & Treats – Smart Admin Bot</title>
+<title>Tactics & Treats – Smart Admin Bot (Full Updated)</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
     background:var(--bg); color:var(--text);
     font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   }
-  .wrap{ max-width:980px; margin:0 auto; }
+  .wrap{ max-width:1040px; margin:0 auto; }
   header{
     display:flex; align-items:center; justify-content:space-between;
     gap:12px; flex-wrap:wrap; margin-bottom:12px;
@@ -39,7 +39,7 @@
     box-shadow:0 0 18px rgba(255,0,0,.16);
   }
   .chat{
-    height:60vh; min-height:360px; max-height:680px;
+    height:62vh; min-height:380px; max-height:720px;
     overflow:auto;
     padding:12px;
     border-radius:14px;
@@ -124,8 +124,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Tactics & Treats – Admin Bot</h1>
-    <div class="pill">Chat • Learn • DBSCAN • SCANFIX</div>
+    <h1>Tactics & Treats – Admin Bot (Full Updated)</h1>
+    <div class="pill">Natural chat • SHOWALL • Nicknames • Bulk • DBSCAN • SCANFIX</div>
   </header>
 
   <div class="card">
@@ -134,19 +134,19 @@
     <div id="status"></div>
 
     <div class="bar">
-      <input id="input" placeholder="Talk to me… (example: “monthly gross”, “make a fake order”, “scanfix”)" autocomplete="off" />
+      <input id="input" placeholder="Talk to me… (try: NEXT, showall john rush, unpaid, bulk)" autocomplete="off" />
       <button id="sendBtn" type="button">Send</button>
-      <button id="resetBtn" class="secondary" type="button">Reset</button>
+      <button id="resetBtn" type="button" class="secondary">Reset</button>
     </div>
 
     <div class="meta">
-      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNFINISHED</b>, <b>UNPAID</b>, <b>MONTHLY GROSS</b>, <b>DBSCAN</b>, <b>SCANFIX</b><br/>
-      Teach: “make it so when I say <b>monthly gross</b> tell me how much I made that month”
+      Quick: <b>HELP</b>, <b>NEXT</b>, <b>UNPAID</b>, <b>UNFINISHED</b>, <b>MONTHLY GROSS</b>,
+      <b>SHOWALL</b>, <b>DBSCAN</b>, <b>SCANFIX</b>, <b>BULK</b>, <b>ALIASES</b>
     </div>
   </div>
 </div>
 
-<!-- Firebase compat (works on GitHub Pages + mobile, no modules) -->
+<!-- Firebase compat (easy hosting) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 
@@ -170,15 +170,16 @@ const ts = () => firebase.firestore.FieldValue.serverTimestamp();
 ========================= */
 const ORDERS = "tt_orders";
 const SKILLS = "tt_skills";
+const ALIASES = "tt_order_aliases"; // nickname -> orderId
 const PRODUCTS = {
   bracelets: "products_bracelets",
   cookies: "products_cookies",
 };
 
-/* DB scan targets (client apps must know collection names) */
 const DB_COLLECTIONS = [
   { key:"orders", name: ORDERS, limit: 500 },
   { key:"skills", name: SKILLS, limit: 500 },
+  { key:"aliases", name: ALIASES, limit: 500 },
   { key:"bracelets", name: PRODUCTS.bracelets, limit: 500 },
   { key:"cookies", name: PRODUCTS.cookies, limit: 500 },
 ];
@@ -190,8 +191,6 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const chipsBox = document.getElementById("chips");
 const statusEl = document.getElementById("status");
-const sendBtn = document.getElementById("sendBtn");
-const resetBtn = document.getElementById("resetBtn");
 
 function setStatus(msg){ statusEl.textContent = msg || ""; }
 function addMsg(text, who="bot"){
@@ -217,7 +216,7 @@ function upper(s){ return clean(s).toUpperCase(); }
 function digitsOnly(s){ return String(s||"").replace(/[^\d]/g,""); }
 function money(v){
   const n = Number(v);
-  return Number.isFinite(n) ? "$"+n.toFixed(2) : "$0.00";
+  return Number.isFinite(n) ? "$" + n.toFixed(2) : "$0.00";
 }
 function safeToDate(v){
   if(!v) return null;
@@ -230,142 +229,12 @@ function fmtDate(v){
   const d = safeToDate(v);
   return d ? d.toLocaleString() : "";
 }
-function normStatus(s){
+function normalizeStatus(s){
   const t = String(s||"new").toLowerCase().trim();
   if(["new","pending","unpaid","done","archived","cancelled","refunded","flagged"].includes(t)) return t;
   if(t === "completed") return "done";
-  return "new";
+  return t || "new";
 }
-
-/* =========================
-   MEMORY / STATE
-========================= */
-const convo = {
-  lastOrderId: "",
-  awaitingLearnConfirm: null, // unknown phrase
-  awaitingLearnAction: null,  // trigger being taught
-  pendingFixPlan: null,       // SCANFIX plan
-};
-
-/* =========================
-   FAST CACHE
-========================= */
-let orderCache = [];
-let orderCacheAt = 0;
-const CACHE_TTL = 15000;
-const ORDER_FETCH_LIMIT = 700;
-
-async function getOrdersFast(){
-  if(orderCache.length && (Date.now() - orderCacheAt) < CACHE_TTL) return orderCache;
-  const snap = await db.collection(ORDERS).limit(ORDER_FETCH_LIMIT).get();
-  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  orderCacheAt = Date.now();
-  return orderCache;
-}
-function bustOrdersCache(){ orderCacheAt = 0; }
-
-/* =========================
-   SKILLS (learned commands)
-========================= */
-let skillsCache = [];
-let skillsCacheAt = 0;
-const SKILLS_TTL = 15000;
-
-async function loadSkillsFast(){
-  if(skillsCache.length && (Date.now() - skillsCacheAt) < SKILLS_TTL) return skillsCache;
-  const snap = await db.collection(SKILLS).limit(800).get();
-  skillsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  skillsCacheAt = Date.now();
-  return skillsCache;
-}
-function bustSkillsCache(){ skillsCacheAt = 0; }
-
-async function saveSkill(trigger, action){
-  await db.collection(SKILLS).add({
-    trigger: String(trigger||"").trim().toLowerCase(),
-    action: String(action||"").trim(),
-    createdAt: ts()
-  });
-  bustSkillsCache();
-}
-async function deleteSkillByTrigger(trigger){
-  const t = String(trigger||"").trim().toLowerCase();
-  const snap = await db.collection(SKILLS).where("trigger","==",t).limit(50).get();
-  const batch = db.batch();
-  snap.docs.forEach(doc => batch.delete(doc.ref));
-  await batch.commit();
-  bustSkillsCache();
-}
-
-/* =========================
-   PRODUCT HELPERS
-========================= */
-function resolveProductCollection(key){
-  const k = String(key||"").toLowerCase().trim();
-  if(k === "bracelets") return PRODUCTS.bracelets;
-  if(k === "cookies") return PRODUCTS.cookies;
-  return null;
-}
-
-/* =========================
-   FAKE ORDERS
-========================= */
-function randFrom(a){ return a[Math.floor(Math.random()*a.length)]; }
-async function makeFakeOrder(opts={}){
-  const names = ["John Doe","Jane Smith","Alex Carter","Sam Hill","Chris Fox","Taylor Ray"];
-  const phones = ["2085551122","2085553344","2085557788","2085559900","2085551212"];
-  const id = "TEST_" + Math.random().toString(36).slice(2,8).toUpperCase();
-
-  const status = normStatus(opts.status || "new");
-  const total = Number.isFinite(Number(opts.total)) ? Number(opts.total) : Number((Math.random()*45+10).toFixed(2));
-
-  const doc = {
-    fake: true,
-    status,
-    createdAt: ts(),
-    totals: { total },
-    order: {
-      name: opts.name || randFrom(names),
-      phone: opts.phone || randFrom(phones),
-      phoneDigits: digitsOnly(opts.phone || ""),
-      shipping: opts.shipping || "USPS",
-      rush: !!opts.rush,
-      address: opts.address || ""
-    },
-    items: opts.items || [],
-    adminNote: opts.adminNote || "test order"
-  };
-
-  await db.collection(ORDERS).doc(id).set(doc, { merge:true });
-  bustOrdersCache();
-  return id;
-}
-
-/* =========================
-   FIND / ID extraction
-========================= */
-function looksLikeId(tok){
-  const t = String(tok||"").trim();
-  if(!t) return false;
-  if(t.length < 4) return false;
-  if(t.includes(" ")) return false;
-  return /[a-z0-9]/i.test(t);
-}
-function extractFirstId(text){
-  const tokens = clean(text).split(/\s+/);
-  const skip = new Set(["order","orders","mark","set","as","to","the","a","an","please","pls","done","completed","complete","shipped","paid","show","scanfix","dbscan","confirm"]);
-  for(const tok0 of tokens){
-    const tok = tok0.replace(/[^\w-]/g,"");
-    if(!tok) continue;
-    if(skip.has(tok.toLowerCase())) continue;
-    if(looksLikeId(tok)) return tok;
-  }
-  return "";
-}
-
-/* =========================
-   DATE RANGES
-========================= */
 function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
 function startOfWeek(){ const d=startOfToday(); const day=d.getDay(); d.setDate(d.getDate()-day); return d; }
 function startOfMonth(){ const d=startOfToday(); d.setDate(1); return d; }
@@ -374,48 +243,267 @@ function isToday(r){ return orderCreatedDate(r) >= startOfToday(); }
 function isThisWeek(r){ return orderCreatedDate(r) >= startOfWeek(); }
 function isThisMonth(r){ return orderCreatedDate(r) >= startOfMonth(); }
 
-/* =========================
-   ORDER SUMMARY
-========================= */
 function orderTotal(r){
   const n = Number(r?.totals?.total);
   return Number.isFinite(n) ? n : 0;
 }
+
+/* =========================
+   DISPLAY: EVERYTHING ABOUT ITEMS + ORDER
+========================= */
+function summarizeItems(items){
+  if(!Array.isArray(items) || !items.length) return "(none)";
+
+  const pickExtras = (it)=>{
+    const extras = [];
+    for(const [k,v] of Object.entries(it || {})){
+      if(v === undefined || v === null) continue;
+      if(v === "" ) continue;
+      if(Array.isArray(v) && v.length === 0) continue;
+      if(typeof v === "boolean" && v === false) continue;
+
+      // skip fields we already print nicely below
+      if(["itemType","weave","inches","fit","colors","patternStyle"].includes(k)) continue;
+
+      extras.push(`${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`);
+    }
+    return extras;
+  };
+
+  return items.map((it, i)=>{
+    const colors = Array.isArray(it.colors) ? it.colors.join(" / ") : "";
+    const extras = pickExtras(it);
+
+    return [
+      `${i+1}) ${it.itemType || "(item)"}`,
+      `   • weave: ${it.weave || ""}`,
+      `   • size: ${it.inches || ""}"`,
+      `   • fit: ${it.fit || ""}`,
+      `   • colors: ${colors || "(none)"}`,
+      `   • pattern: ${it.patternStyle || "(none)"}`,
+      extras.length ? `   • extras:\n     - ${extras.join("\n     - ")}` : `   • extras: (none)`
+    ].join("\n");
+  }).join("\n\n");
+}
+
+function orderCard(id, data){
+  const o = data?.order || {};
+  const status = normalizeStatus(data?.status);
+
+  const totals = data?.totals || {};
+  const totalNum = Number(totals.total);
+  const totalTxt = Number.isFinite(totalNum) ? money(totalNum) : (totals.total ?? "");
+
+  // Known top-level fields (everything else gets printed under EXTRA FIELDS)
+  const knownTop = new Set([
+    "status","createdAt","order","items","totals",
+    "assignedTo","adminNote","tracking","flagged","problemNote",
+    "paidAt","shippedAt","doneAt",
+    "notes","giftNote","giftNoteText","trackingUpgrade","packaging","photoBeforePay",
+    "donation","coupon"
+  ]);
+
+  // Print any unknown top fields too
+  const extraTop = [];
+  for(const [k,v] of Object.entries(data || {})){
+    if(knownTop.has(k)) continue;
+    if(v === undefined || v === null) continue;
+    if(v === "" ) continue;
+    if(Array.isArray(v) && v.length === 0) continue;
+    if(typeof v === "boolean" && v === false) continue;
+
+    if(typeof v?.toDate === "function") extraTop.push(`${k}: ${fmtDate(v)}`);
+    else extraTop.push(`${k}: ${Array.isArray(v) ? JSON.stringify(v) : String(v)}`);
+  }
+
+  const totalsLines = [];
+  for(const [k,v] of Object.entries(totals || {})){
+    if(v === undefined || v === null) continue;
+    if(typeof v === "number") totalsLines.push(`  • ${k}: ${money(v)}`);
+    else totalsLines.push(`  • ${k}: ${String(v)}`);
+  }
+
+  const orderLines = [];
+  for(const [k,v] of Object.entries(o || {})){
+    if(v === undefined || v === null) continue;
+    if(v === "" ) continue;
+    if(typeof v === "boolean" && v === false) continue;
+    orderLines.push(`  • ${k}: ${String(v)}`);
+  }
+
+  return [
+    `ORDER FULL DETAILS`,
+    `Order ID: ${id}`,
+    `Status: ${status}`,
+    `Created: ${fmtDate(data?.createdAt)}`,
+    ``,
+    `Customer / Shipping (order object):`,
+    orderLines.length ? orderLines.join("\n") : "  (none)",
+    ``,
+    `Admin fields:`,
+    `  • assignedTo: ${data?.assignedTo || ""}`,
+    `  • adminNote: ${data?.adminNote || ""}`,
+    `  • tracking: ${data?.tracking || ""}`,
+    `  • flagged: ${data?.flagged ? "yes" : "no"}`,
+    `  • problemNote: ${data?.problemNote || ""}`,
+    `  • paidAt: ${fmtDate(data?.paidAt)}`,
+    `  • shippedAt: ${fmtDate(data?.shippedAt)}`,
+    `  • doneAt: ${fmtDate(data?.doneAt)}`,
+    ``,
+    `Customer extras:`,
+    `  • notes: ${data?.notes || ""}`,
+    `  • giftNote: ${data?.giftNote ? "yes" : "no"}`,
+    `  • giftNoteText: ${data?.giftNoteText || ""}`,
+    `  • trackingUpgrade: ${data?.trackingUpgrade ? "yes" : "no"}`,
+    `  • packaging: ${data?.packaging ? "yes" : "no"}`,
+    `  • photoBeforePay: ${data?.photoBeforePay ? "yes" : "no"}`,
+    `  • coupon: ${data?.coupon || ""}`,
+    `  • donation: ${money(data?.donation || 0)}`,
+    ``,
+    `Totals:`,
+    totalsLines.length ? totalsLines.join("\n") : "  (none)",
+    `  • total_display: ${totalTxt}`,
+    ``,
+    `Items:`,
+    summarizeItems(data?.items || []),
+    ``,
+    extraTop.length ? `EXTRA FIELDS:\n${extraTop.map(x=>"• "+x).join("\n")}` : "EXTRA FIELDS: (none)"
+  ].join("\n");
+}
+
 function compactOrderLine(r){
   const o = r.order || {};
-  return `• ${r.id} | ${normStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(orderTotal(r))}`;
+  const t = orderTotal(r);
+  return `• ${r.id} | ${normalizeStatus(r.status)} | ${o.name||""} | ${o.phone||""} | ${money(t)}`;
 }
 function formatOrderList(rows, title){
   if(!rows.length) return `${title}: none found.`;
-  return [ `${title} (showing ${rows.length}):`, ...rows.map(compactOrderLine) ].join("\n");
-}
-function orderCard(id, data){
-  const o = data?.order || {};
   return [
-    `Order: ${id}`,
-    `Status: ${normStatus(data?.status)}`,
-    `Created: ${fmtDate(data?.createdAt)}`,
-    `Name: ${o.name || ""}`,
-    `Phone: ${o.phone || ""}`,
-    `Shipping: ${o.shipping || ""}`,
-    `Address: ${o.address || ""}`,
-    `Rush: ${o.rush ? "yes" : "no"}`,
-    `Tracking: ${data?.tracking || ""}`,
-    `PaidAt: ${fmtDate(data?.paidAt)}`,
-    `ShippedAt: ${fmtDate(data?.shippedAt)}`,
-    `DoneAt: ${fmtDate(data?.doneAt)}`,
-    `Total: ${money(orderTotal(data))}`,
+    `${title} (showing ${rows.length}):`,
+    ...rows.map(compactOrderLine)
   ].join("\n");
 }
 
 /* =========================
-   STATS
+   CACHES (fast)
 ========================= */
-function statsForRange(rows, predicate){
-  const inRange = rows.filter(predicate);
-  const done = inRange.filter(r=>normStatus(r.status)==="done");
-  const revenue = done.reduce((s,r)=>s+orderTotal(r),0);
-  return { count: inRange.length, doneCount: done.length, revenue };
+let orderCache = [];
+let orderCacheAt = 0;
+
+let skillsCache = [];
+let skillsCacheAt = 0;
+
+let aliasCache = [];
+let aliasCacheAt = 0;
+
+const TTL = 15000;
+const ORDER_FETCH_LIMIT = 900;
+
+async function refreshOrders(){
+  const snap = await db.collection(ORDERS).limit(ORDER_FETCH_LIMIT).get();
+  orderCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  orderCacheAt = Date.now();
+  return orderCache;
+}
+async function ensureOrdersFresh(){
+  if(!orderCache.length || (Date.now() - orderCacheAt) > TTL) await refreshOrders();
+  return orderCache;
+}
+
+async function refreshSkills(){
+  const snap = await db.collection(SKILLS).limit(900).get();
+  skillsCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  skillsCacheAt = Date.now();
+  return skillsCache;
+}
+async function ensureSkillsFresh(){
+  if(!skillsCache.length || (Date.now() - skillsCacheAt) > TTL) await refreshSkills();
+  return skillsCache;
+}
+
+async function refreshAliases(){
+  const snap = await db.collection(ALIASES).limit(900).get();
+  aliasCache = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  aliasCacheAt = Date.now();
+  return aliasCache;
+}
+async function ensureAliasesFresh(){
+  if(!aliasCache.length || (Date.now() - aliasCacheAt) > TTL) await refreshAliases();
+  return aliasCache;
+}
+
+function bustOrders(){ orderCacheAt = 0; }
+function bustSkills(){ skillsCacheAt = 0; }
+function bustAliases(){ aliasCacheAt = 0; }
+
+/* =========================
+   ALIASES (nicknames)
+========================= */
+function normAlias(s){
+  return String(s||"")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g," ")
+    .replace(/[^\w\s-]/g,"");
+}
+function looksLikeId(tok){
+  const t = String(tok||"").trim();
+  if(!t) return false;
+  if(t.length < 4) return false;
+  if(t.includes(" ")) return false;
+  return /[a-z0-9]/i.test(t);
+}
+async function setAlias(alias, orderId){
+  const a = normAlias(alias);
+  if(!a) throw new Error("Alias is empty.");
+  if(!orderId) throw new Error("OrderId missing.");
+  await db.collection(ALIASES).doc(a).set({
+    alias: a,
+    orderId: String(orderId).trim(),
+    updatedAt: ts()
+  }, { merge:true });
+  bustAliases();
+}
+async function getAlias(alias){
+  const a = normAlias(alias);
+  const snap = await db.collection(ALIASES).doc(a).get();
+  return snap.exists ? snap.data() : null;
+}
+async function deleteAlias(alias){
+  const a = normAlias(alias);
+  await db.collection(ALIASES).doc(a).delete();
+  bustAliases();
+}
+async function listAliases(limit=80){
+  const snap = await db.collection(ALIASES).limit(limit).get();
+  return snap.docs.map(d=>d.data());
+}
+async function resolveOrderId(token){
+  const t = String(token||"").trim();
+  if(!t) return "";
+  if(looksLikeId(t)) return t;
+  const hit = await getAlias(t);
+  return hit?.orderId || "";
+}
+
+/* =========================
+   SKILLS (learn)
+========================= */
+async function saveSkill(trigger, action){
+  await db.collection(SKILLS).add({
+    trigger: normAlias(trigger),
+    action: String(action||"").trim(),
+    createdAt: ts()
+  });
+  bustSkills();
+}
+async function deleteSkillByTrigger(trigger){
+  const trg = normAlias(trigger);
+  const snap = await db.collection(SKILLS).where("trigger","==",trg).limit(80).get();
+  const batch = db.batch();
+  snap.docs.forEach(d=>batch.delete(d.ref));
+  await batch.commit();
+  bustSkills();
 }
 
 /* =========================
@@ -458,18 +546,24 @@ function summarizeOrders(docs){
   const statusCount = {};
   let doneRevenue = 0;
   for(const o of docs){
-    const s = normStatus(o.status);
+    const s = normalizeStatus(o.status);
     statusCount[s] = (statusCount[s]||0)+1;
     if(s==="done") doneRevenue += orderTotal(o);
   }
   const lines = Object.keys(statusCount).sort().map(k=>`• ${k}: ${statusCount[k]}`);
-  const sample = docs.slice(0,8).map(o=>`• ${o.id}`).join("\n") || "(none)";
   return [
     `Orders scanned: ${docs.length}`,
     `Done revenue (scanned): ${money(doneRevenue)}`,
-    `Status breakdown:\n${lines.join("\n") || "(none)"}`,
-    `Sample IDs:\n${sample}`
+    `Status breakdown:\n${lines.join("\n") || "(none)"}`
   ].join("\n");
+}
+function summarizeAliases(docs){
+  const sample = docs.slice(0, 12).map(a=>`• "${a.alias}" → ${a.orderId}`).join("\n") || "(none)";
+  return `Aliases scanned: ${docs.length}\nSample:\n${sample}`;
+}
+function summarizeSkills(docs){
+  const sample = docs.slice(0, 12).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n") || "(none)";
+  return `Skills scanned: ${docs.length}\nSample:\n${sample}`;
 }
 function summarizeProducts(docs){
   let low=0,out=0;
@@ -480,20 +574,7 @@ function summarizeProducts(docs){
       else if(stock<=3) low++;
     }
   }
-  const sample = docs.slice(0,8).map(p=>`• ${p.id} (stock: ${p.stock ?? "?"})`).join("\n") || "(none)";
-  return [
-    `Products scanned: ${docs.length}`,
-    `Out of stock: ${out}`,
-    `Low stock (<=3): ${low}`,
-    `Sample:\n${sample}`
-  ].join("\n");
-}
-function summarizeSkills(docs){
-  const sample = docs.slice(0,12).map(s=>`• "${s.trigger}" → ${s.action}`).join("\n") || "(none)";
-  return [
-    `Skills scanned: ${docs.length}`,
-    `Sample learned commands:\n${sample}`
-  ].join("\n");
+  return `Products scanned: ${docs.length}\nOut of stock: ${out}\nLow stock (<=3): ${low}`;
 }
 async function dbScanAll(){
   const blocks = [];
@@ -502,12 +583,13 @@ async function dbScanAll(){
     let summary = "";
     if(c.name === ORDERS) summary = summarizeOrders(docs);
     else if(c.name === SKILLS) summary = summarizeSkills(docs);
+    else if(c.name === ALIASES) summary = summarizeAliases(docs);
     else summary = summarizeProducts(docs);
 
     blocks.push(
       `=== ${c.name} ===\n` +
       summary + "\n\n" +
-      `Schema (inferred from scanned docs):\n` +
+      `Schema (inferred):\n` +
       schemaReport(docs.slice(0, 80))
     );
   }
@@ -515,18 +597,16 @@ async function dbScanAll(){
 }
 
 /* =========================
-   SCANFIX (plan + confirm)
+   SCANFIX (safe plan + confirm)
 ========================= */
 const FIX_RULES = {
   ensureOrderStatus: true,
   ensureCreatedAt: true,
-  normalizePhoneDigits: true,
+  ensurePhoneDigits: true,
   ensureTotalsNumber: true,
   normalizeSkillTrigger: true,
-  normalizeSkillAction: true,
   ensureProductStockNumber: true
 };
-
 function isTimestamp(v){ return v && typeof v.toDate === "function"; }
 
 async function scanCollectionWithRefs(col, lim){
@@ -540,7 +620,7 @@ function addFix(plan, ref, id, patch, reason){
 async function buildFixPlan(){
   const plan = { createdAt: new Date().toISOString(), fixes: [], summary: [] };
 
-  // ORDERS
+  // ORDERS fixes
   {
     const orders = await scanCollectionWithRefs(ORDERS, 500);
     let missingStatus=0, normedStatus=0, missingCreated=0, phoneFixed=0, totalsFixed=0;
@@ -552,647 +632,10 @@ async function buildFixPlan(){
         if(o.status == null){
           patch.status = "new"; missingStatus++;
         }else{
-          const ns = normStatus(o.status);
+          const ns = normalizeStatus(o.status);
           if(ns !== o.status){ patch.status = ns; normedStatus++; }
         }
       }
 
       if(FIX_RULES.ensureCreatedAt){
-        const ok = o.createdAt && (isTimestamp(o.createdAt) || typeof o.createdAt === "string" || typeof o.createdAt === "number");
-        if(!ok){ patch.createdAt = ts(); missingCreated++; }
-      }
-
-      if(FIX_RULES.normalizePhoneDigits){
-        const p = o?.order?.phone || "";
-        const digs = digitsOnly(p);
-        if(digs && o?.order?.phoneDigits !== digs){
-          patch["order.phoneDigits"] = digs;
-          phoneFixed++;
-        }
-      }
-
-      if(FIX_RULES.ensureTotalsNumber){
-        const t = o?.totals?.total;
-        if(t != null && typeof t !== "number"){
-          const n = Number(t);
-          if(Number.isFinite(n)){ patch["totals.total"] = n; totalsFixed++; }
-        }
-      }
-
-      addFix(plan, o.__ref, o.__id, patch, "orders normalize fields");
-    }
-
-    plan.summary.push(
-      `Orders scanned: ${orders.length}`,
-      `• Missing status set: ${missingStatus}`,
-      `• Status normalized: ${normedStatus}`,
-      `• Missing createdAt set: ${missingCreated}`,
-      `• order.phoneDigits updated: ${phoneFixed}`,
-      `• totals.total converted to number: ${totalsFixed}`
-    );
-  }
-
-  // SKILLS
-  {
-    const skills = await scanCollectionWithRefs(SKILLS, 500);
-    let trig=0, act=0;
-
-    for(const s of skills){
-      const patch = {};
-      if(FIX_RULES.normalizeSkillTrigger && typeof s.trigger === "string"){
-        const nt = s.trigger.trim().toLowerCase();
-        if(nt !== s.trigger){ patch.trigger = nt; trig++; }
-      }
-      if(FIX_RULES.normalizeSkillAction && typeof s.action === "string"){
-        const na = s.action.trim();
-        if(na !== s.action){ patch.action = na; act++; }
-      }
-      addFix(plan, s.__ref, s.__id, patch, "skills normalize trigger/action");
-    }
-
-    plan.summary.push(
-      `Skills scanned: ${skills.length}`,
-      `• Triggers normalized: ${trig}`,
-      `• Actions trimmed: ${act}`
-    );
-  }
-
-  // PRODUCTS
-  for(const col of [PRODUCTS.bracelets, PRODUCTS.cookies]){
-    const prods = await scanCollectionWithRefs(col, 500);
-    let stockFixed=0;
-
-    for(const p of prods){
-      const patch = {};
-      if(FIX_RULES.ensureProductStockNumber && p.stock != null && typeof p.stock !== "number"){
-        const n = Number(p.stock);
-        if(Number.isFinite(n)){ patch.stock = n; stockFixed++; }
-      }
-      addFix(plan, p.__ref, p.__id, patch, `${col} normalize stock`);
-    }
-
-    plan.summary.push(
-      `${col} scanned: ${prods.length}`,
-      `• stock converted to number: ${stockFixed}`
-    );
-  }
-
-  return plan;
-}
-async function applyFixPlan(plan){
-  const MAX_WRITES = 250; // safety cap
-  const fixes = plan.fixes.slice(0, MAX_WRITES);
-
-  let ok=0, fail=0;
-
-  // batch commit (limit 500 ops)
-  const BATCH = 400;
-  for(let i=0;i<fixes.length;i+=BATCH){
-    const batch = db.batch();
-    const chunk = fixes.slice(i, i+BATCH);
-    for(const f of chunk) batch.update(f.ref, f.patch);
-
-    try{
-      await batch.commit();
-      ok += chunk.length;
-    }catch(e){
-      // fallback per-doc
-      for(const f of chunk){
-        try{ await f.ref.update(f.patch); ok++; }
-        catch(err){ fail++; }
-      }
-    }
-  }
-
-  return { ok, fail, total: fixes.length };
-}
-
-/* =========================
-   TRANSLATE "teach me" meaning -> action
-========================= */
-function translateHumanAction(text){
-  const t = String(text||"").toLowerCase();
-
-  // revenue / gross
-  if(t.includes("gross") || t.includes("revenue") || t.includes("how much i made") || t.includes("how much i earned")){
-    if(t.includes("today")) return "REVENUE TODAY";
-    if(t.includes("week")) return "REVENUE WEEK";
-    if(t.includes("month")) return "REVENUE MONTH";
-    return "REVENUE MONTH";
-  }
-
-  // totals / count
-  if(t.includes("how many orders") || t.includes("order count") || t.includes("orders total") || t.includes("totals")){
-    if(t.includes("today")) return "TOTALS TODAY";
-    if(t.includes("week")) return "TOTALS WEEK";
-    if(t.includes("month")) return "TOTALS MONTH";
-    return "TOTALS MONTH";
-  }
-
-  // workflow
-  if(t.includes("what's next") || t.includes("whats next") || t.includes("next order")) return "NEXT";
-  if(t.includes("unfinished") || t.includes("open orders") || t.includes("not done")) return "UNFINISHED";
-  if(t.includes("unpaid") || t.includes("not paid")) return "UNPAID";
-
-  // db tools
-  if(t.includes("scan") && t.includes("fix")) return "SCANFIX";
-  if(t.includes("scan") && (t.includes("database") || t.includes("firebase"))) return "DBSCAN";
-
-  // fake/test
-  if(t.includes("fake order") || t.includes("test order")) return "MAKEFAKE 1";
-
-  return null;
-}
-
-/* =========================
-   NATURAL LANGUAGE -> COMMAND
-========================= */
-function interpretNatural(raw){
-  const text = clean(raw);
-  const L = text.toLowerCase();
-  const U = upper(text);
-
-  // If waiting for learn confirm
-  if(convo.awaitingLearnConfirm){
-    if(["yes","yeah","yep","ok","sure","y"].includes(L)){
-      convo.awaitingLearnAction = String(convo.awaitingLearnConfirm).trim().toLowerCase();
-      convo.awaitingLearnConfirm = null;
-      return "__ASK_LEARN_ACTION__";
-    }
-    if(["no","nope","nah","n"].includes(L)){
-      convo.awaitingLearnConfirm = null;
-      return "__LEARN_CANCEL__";
-    }
-  }
-
-  // If waiting for learn action explanation
-  if(convo.awaitingLearnAction){
-    const action = translateHumanAction(text);
-    if(action){
-      convo._learn = { trigger: convo.awaitingLearnAction, action };
-      convo.awaitingLearnAction = null;
-      return "__SAVE_SKILL__";
-    }
-    return "__ASK_LEARN_ACTION__"; // ask again
-  }
-
-  // Teach sentence: "make it so when i say <trigger> <meaning>"
-  if(L.startsWith("make it so when i say")){
-    // rough parse: "make it so when i say TRIGGER tell me/do ... MEANING"
-    const m = text.match(/make it so when i say\s+(.+?)\s+(tell me|do|it should|it will)\s+(.+)/i);
-    if(m){
-      const trigger = String(m[1]||"").trim().toLowerCase();
-      const meaning = String(m[3]||"").trim();
-      const action = translateHumanAction(meaning);
-      if(action){
-        convo._learn = { trigger, action };
-        return "__SAVE_SKILL__";
-      }
-      // couldn't translate -> ask action
-      convo.awaitingLearnAction = trigger;
-      return "__ASK_LEARN_ACTION__";
-    }
-  }
-
-  // Known command words
-  const first = upper(text.split(/\s+/)[0]||"");
-  const known = new Set([
-    "HELP","NEXT","UNFINISHED","UNPAID","DONE","SHIPPED","PAID","SHOW",
-    "BYPHONE","FIND",
-    "TOTALS","REVENUE",
-    "MAKEFAKE","DBSCAN","SCANFIX","CONFIRM","LISTSKILLS","FORGET"
-  ]);
-  if(known.has(first)) return text;
-
-  // Learned skills first
-  // (we check triggers in handleChat so we can await skills)
-  // Here: quick convenience
-  if(L === "monthly gross" || L === "month gross") return "REVENUE MONTH";
-  if(L === "weekly gross") return "REVENUE WEEK";
-  if(L === "today gross") return "REVENUE TODAY";
-
-  // Workflow phrases
-  if(L.includes("what's next") || L.includes("whats next") || L === "next") return "NEXT";
-  if(L.includes("unfinished") || L.includes("open orders") || L.includes("not done")) return "UNFINISHED";
-  if(L.includes("unpaid") || L.includes("not paid")) return "UNPAID";
-
-  // Mark done / shipped / paid (use id or last)
-  if(L.includes("mark") && (L.includes("done") || L.includes("complete"))){
-    const id = extractFirstId(text) || convo.lastOrderId;
-    if(id) return `DONE ${id}`;
-    convo.awaitingLearnConfirm = text; // we'll ask to learn if unknown, but here missing id
-    return "__ASK_NEED_ORDER__";
-  }
-  if(L.includes("ship") || L.includes("shipped")){
-    const id = extractFirstId(text) || convo.lastOrderId;
-    if(id) return `SHIPPED ${id}`;
-    return "__ASK_NEED_ORDER__";
-  }
-  if(L.includes("paid")){
-    const id = extractFirstId(text) || convo.lastOrderId;
-    if(id) return `PAID ${id}`;
-    return "__ASK_NEED_ORDER__";
-  }
-  if(L.startsWith("show") || L.includes("show order")){
-    const id = extractFirstId(text) || convo.lastOrderId;
-    if(id) return `SHOW ${id}`;
-    return "__ASK_NEED_ORDER__";
-  }
-
-  // Fake orders
-  if(L.includes("fake order") || L.includes("test order")){
-    const n = (L.match(/\b(\d+)\b/)||[])[1];
-    return `MAKEFAKE ${n || 1}`;
-  }
-
-  // DB tools
-  if(L.includes("dbscan") || (L.includes("scan") && (L.includes("firebase") || L.includes("database")))) return "DBSCAN";
-  if(L.includes("scanfix") || (L.includes("scan") && L.includes("fix"))){
-    if(L.includes("confirm")) return "SCANFIX CONFIRM";
-    return "SCANFIX";
-  }
-
-  // Phone search
-  const digs = digitsOnly(text);
-  if(digs.length >= 7) return `BYPHONE ${digs}`;
-
-  // Fallback: search
-  return `FIND ${text}`;
-}
-
-/* =========================
-   HELP
-========================= */
-function helpText(){
-  return [
-    "SMART ADMIN BOT – HELP",
-    "",
-    "Talk normally (recommended):",
-    "  monthly gross | what's next | mark it done | make 3 fake orders | scanfix",
-    "",
-    "Teach it:",
-    "  make it so when I say monthly gross tell me how much I made that month",
-    "  (If I don’t understand, I’ll ask if you want me to learn it.)",
-    "",
-    "Core commands:",
-    "  NEXT | UNFINISHED | UNPAID",
-    "  SHOW <id> | DONE <id> | SHIPPED <id> | PAID <id>",
-    "  BYPHONE <digits> | FIND <text>",
-    "  REVENUE TODAY|WEEK|MONTH | TOTALS TODAY|WEEK|MONTH",
-    "  MAKEFAKE <n>",
-    "  LISTSKILLS | FORGET <trigger phrase>",
-    "",
-    "Database tools:",
-    "  DBSCAN",
-    "  SCANFIX  (plan)  →  SCANFIX CONFIRM (apply fixes safely)",
-  ].join("\n");
-}
-
-/* =========================
-   COMMAND EXECUTOR
-========================= */
-async function handleCommand(raw){
-  const text = clean(raw);
-  const U = upper(text);
-  if(!text) return;
-
-  setStatus("Working…");
-
-  // Handle special prompts
-  if(U === "__ASK_NEED_ORDER__"){
-    setStatus("");
-    addMsg("Which order? Send the order ID (or say “the last one”).", "bot");
-    return;
-  }
-  if(U === "__ASK_LEARN_ACTION__"){
-    setStatus("");
-    addMsg(`Okay. What should I do when you say:\n"${convo.awaitingLearnAction}"\n\nExamples:\n• “tell me how much I made this month”\n• “show unpaid orders”\n• “scan and fix the database”`, "bot");
-    return;
-  }
-  if(U === "__LEARN_CANCEL__"){
-    setStatus("");
-    addMsg("Okay — I won’t learn that.", "bot");
-    return;
-  }
-  if(U === "__SAVE_SKILL__"){
-    const t = convo?._learn?.trigger;
-    const a = convo?._learn?.action;
-    if(t && a){
-      await saveSkill(t, a);
-      convo._learn = null;
-      setStatus("");
-      addMsg(`✅ Learned:\n"${t}" → ${a}`, "bot");
-      setChips([t, "LISTSKILLS", "HELP"]);
-      return;
-    }
-    setStatus("");
-    addMsg("I couldn’t save that (missing trigger/action). Try again.", "bot");
-    return;
-  }
-
-  // HELP
-  if(U === "HELP"){
-    setStatus("");
-    addMsg(helpText(), "bot");
-    setChips(["NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX","LISTSKILLS"]);
-    return;
-  }
-
-  // LISTSKILLS
-  if(U === "LISTSKILLS"){
-    const skills = await loadSkillsFast();
-    setStatus("");
-    if(!skills.length){ addMsg("No learned commands yet.", "bot"); return; }
-    const lines = skills
-      .slice(0, 80)
-      .map(s=>`• "${s.trigger}" → ${s.action}`)
-      .join("\n");
-    addMsg(`Learned commands (showing ${Math.min(80,skills.length)}):\n${lines}`, "bot");
-    setChips(["HELP","DBSCAN","SCANFIX"]);
-    return;
-  }
-
-  // FORGET <trigger...>
-  if(U.startsWith("FORGET ")){
-    const trig = clean(text.slice(7));
-    if(!trig){ setStatus(""); addMsg("Usage: FORGET <trigger phrase>", "bot"); return; }
-    await deleteSkillByTrigger(trig);
-    setStatus("");
-    addMsg(`🧽 Forgot trigger: "${trig}"`, "bot");
-    setChips(["LISTSKILLS","HELP"]);
-    return;
-  }
-
-  // DBSCAN
-  if(U === "DBSCAN"){
-    setStatus("Scanning database…");
-    try{
-      const report = await dbScanAll();
-      setStatus("");
-      addMsg(report, "bot");
-      setChips(["SCANFIX","HELP","LISTSKILLS"]);
-    }catch(e){
-      setStatus("");
-      addMsg("DBSCAN failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-
-  // SCANFIX / SCANFIX CONFIRM
-  if(U === "SCANFIX"){
-    setStatus("Scanning + building fix plan…");
-    try{
-      const plan = await buildFixPlan();
-      convo.pendingFixPlan = plan;
-      setStatus("");
-      addMsg(
-        "SCANFIX REPORT\n" +
-        plan.summary.join("\n") + "\n\n" +
-        `Fixes queued: ${plan.fixes.length}\n` +
-        (plan.fixes.length ? "Type: SCANFIX CONFIRM to apply (safe capped)." : "No fixes needed 🎉"),
-        "bot"
-      );
-      setChips(["SCANFIX CONFIRM","DBSCAN","HELP"]);
-    }catch(e){
-      setStatus("");
-      addMsg("SCANFIX failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-  if(U === "SCANFIX CONFIRM"){
-    if(!convo.pendingFixPlan || !convo.pendingFixPlan.fixes.length){
-      setStatus("");
-      addMsg("No pending fix plan. Run SCANFIX first.", "bot");
-      return;
-    }
-    setStatus("Applying fixes…");
-    try{
-      const res = await applyFixPlan(convo.pendingFixPlan);
-      convo.pendingFixPlan = null;
-      bustOrdersCache();
-      bustSkillsCache();
-      setStatus("");
-      addMsg(`✅ Applied fixes: ${res.ok}/${res.total}\nFailed: ${res.fail}`, "bot");
-      setChips(["DBSCAN","HELP"]);
-    }catch(e){
-      setStatus("");
-      addMsg("Apply failed: " + (e?.message || String(e)), "bot");
-    }
-    return;
-  }
-
-  const parts = text.split(/\s+/);
-  const cmd = upper(parts[0]||"");
-  const a1 = parts[1];
-
-  // MAKEFAKE <n>
-  if(cmd === "MAKEFAKE"){
-    const n = Math.max(1, Math.min(50, Number(a1||1)));
-    const made = [];
-    for(let i=0;i<n;i++) made.push(await makeFakeOrder({}));
-    setStatus("");
-    addMsg(`🧪 Created ${n} fake order(s):\n${made.map(x=>"• "+x).join("\n")}`, "bot");
-    setChips(["NEXT","UNFINISHED","DBSCAN","SCANFIX"]);
-    return;
-  }
-
-  // Fetch cached orders for most commands
-  const rows = await getOrdersFast();
-
-  // NEXT
-  if(cmd === "NEXT"){
-    const unfinished = rows
-      .filter(r=>!["done","archived","cancelled","refunded"].includes(normStatus(r.status)))
-      .sort((a,b)=>orderCreatedDate(a) - orderCreatedDate(b));
-    const next = unfinished[0];
-    setStatus("");
-    if(!next){ addMsg("NEXT: none found 🎉", "bot"); return; }
-    convo.lastOrderId = next.id;
-    addMsg(orderCard(next.id, next), "bot");
-    setChips([`DONE ${next.id}`,`SHIPPED ${next.id}`,`SHOW ${next.id}`,"UNPAID","UNFINISHED","HELP"]);
-    return;
-  }
-
-  // UNFINISHED / UNPAID
-  if(cmd === "UNFINISHED" || cmd === "UNPAID"){
-    let out = rows.slice();
-    if(cmd === "UNFINISHED"){
-      out = out.filter(r=>!["done","archived","cancelled","refunded"].includes(normStatus(r.status)));
-    }else{
-      out = out.filter(r=>normStatus(r.status)==="unpaid");
-    }
-    out.sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a));
-    out = out.slice(0, 50);
-    setStatus("");
-    addMsg(formatOrderList(out, cmd), "bot");
-    setChips(["NEXT","UNPAID","UNFINISHED","MONTHLY GROSS","HELP"]);
-    return;
-  }
-
-  // SHOW <id>
-  if(cmd === "SHOW"){
-    const id = clean(a1 || convo.lastOrderId);
-    if(!id){ setStatus(""); addMsg("SHOW needs an id.", "bot"); return; }
-    const snap = await db.collection(ORDERS).doc(id).get();
-    setStatus("");
-    if(!snap.exists){ addMsg(`Not found: ${id}`, "bot"); return; }
-    const data = snap.data();
-    convo.lastOrderId = id;
-    addMsg(orderCard(id, data), "bot");
-    setChips([`DONE ${id}`,`SHIPPED ${id}`,`PAID ${id}`,"NEXT","HELP"]);
-    return;
-  }
-
-  // DONE/SHIPPED/PAID <id>
-  if(cmd === "DONE" || cmd === "SHIPPED" || cmd === "PAID"){
-    const id = clean(a1 || convo.lastOrderId);
-    if(!id){ setStatus(""); addMsg(`${cmd} needs an id (or say NEXT first).`, "bot"); return; }
-
-    const patch = {};
-    if(cmd === "DONE"){ patch.status="done"; patch.doneAt=ts(); }
-    if(cmd === "SHIPPED"){ patch.shippedAt=ts(); }
-    if(cmd === "PAID"){ patch.paidAt=ts(); }
-
-    await db.collection(ORDERS).doc(id).set(patch, { merge:true });
-    bustOrdersCache();
-    setStatus("");
-    convo.lastOrderId = id;
-    addMsg(`✅ ${cmd} set for ${id}`, "bot");
-    setChips([`SHOW ${id}`,"NEXT","UNFINISHED","HELP"]);
-    return;
-  }
-
-  // BYPHONE <digits>
-  if(cmd === "BYPHONE"){
-    const digs = digitsOnly(a1||"");
-    const out = rows
-      .filter(r=>digitsOnly(r?.order?.phoneDigits || r?.order?.phone || "") === digs)
-      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
-      .slice(0, 80);
-    setStatus("");
-    addMsg(formatOrderList(out, `BYPHONE ${digs}`), "bot");
-    setChips(["NEXT","UNFINISHED","HELP"]);
-    return;
-  }
-
-  // FIND <text...>
-  if(cmd === "FIND"){
-    const q = lower(parts.slice(1).join(" "));
-    const out = rows
-      .filter(r=>JSON.stringify(r).toLowerCase().includes(q))
-      .sort((a,b)=>orderCreatedDate(b)-orderCreatedDate(a))
-      .slice(0, 80);
-    setStatus("");
-    addMsg(formatOrderList(out, `FIND "${q}"`), "bot");
-    setChips(["NEXT","UNFINISHED","HELP"]);
-    return;
-  }
-
-  // REVENUE / TOTALS
-  if(cmd === "REVENUE" || cmd === "TOTALS"){
-    const range = upper(parts[1]||"MONTH");
-    const pred = (range==="TODAY") ? isToday : (range==="WEEK" ? isThisWeek : isThisMonth);
-    const st = statsForRange(rows, pred);
-    setStatus("");
-    if(cmd === "REVENUE"){
-      addMsg(`REVENUE ${range}\n${money(st.revenue)} (done orders only)`, "bot");
-    }else{
-      addMsg(`TOTALS ${range}\nOrders: ${st.count}\nDone: ${st.doneCount}\nRevenue (done only): ${money(st.revenue)}`, "bot");
-    }
-    setChips(["REVENUE MONTH","REVENUE WEEK","TOTALS MONTH","HELP"]);
-    return;
-  }
-
-  // shortcuts: "MONTHLY GROSS" etc handled by interpretNatural -> REVENUE MONTH
-  setStatus("");
-  addMsg("I didn’t recognize that.\nIf you want, I can learn it — just say it again and I’ll ask.", "bot");
-
-  // trigger learn prompt
-  convo.awaitingLearnConfirm = text;
-  addMsg(`Do you want me to learn this as a new command?\n"${text}"\nReply yes or no.`, "bot");
-}
-
-/* =========================
-   CHAT WRAPPER: learned skills first
-========================= */
-async function handleChat(raw){
-  const text = clean(raw);
-  const L = text.toLowerCase();
-  if(!text) return;
-
-  // Check learned triggers before guessing
-  try{
-    const skills = await loadSkillsFast();
-    for(const s of skills){
-      const trig = String(s.trigger||"").toLowerCase();
-      if(trig && L.includes(trig)){
-        // If action is a command, run it
-        await handleCommand(String(s.action||""));
-        return;
-      }
-    }
-  }catch(e){
-    // ignore; fall back to normal
-  }
-
-  const interpreted = interpretNatural(text);
-  await handleCommand(interpreted);
-}
-
-/* =========================
-   SEND
-========================= */
-async function send(){
-  const raw = input.value;
-  input.value = "";
-  if(!clean(raw)) return;
-
-  addMsg(raw, "user");
-
-  try{
-    await handleChat(raw);
-    setStatus("");
-  }catch(err){
-    console.error(err);
-    setStatus("⚠️ " + (err?.message || String(err)));
-    addMsg("⚠️ Something broke. Check the status line.", "bot");
-    setChips(["HELP","DBSCAN","SCANFIX"]);
-  }
-}
-
-/* Events */
-sendBtn.addEventListener("click", send);
-input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") send(); });
-resetBtn.addEventListener("click", ()=>{
-  chat.innerHTML = "";
-  setStatus("");
-  convo.lastOrderId = "";
-  convo.awaitingLearnConfirm = null;
-  convo.awaitingLearnAction = null;
-  convo.pendingFixPlan = null;
-  setChips(["HELP","NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX"]);
-  addMsg("Reset ✅\nTry: “monthly gross”, “what’s next”, “scanfix”.", "bot");
-});
-
-/* Boot */
-(function init(){
-  setChips(["HELP","NEXT","UNFINISHED","UNPAID","MONTHLY GROSS","DBSCAN","SCANFIX","LISTSKILLS"]);
-  addMsg(
-`Howdy 🤠
-Talk to me like a person.
-
-Try:
-• monthly gross
-• what's next
-• make 2 fake orders
-• scanfix
-• dbscan
-
-Teach me:
-• make it so when I say monthly gross tell me how much I made that month`,
-  "bot");
-  setStatus("✅ Ready");
-})();
-</script>
-</body>
-</html>
+        const ok = o.createdAt && (isTimestamp(o.createdA
