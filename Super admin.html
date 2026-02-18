@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Business Admin Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0b0b0b;
+  color:#fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.card{
+  background:#141414;
+  padding:24px;
+  border-radius:12px;
+  width:100%;
+  max-width:520px;
+  border:1px solid #2a2a2a;
+}
+h2{ margin-top:0; color:#ff2a2a; }
+label{ display:block; margin-top:14px; font-size:14px; }
+input, select{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:8px;
+  border:1px solid #333;
+  background:#0f0f0f;
+  color:#fff;
+}
+button{
+  width:100%;
+  margin-top:14px;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:#ff2a2a;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:hover{ opacity:.9; }
+.status{ margin-top:12px; font-size:13px; color:#ffb347; }
+.success{ color:#4caf50; }
+hr{ border-color:#2a2a2a; margin:22px 0; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Business Admin Editor</h2>
+
+  <label>Business Code</label>
+  <input id="bizCode">
+  <button onclick="loadBusiness()">Load Business</button>
+
+  <label>Business Name</label>
+  <input id="bizName">
+
+  <button onclick="saveBusiness()">Save Business</button>
+
+  <hr>
+
+  <h3 style="color:#ff2a2a;">Users</h3>
+
+  <label>Select User</label>
+  <select id="userSelect"></select>
+
+  <label>New Password</label>
+  <input id="newPass" type="password">
+
+  <label>Role</label>
+  <select id="roleSelect">
+    <option value="staff">Staff</option>
+    <option value="manager">Manager</option>
+    <option value="owner">Owner</option>
+  </select>
+
+  <label>Active</label>
+  <select id="activeSelect">
+    <option value="true">Active</option>
+    <option value="false">Disabled</option>
+  </select>
+
+  <button onclick="saveUser()">Save User Changes</button>
+
+  <hr>
+
+  <h3 style="color:#ff2a2a;">Add New User</h3>
+
+  <label>Username</label>
+  <input id="newUsername">
+
+  <label>Password</label>
+  <input id="newUserPass" type="password">
+
+  <label>Role</label>
+  <select id="newUserRole">
+    <option value="staff">Staff</option>
+    <option value="manager">Manager</option>
+    <option value="owner">Owner</option>
+  </select>
+
+  <button onclick="addUser()">Create User</button>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain: "bracelets-and-color.firebaseapp.com",
+  projectId: "bracelets-and-color",
+  storageBucket: "bracelets-and-color.appspot.com",
+  messagingSenderId: "382292570673",
+  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+});
+
+const db = firebase.firestore();
+
+let currentBiz = "";
+let currentUserId = "";
+
+function setStatus(msg, good=false){
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = good ? "status success" : "status";
+}
+
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function newUserId(){
+  return "u_" + crypto.getRandomValues(new Uint32Array(3)).join("").slice(0,14);
+}
+
+// Load Business
+async function loadBusiness(){
+  const biz = document.getElementById("bizCode").value.trim();
+  if(!biz){ setStatus("Enter business code."); return; }
+
+  const snap = await db.collection("tt_businesses").doc(biz).get();
+  if(!snap.exists){ setStatus("Business not found."); return; }
+
+  currentBiz = biz;
+  document.getElementById("bizName").value = snap.data().businessName || "";
+
+  loadUsers();
+  setStatus("Business loaded.", true);
+}
+
+// Save Business
+async function saveBusiness(){
+  if(!currentBiz){ setStatus("Load business first."); return; }
+
+  const name = document.getElementById("bizName").value.trim();
+
+  await db.collection("tt_businesses").doc(currentBiz).update({
+    businessName: name,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  setStatus("Business saved.", true);
+}
+
+// Load Users
+async function loadUsers(){
+  const sel = document.getElementById("userSelect");
+  sel.innerHTML = "";
+
+  const snap = await db.collection("tt_businesses")
+    .doc(currentBiz)
+    .collection("users")
+    .get();
+
+  snap.forEach(doc=>{
+    const u = doc.data();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = u.username + " (" + u.role + ")";
+    sel.appendChild(opt);
+  });
+
+  sel.onchange = loadUserDetails;
+  if(sel.options.length) loadUserDetails();
+}
+
+// Load Selected User
+async function loadUserDetails(){
+  currentUserId = document.getElementById("userSelect").value;
+
+  const snap = await db.collection("tt_businesses")
+    .doc(currentBiz)
+    .collection("users")
+    .doc(currentUserId)
+    .get();
+
+  const u = snap.data();
+  document.getElementById("roleSelect").value = u.role;
+  document.getElementById("activeSelect").value = u.active !== false ? "true" : "false";
+}
+
+// Save User Changes
+async function saveUser(){
+  if(!currentBiz || !currentUserId){
+    setStatus("Load business + user first.");
+    return;
+  }
+
+  const role = document.getElementById("roleSelect").value;
+  const active = document.getElementById("activeSelect").value === "true";
+  const newPass = document.getElementById("newPass").value;
+
+  const updateData = {
+    role,
+    active,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  if(newPass){
+    updateData.passHash = await sha256(newPass);
+  }
+
+  await db.collection("tt_businesses")
+    .doc(currentBiz)
+    .collection("users")
+    .doc(currentUserId)
+    .update(updateData);
+
+  document.getElementById("newPass").value = "";
+  setStatus("User updated.", true);
+}
+
+// Add User
+async function addUser(){
+  if(!currentBiz){
+    setStatus("Load business first.");
+    return;
+  }
+
+  const username = document.getElementById("newUsername").value.trim().toLowerCase();
+  const password = document.getElementById("newUserPass").value;
+  const role = document.getElementById("newUserRole").value;
+
+  if(!username || !password){
+    setStatus("Username and password required.");
+    return;
+  }
+
+  const check = await db.collection("tt_businesses")
+    .doc(currentBiz)
+    .collection("users")
+    .where("username","==",username)
+    .get();
+
+  if(!check.empty){
+    setStatus("Username already exists.");
+    return;
+  }
+
+  const userId = newUserId();
+  const passHash = await sha256(password);
+
+  await db.collection("tt_businesses")
+    .doc(currentBiz)
+    .collection("users")
+    .doc(userId)
+    .set({
+      userId,
+      username,
+      passHash,
+      role,
+      active:true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  document.getElementById("newUsername").value = "";
+  document.getElementById("newUserPass").value = "";
+
+  loadUsers();
+  setStatus("User created.", true);
+}
+</script>
+
+</body>
+</html>
