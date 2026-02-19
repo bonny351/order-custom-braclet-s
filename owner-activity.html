@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Activity Log</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["owner"]);
+buildLayout();
+
+db.collection("tt_businesses")
+  .doc(session.biz)
+  .collection("logs")
+  .orderBy("at","desc")
+  .limit(200)
+  .onSnapshot(snap=>{
+    mainContent.innerHTML = `
+      <h2>Activity Log</h2>
+      ${snap.docs.map(d=>{
+        const l=d.data();
+        return `
+          <div class="card">
+            ${l.by} (${l.role})<br>
+            ${l.action}<br>
+            ${l.meta?.orderId ? "Order: "+l.meta.orderId : ""}
+          </div>
+        `;
+      }).join("")}
+    `;
+  });
+
+</script>
+</body>
+</html>
