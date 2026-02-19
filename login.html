@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div style="padding:40px;">
+<h2>Login</h2>
+<input id="biz" placeholder="Business Code"><br><br>
+<input id="user" placeholder="Username"><br><br>
+<input id="pass" type="password" placeholder="Password"><br><br>
+<button onclick="login()">Login</button>
+<p id="msg"></p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+async function login(){
+  const snap=await db.collection("tt_businesses")
+    .doc(biz.value)
+    .collection("users")
+    .where("username","==",user.value)
+    .limit(1)
+    .get();
+
+  if(snap.empty){ msg.innerText="User not found"; return;}
+
+  const doc=snap.docs[0];
+  if(doc.data().password!==pass.value){
+    msg.innerText="Wrong password"; return;
+  }
+
+  localStorage.setItem("session",JSON.stringify({
+    biz:biz.value,
+    username:doc.data().username,
+    role:doc.data().role
+  }));
+
+  location.href=doc.data().role+".html";
+}
+</script>
+</body>
+</html>
