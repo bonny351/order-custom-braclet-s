@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Owner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["owner"]);
+buildLayout();
+
+db.collection("tt_businesses")
+  .doc(session.biz)
+  .collection("performance")
+  .onSnapshot(snap=>{
+    mainContent.innerHTML = `
+      <h2>Performance Dashboard</h2>
+      ${snap.docs.map(d=>{
+        const p=d.data();
+        return `
+          <div class="card">
+            <strong>${d.id}</strong><br>
+            Completed: ${p.orders_completed||0}<br>
+            QC: ${p.qc_approvals||0}<br>
+            Shipped: ${p.orders_shipped||0}<br>
+            Payments: ${p.payments_processed||0}<br>
+            Issues: ${p.issues_handled||0}
+          </div>
+        `;
+      }).join("")}
+      <button onclick="location.href='owner-activity.html'">
+        View Activity Log
+      </button>
+    `;
+  });
+
+</script>
+</body>
+</html>
