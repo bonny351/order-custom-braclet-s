@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Support</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["support"]);
+buildLayout();
+startOrderListener();
+
+function renderPage(){
+  const flagged = orderCache.filter(o=>o.status==="flagged");
+
+  mainContent.innerHTML = `
+    <h2>Flagged Orders</h2>
+    ${flagged.map(o=>`
+      <div class="card">
+        Order ${o.id}
+        <button onclick="resolve('${o.id}')">Resolve</button>
+      </div>
+    `).join("")}
+  `;
+}
+
+async function resolve(id){
+  await db.collection("tt_businesses")
+    .doc(session.biz)
+    .collection("orders")
+    .doc(id)
+    .update({status:"resolved"});
+
+  await updatePerformance("issues_handled");
+  await logAction("issue_resolved",{orderId:id});
+}
+
+</script>
+</body>
+</html>
