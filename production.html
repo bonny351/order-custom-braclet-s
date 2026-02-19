@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Production</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+requireRole(["production"]);
+buildLayout();
+startOrderListener();
+
+function renderPage(){
+  const list=orderCache.filter(o=>o.status==="pending");
+
+  mainContent.innerHTML=list.map(o=>`
+    <div class="card">
+      Order ${o.id}
+      <button onclick="send('${o.id}')">Send To QC</button>
+    </div>
+  `).join("");
+}
+
+async function send(id){
+  await db.collection("tt_businesses")
+    .doc(session.biz)
+    .collection("orders")
+    .doc(id)
+    .update({status:"qc_pending"});
+
+  await updatePerformance("orders_completed");
+  await logAction("sent_to_qc",{orderId:id});
+}
+</script>
+
+</body>
+</html>
