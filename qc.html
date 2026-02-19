@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>QC</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["qc"]);
+buildLayout();
+startOrderListener();
+
+function renderPage(){
+  const list = orderCache.filter(o=>o.status==="qc_pending");
+
+  mainContent.innerHTML = `
+    <h2>QC Queue</h2>
+    ${list.map(o=>`
+      <div class="card">
+        Order ${o.id}
+        <button onclick="approve('${o.id}')">Approve</button>
+      </div>
+    `).join("")}
+  `;
+}
+
+async function approve(id){
+  await db.collection("tt_businesses")
+    .doc(session.biz)
+    .collection("orders")
+    .doc(id)
+    .update({status:"ready_to_ship"});
+
+  await updatePerformance("qc_approvals");
+  await logAction("qc_approved",{orderId:id});
+}
+
+</script>
+</body>
+</html>
