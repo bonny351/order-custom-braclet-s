@@ -1,0 +1,47 @@
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b0b0b;
+  color:white;
+}
+
+.layout{
+  display:flex;
+  height:100vh;
+}
+
+.sidebar{
+  width:220px;
+  background:#111;
+  padding:20px;
+}
+
+.sidebar button{
+  width:100%;
+  margin-bottom:10px;
+}
+
+.content{
+  flex:1;
+  padding:20px;
+  overflow:auto;
+}
+
+button{
+  background:#ff2a2a;
+  border:none;
+  padding:8px;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:0.85;
+}
+
+.card{
+  background:#1a1a1a;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:8px;
+}
