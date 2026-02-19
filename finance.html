@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Finance</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["finance"]);
+buildLayout();
+startOrderListener();
+
+function renderPage(){
+  const unpaid = orderCache.filter(o=>o.status==="unpaid");
+
+  mainContent.innerHTML = `
+    <h2>Unpaid Orders</h2>
+    ${unpaid.map(o=>`
+      <div class="card">
+        Order ${o.id}
+        <button onclick="markPaid('${o.id}')">Mark Paid</button>
+      </div>
+    `).join("")}
+  `;
+}
+
+async function markPaid(id){
+  await db.collection("tt_businesses")
+    .doc(session.biz)
+    .collection("orders")
+    .doc(id)
+    .update({status:"paid"});
+
+  await updatePerformance("payments_processed");
+  await logAction("payment_processed",{orderId:id});
+}
+
+</script>
+</body>
+</html>
