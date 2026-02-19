@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shipping</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="shared.js"></script>
+
+<script>
+
+requireRole(["shipping"]);
+buildLayout();
+startOrderListener();
+
+function renderPage(){
+  const list = orderCache.filter(o=>o.status==="ready_to_ship");
+
+  mainContent.innerHTML = `
+    <h2>Ready To Ship</h2>
+    ${list.map(o=>`
+      <div class="card">
+        Order ${o.id}
+        <button onclick="ship('${o.id}')">Ship</button>
+      </div>
+    `).join("")}
+  `;
+}
+
+async function ship(id){
+  await db.collection("tt_businesses")
+    .doc(session.biz)
+    .collection("orders")
+    .doc(id)
+    .update({status:"shipped"});
+
+  await updatePerformance("orders_shipped");
+  await logAction("order_shipped",{orderId:id});
+}
+
+</script>
+</body>
+</html>
