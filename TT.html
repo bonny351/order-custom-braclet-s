@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Setup TT Business</title>
+<title>Factory Reset</title>
 <style>
 body{
   background:#111;
@@ -11,20 +11,21 @@ body{
   padding:40px;
 }
 button{
-  background:red;
+  background:#ff0000;
   border:none;
-  padding:12px 20px;
+  padding:14px 24px;
   color:white;
+  font-size:16px;
   cursor:pointer;
 }
-button:hover{opacity:0.85;}
+button:hover{opacity:0.8;}
 </style>
 </head>
 <body>
 
-<h2>Initialize Internal Business System</h2>
-<p>This will reset ONLY the tt_businesses collection.</p>
-<button onclick="setup()">Run Setup</button>
+<h2>⚠ Factory Reset - Internal System</h2>
+<p>This will completely reset ONLY tt_businesses.</p>
+<button onclick="factoryReset()">FACTORY RESET</button>
 
 <p id="status"></p>
 
@@ -44,67 +45,74 @@ firebase.initializeApp({
 
 const db = firebase.firestore();
 
-async function setup(){
+async function factoryReset(){
 
-  status.innerText = "Resetting tt_businesses...";
+  try{
 
-  // Delete only tt_businesses
-  const snap = await db.collection("tt_businesses").get();
+    status.innerText = "Deleting tt_businesses...";
 
-  for(const doc of snap.docs){
-    await deleteBusiness(doc.id);
-  }
+    // Delete all businesses
+    const businesses = await db.collection("tt_businesses").get();
 
-  // Create new business
-  const bizRef = db.collection("tt_businesses").doc("20903");
+    for(const bizDoc of businesses.docs){
 
-  await bizRef.set({
-    business_name: "Tactics and Treats",
-    business_code: "20903",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+      const bizRef = db.collection("tt_businesses").doc(bizDoc.id);
 
-  // Create owner
-  await bizRef.collection("users").doc("isaiah").set({
-    username: "isaiah",
-    password: "20903",
-    role: "owner",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+      const subs = ["users","orders","logs","performance"];
 
-  // Initialize performance
-  await bizRef.collection("performance").doc("isaiah").set({
-    orders_completed: 0,
-    qc_approvals: 0,
-    orders_shipped: 0,
-    payments_processed: 0,
-    issues_handled: 0
-  });
+      for(const sub of subs){
+        const subSnap = await bizRef.collection(sub).get();
+        for(const doc of subSnap.docs){
+          await doc.ref.delete();
+        }
+      }
 
-  // Initialize empty collections safely
-  await bizRef.collection("logs").add({
-    action: "system_initialized",
-    by: "system",
-    role: "system",
-    at: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  status.innerText = "✅ Setup Complete. You can now log in.";
-}
-
-async function deleteBusiness(bizId){
-
-  const bizRef = db.collection("tt_businesses").doc(bizId);
-  const subCollections = ["users","orders","logs","performance"];
-
-  for(const sub of subCollections){
-    const subSnap = await bizRef.collection(sub).get();
-    for(const doc of subSnap.docs){
-      await doc.ref.delete();
+      await bizRef.delete();
     }
+
+    status.innerText = "Rebuilding system...";
+
+    const bizRef = db.collection("tt_businesses").doc("20903");
+
+    // Create business
+    await bizRef.set({
+      business_name: "Tactics and Treats",
+      business_code: "20903",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Create owner
+    await bizRef.collection("users").doc("isaiah").set({
+      username: "isaiah",
+      password: "20903",
+      role: "owner",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Initialize performance
+    await bizRef.collection("performance").doc("isaiah").set({
+      orders_completed: 0,
+      qc_approvals: 0,
+      orders_shipped: 0,
+      payments_processed: 0,
+      issues_handled: 0
+    });
+
+    // Initialize logs
+    await bizRef.collection("logs").add({
+      action: "factory_reset_completed",
+      by: "system",
+      role: "system",
+      at: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    status.innerText = "✅ Factory Reset Complete.";
+
+  } catch(error){
+    console.error(error);
+    status.innerText = "❌ ERROR: " + error.message;
   }
 
-  await bizRef.delete();
 }
 
 </script>
