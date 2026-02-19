@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Setup TT Business</title>
+<style>
+body{
+  background:#111;
+  color:white;
+  font-family:Arial;
+  padding:40px;
+}
+button{
+  background:red;
+  border:none;
+  padding:12px 20px;
+  color:white;
+  cursor:pointer;
+}
+button:hover{opacity:0.85;}
+</style>
+</head>
+<body>
+
+<h2>Initialize Internal Business System</h2>
+<p>This will reset ONLY the tt_businesses collection.</p>
+<button onclick="setup()">Run Setup</button>
+
+<p id="status"></p>
+
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+
+<script>
+
+firebase.initializeApp({
+  apiKey: "AIzaSyCiZuaANb1lrgdn-aARGJ_TRhgzPPUug58",
+  authDomain: "bracelets-and-color.firebaseapp.com",
+  projectId: "bracelets-and-color",
+  storageBucket: "bracelets-and-color.appspot.com",
+  messagingSenderId: "382292570673",
+  appId: "1:382292570673:web:1c966e2e7e8fc2efa31b10"
+});
+
+const db = firebase.firestore();
+
+async function setup(){
+
+  status.innerText = "Resetting tt_businesses...";
+
+  // Delete only tt_businesses
+  const snap = await db.collection("tt_businesses").get();
+
+  for(const doc of snap.docs){
+    await deleteBusiness(doc.id);
+  }
+
+  // Create new business
+  const bizRef = db.collection("tt_businesses").doc("20903");
+
+  await bizRef.set({
+    business_name: "Tactics and Treats",
+    business_code: "20903",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Create owner
+  await bizRef.collection("users").doc("isaiah").set({
+    username: "isaiah",
+    password: "20903",
+    role: "owner",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Initialize performance
+  await bizRef.collection("performance").doc("isaiah").set({
+    orders_completed: 0,
+    qc_approvals: 0,
+    orders_shipped: 0,
+    payments_processed: 0,
+    issues_handled: 0
+  });
+
+  // Initialize empty collections safely
+  await bizRef.collection("logs").add({
+    action: "system_initialized",
+    by: "system",
+    role: "system",
+    at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  status.innerText = "✅ Setup Complete. You can now log in.";
+}
+
+async function deleteBusiness(bizId){
+
+  const bizRef = db.collection("tt_businesses").doc(bizId);
+  const subCollections = ["users","orders","logs","performance"];
+
+  for(const sub of subCollections){
+    const subSnap = await bizRef.collection(sub).get();
+    for(const doc of subSnap.docs){
+      await doc.ref.delete();
+    }
+  }
+
+  await bizRef.delete();
+}
+
+</script>
+
+</body>
+</html>
